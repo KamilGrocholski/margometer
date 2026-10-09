@@ -34,6 +34,15 @@ export class MargonemEngineWarriorsAbsent extends Error {
     override readonly name = "MargonemEngineWarriorsAbsent";
 }
 
+/**
+ * A battle holding neither collection the game keeps its fighters in. Production build `DHSqC3Uh`
+ * empties `warriorsList` between fights (`clearWarriorList`) and never removes it, so this is a
+ * game that keeps its fighters somewhere else now, not a board with nobody on it.
+ */
+export class MargonemEngineWarriorCollectionAbsent extends Error {
+    override readonly name = "MargonemEngineWarriorCollectionAbsent";
+}
+
 export class MargonemEngineWarriorsExceeded extends Error {
     override readonly name = "MargonemEngineWarriorsExceeded";
     readonly count: number;
@@ -48,6 +57,7 @@ export class MargonemEngineWarriorsExceeded extends Error {
 
 export type MargonemEngineWarriorFailure =
     | MargonemEngineWarriorsAbsent
+    | MargonemEngineWarriorCollectionAbsent
     | MargonemEngineWarriorsExceeded;
 
 /**
@@ -119,9 +129,11 @@ export function readMargonemEngineWarriorsNamed(
     battle: unknown,
 ): UnknownRecord[] | MargonemEngineWarriorFailure {
     if (!isRecord(battle)) return new MargonemEngineWarriorsAbsent();
+    let hasCollection = false;
     for (const collectionKey of WARRIOR_COLLECTIONS) {
         const collection = battle[collectionKey];
         if (!isRecord(collection)) continue;
+        hasCollection = true;
         const named: UnknownRecord[] = [];
         const idsSeen = new Set<number>();
         for (const warrior of Object.values(collection)) {
@@ -139,6 +151,7 @@ export function readMargonemEngineWarriorsNamed(
         }
         return named;
     }
+    if (!hasCollection) return new MargonemEngineWarriorCollectionAbsent();
     return new MargonemEngineWarriorsAbsent();
 }
 

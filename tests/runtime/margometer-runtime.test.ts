@@ -22,6 +22,7 @@ import { initBrowserStore, type KeyValueStore, STORE_KEY } from "#/src/ports/bro
 import { initBrowserFrames } from "#/src/ports/browser-time.ts";
 import { LOOKS_MAXIMUM, type RuntimeTables } from "#/src/runtime/margometer-runtime.ts";
 import { MargonemEngineTooltipRefused } from "#/src/runtime/panel-frame.ts";
+import { MargonemEngineWarriorCollectionAbsent } from "#/src/ports/margonem-engine-warriors.ts";
 import { KEPT_MAXIMUM } from "#/src/runtime/shelf.ts";
 import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
 import { TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
@@ -91,7 +92,10 @@ const TABLES_DATING_NOTHING: RuntimeTables = {
 };
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
-    const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
+    const battle: Record<string, unknown> = {
+        warriorsList: {},
+        updateData: () => "the engine's own answer",
+    };
     const engineOwn = battle.updateData;
     const world = initRuntimeWorld(composeBattlePage(battle));
     assertNotStrictEquals(battle.updateData, engineOwn, "the game was found and wrapped");
@@ -128,7 +132,9 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assertStrictEquals(battle.updateData, engineOwn, "and the game's own method is back");
 });
 
-function composeBattlePage(battle: Record<string, unknown> = { updateData: () => 1 }) {
+function composeBattlePage(
+    battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 },
+) {
     return { Engine: { battle } };
 }
 
@@ -915,7 +921,7 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
 });
 
 function composePlacedPage(hero: Record<string, unknown> = { x: 12, y: 34 }) {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     return { Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: hero } } };
 }
 
@@ -1473,7 +1479,7 @@ Deno.test("a page that lends no frame is drawn at once, and says so once", () =>
 });
 
 Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked for", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     const engineOwn = battle.updateData;
     const world = initRuntimeWorld(composeBattlePage(battle));
     const [opening] = readUpdates(HILDUR);
@@ -1491,7 +1497,7 @@ Deno.test("a stopped add-on takes its wrap off and draws no frame it had asked f
 });
 
 Deno.test("a stopped add-on whose frame the page would not cancel says so, and draws nothing", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     const queue: (() => void)[] = [];
     const world = initRuntimeWorld(composeBattlePage(battle), () => ({
         frames: initBrowserFrames({
@@ -1554,7 +1560,7 @@ Deno.test("a gesture dropped with nothing pressed after it is said on the frame 
 
 Deno.test("two calls before a frame falls ask for one frame, and it draws both", () => {
     let requested = 0;
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     const world = initRuntimeWorld(composeBattlePage(battle), (_, base) => ({
         frames: {
             requestFrame: (step, onStepFailure) => {
@@ -1577,7 +1583,7 @@ Deno.test("two calls before a frame falls ask for one frame, and it draws both",
 
 /** Stopped, the panel left on the page is a picture: a press on it changes nothing kept. */
 Deno.test("a stopped copy answers no press, and draws no call that still reaches it", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     const world = playRecordedFightOn(battle);
     const theirs = battle.updateData;
     assert(typeof theirs === "function", "the wrap went on");
@@ -1819,7 +1825,7 @@ Deno.test("a shelf row states the reader's side first, whatever the game numbers
 
 Deno.test("a fight read back off the shelf says where it was fought, not where the page is", () => {
     const hero: Record<string, unknown> = { x: 12, y: 34 };
-    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const battle: Record<string, unknown> = { warriorsList: {}, updateData: () => 1 };
     const map = { d: { name: "Mapa Testowa" } };
     const world = initRuntimeWorld({ Engine: { battle, map, hero: { d: hero } } });
     for (const payload of readUpdates(HILDUR)) world.update(payload);
@@ -2085,6 +2091,29 @@ Deno.test("a tooltip the client will not take is said on the panel, and the figh
     for (const payload of readUpdates(HILDUR)) world.update(payload);
     assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
     assertEquals(world.lines, [PANEL_DEFECT_KIND.region], "and the tooltips are said, once");
+});
+
+/** `DHSqC3Uh` keeps `warriorsList` on its battle, emptied between fights and never removed. */
+Deno.test("a battle keeping its fighters nowhere the add-on looks is said, for the file and the tooltips", () => {
+    const heard: unknown[] = [];
+    const world = initRuntimeWorld(composeBattlePage({ updateData: () => 1 }), (world) => ({
+        console: {
+            writeBrandedLine: (kind, detail) => {
+                world.lines.push(kind);
+                heard.push(detail);
+            },
+        },
+    }));
+    for (const payload of readUpdates(HILDUR)) world.update(payload);
+    assertStrictEquals(countRows(findList(world.getHost())), 11, "the panel draws the fight");
+    assertEquals(
+        world.lines,
+        [PANEL_DEFECT_KIND.file, PANEL_DEFECT_KIND.region],
+        "the board missing from the file, and the tooltips it cost, each said once",
+    );
+    assertInstanceOf(heard[0], MargonemEngineWarriorCollectionAbsent, "as the board it is");
+    assertInstanceOf(heard[1], MargonemEngineTooltipRefused, "and the blocks it refused");
+    assert(heard[1].refused > 0, "counting the fighters the first frame carried rows for");
 });
 
 Deno.test("a tooltip the client lets nothing onto is said on the panel, though nothing threw", () => {

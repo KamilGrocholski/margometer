@@ -408,6 +408,21 @@ Deno.test("a call of theirs that throws costs the lines and never the fight", ()
     assertEquals(registry.appended, [], "and did not leave this file with a line half written");
 });
 
+/** `DHSqC3Uh` empties `warriorsList` between fights and keeps it, so only a missing one is news. */
+Deno.test("a battle keeping no collection refuses every block asked for, an emptied one none", () => {
+    const rows = new Map([[11, ["a"]], [12, []], [13, ["b"]]]);
+    assertEquals(
+        initMargonemEngineTooltip({ Engine: { battle: {} } }).writeRows(rows),
+        { written: 0, refused: 2 },
+        "no collection refuses the two blocks asked for, and not the empty one",
+    );
+    assertEquals(
+        initMargonemEngineTooltip({ Engine: { battle: { warriorsList: {} } } }).writeRows(rows),
+        { written: 0, refused: 0 },
+        "an emptied collection is a battle between fights",
+    );
+});
+
 Deno.test("a page with no fight on it takes nothing, which is not a failure", () => {
     const rows = new Map([[11, ["a"]]]);
     assertEquals(

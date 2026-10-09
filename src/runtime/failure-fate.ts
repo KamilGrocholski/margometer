@@ -94,6 +94,7 @@ export const FAILURE_FATES: { readonly [Name in RuntimeFailure["name"]]: Failure
     GestureDropped: FAILURE_FATE.defect,
     WindowUnplaced: FAILURE_FATE.fallbackWithDefect,
     MargonemEngineWarriorsAbsent: FAILURE_FATE.none,
+    MargonemEngineWarriorCollectionAbsent: FAILURE_FATE.defect,
     MargonemEngineWarriorsExceeded: FAILURE_FATE.defect,
     MargonemEngineTooltipRefused: FAILURE_FATE.defect,
     MargonemValueAbsent: FAILURE_FATE.shownAsUnknown,

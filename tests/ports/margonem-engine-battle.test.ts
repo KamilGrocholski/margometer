@@ -29,7 +29,10 @@ import {
     WrapCovered,
     type WrapHandle,
 } from "#/src/ports/margonem-engine-battle.ts";
-import { MargonemEngineWarriorsAbsent } from "#/src/ports/margonem-engine-warriors.ts";
+import {
+    MargonemEngineWarriorCollectionAbsent,
+    MargonemEngineWarriorsAbsent,
+} from "#/src/ports/margonem-engine-warriors.ts";
 
 interface Held {
     battle: Record<string, unknown>;
@@ -380,8 +383,10 @@ Deno.test("the warriors are read off the live battle, and a battle holding none 
     const warriors = live.readWarriors();
     assertNotInstanceOf(warriors, Error, "the warriors are read");
     assertEquals(warriors.map((warrior) => warrior.id), [7], "the one the fight holds");
-    const empty = readBattleOn({ updateData: () => 1 }).readWarriors();
+    const empty = readBattleOn({ updateData: () => 1, warriorsList: {} }).readWarriors();
     assertInstanceOf(empty, MargonemEngineWarriorsAbsent, "and none is a failure");
+    const unheld = readBattleOn({ updateData: () => 1 }).readWarriors();
+    assertInstanceOf(unheld, MargonemEngineWarriorCollectionAbsent, "and no collection another");
 });
 
 Deno.test("the failures a wrap counts stop at its bound, and not before", () => {

@@ -17,6 +17,7 @@ import {
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import {
+    MargonemEngineWarriorCollectionAbsent,
     MargonemEngineWarriorsAbsent,
     MargonemEngineWarriorsExceeded,
     readMargonemEngineWarriorSnapshot,
@@ -86,8 +87,18 @@ Deno.test("a fight holding no collection of warriors is refused, not read as nob
     );
     assertInstanceOf(
         readMargonemEngineWarriorSnapshot({}),
+        MargonemEngineWarriorCollectionAbsent,
+        "no collection, which is the game keeping its fighters elsewhere",
+    );
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot({ warriorsList: [] }),
+        MargonemEngineWarriorCollectionAbsent,
+        "a list where a collection stood is none either",
+    );
+    assertInstanceOf(
+        readMargonemEngineWarriorSnapshot({ warriorsList: {} }),
         MargonemEngineWarriorsAbsent,
-        "no collection",
+        "an emptied one is a battle between fights",
     );
     const nobody = { warriorsList: { 1: { id: 1 } }, warriors: [composeWarrior(1, "A")] };
     assertInstanceOf(

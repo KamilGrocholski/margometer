@@ -654,6 +654,7 @@ export function readMargonemEngineWarriorSnapshot(
 ): MargonemEngineWarriorSnapshot | MargonemEngineWarriorFailure;
 export type MargonemEngineWarriorFailure =
     | MargonemEngineWarriorsAbsent // no collection answered with a named warrior
+    | MargonemEngineWarriorCollectionAbsent // a battle holding neither collection at all
     | MargonemEngineWarriorsExceeded; // `count`, `maximum`
 ```
 
@@ -1045,50 +1046,51 @@ goes without a mark.
 
 ### 10.5 The failure map
 
-| Failure                                         | Fate                   | What the reader sees                                   |
-| ----------------------------------------------- | ---------------------- | ------------------------------------------------------ |
-| `UnreadMessage` (grammar, unknown key, none)    | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
-| `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands      |
-| `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
-| `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
-| `EnvelopeFailure`, `PayloadRejected` at a close | `defect` "keeping"     | the fight read on live, and not kept                   |
-| `Caught` reading or capturing, at a close       | `defect` "keeping"     | as above                                               |
-| `CaptureCallsExceeded`                          | `defect` "keeping"     | as above: a capture holding no close is not kept       |
-| `Caught`                                        | `defect` of its step   | as above; one console line per kind                    |
-| `Caught` reading the page's state               | `shown-as-unknown`     | our word instead of the game's, and no defect          |
-| `FiguresDisagreed`                              | `defect` "figures"     | as above                                               |
-| `StoreFailure` opening the shelf                | `fallback-with-defect` | memory; a "kept" defect                                |
-| `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                  |
-| `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                  |
-| `ShelfFailure` on a write                       | `shelf-answer`         | the answer row: a fight, a pin or a move not saved     |
-| `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | memory, the stored shelf untouched; a "kept" defect    |
-| `ShelfVersionUnknown` of an older version       | `fallback-with-defect` | an empty shelf, written over next; a "kept" defect     |
-| `KeptFightsUnreadable`                          | `defect` "kept"        | the rest of the shelf; the fights lost, counted        |
-| `FightAlreadyKept`                              | `defect` "keeping"     | the fight is not kept twice                            |
-| `SettingFailure`                                | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect |
-| `RegionUndrawn`                                 | `defect` "region"      | an undrawn mark where the region stands                |
-| `GestureDropped`                                | `defect` "gesture"     | nothing happened, marked once                          |
-| `WindowUnplaced`                                | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |
-| `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
-| a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                    |
-| `MargonemEngineTooltipRefused`                  | `defect` "region"      | as above, for the fighters it counts                   |
-| a setting write refused                         | `none`                 | the reader's choice stands; the next visit is poorer   |
-| `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's          |
-| `MargonemEngineWarriorsAbsent`                  | `none`                 | a board of nobody: no tooltip, a file with no fighters |
-| `MargonemEngineWarriorsExceeded`                | `defect` "file"        | a file with no board; and "region" for the tooltips    |
-| `MargonemEngineAbsent`, `…BattleAbsent`, a look | `none`                 | a look that found nothing; the search runs on          |
-| `MargonemEngineAbsent`, `…BattleAbsent`, a file | `defect` "file"        | a file with no board                                   |
-| `WrapCovered`                                   | `none`                 | returned by `deinit`, which only a test calls          |
-| `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                             |
-| `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                      |
-| `SearchAbandoned`, the timer refused            | `defect` "engine"      | as above, at once: no look is left to come             |
-| `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands               |
-| `MargonemEngineMethodUnwritable` on a detach    | `none`                 | returned by `deinit`, which only a test calls          |
-| `Caught` from the search's own report           | console line           | nothing on the panel; one console line, the first time |
-| `Caught` cancelling the search's timer          | console line           | a search done, its timer ticking; one console line     |
-| `Caught` cancelling the frame                   | console line           | a frame that finds nothing to do; one console line     |
-| `Caught` from a clock that will not state now   | `defect` "keeping"     | at a fight's close: the fight is not kept              |
-| `Caught` from a clock, on a handover            | `defect` "file"        | no file                                                |
+| Failure                                         | Fate                   | What the reader sees                                         |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
+| `UnreadMessage` (grammar, unknown key, none)    | `shown-as-suspect`     | a count beside the figure, a suspicion sentence              |
+| `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands            |
+| `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                         |
+| `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often       |
+| `EnvelopeFailure`, `PayloadRejected` at a close | `defect` "keeping"     | the fight read on live, and not kept                         |
+| `Caught` reading or capturing, at a close       | `defect` "keeping"     | as above                                                     |
+| `CaptureCallsExceeded`                          | `defect` "keeping"     | as above: a capture holding no close is not kept             |
+| `Caught`                                        | `defect` of its step   | as above; one console line per kind                          |
+| `Caught` reading the page's state               | `shown-as-unknown`     | our word instead of the game's, and no defect                |
+| `FiguresDisagreed`                              | `defect` "figures"     | as above                                                     |
+| `StoreFailure` opening the shelf                | `fallback-with-defect` | memory; a "kept" defect                                      |
+| `StoreUnavailable` on choosing a store          | `shelf-answer`         | nothing moves; the shelf's answer row                        |
+| `StoreFailure` emptying the place left          | `defect` "kept"        | the move stands; a copy stayed behind                        |
+| `ShelfFailure` on a write                       | `shelf-answer`         | the answer row: a fight, a pin or a move not saved           |
+| `ShelfUnreadable`, `ShelfVersionUnknown`        | `fallback-with-defect` | memory, the stored shelf untouched; a "kept" defect          |
+| `ShelfVersionUnknown` of an older version       | `fallback-with-defect` | an empty shelf, written over next; a "kept" defect           |
+| `KeptFightsUnreadable`                          | `defect` "kept"        | the rest of the shelf; the fights lost, counted              |
+| `FightAlreadyKept`                              | `defect` "keeping"     | the fight is not kept twice                                  |
+| `SettingFailure`                                | `fallback-with-defect` | the default place, fold, size or type; a "kept" defect       |
+| `RegionUndrawn`                                 | `defect` "region"      | an undrawn mark where the region stands                      |
+| `GestureDropped`                                | `defect` "gesture"     | nothing happened, marked once                                |
+| `WindowUnplaced`                                | `fallback-with-defect` | the sheet's corner; a "mount" defect                         |
+| `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                                     |
+| a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                          |
+| `MargonemEngineTooltipRefused`                  | `defect` "region"      | as above, for the fighters it counts                         |
+| a setting write refused                         | `none`                 | the reader's choice stands; the next visit is poorer         |
+| `MargonemReadFailure`                           | `shown-as-unknown`     | no place line; our word instead of the game's                |
+| `MargonemEngineWarriorsAbsent`                  | `none`                 | a board of nobody: no tooltip, a file with no fighters       |
+| `MargonemEngineWarriorCollectionAbsent`         | `defect` "file"        | a file with no board; the tooltips asked for counted refused |
+| `MargonemEngineWarriorsExceeded`                | `defect` "file"        | a file with no board; and "region" for the tooltips          |
+| `MargonemEngineAbsent`, `…BattleAbsent`, a look | `none`                 | a look that found nothing; the search runs on                |
+| `MargonemEngineAbsent`, `…BattleAbsent`, a file | `defect` "file"        | a file with no board                                         |
+| `WrapCovered`                                   | `none`                 | returned by `deinit`, which only a test calls                |
+| `MargonemEngineAlreadyWrapped`, `BootFailure`   | `stand-down`           | no panel, one console line                                   |
+| `SearchAbandoned`, `MargonemEngineMethodAbsent` | `defect` "engine"      | the panel waits, one console line                            |
+| `SearchAbandoned`, the timer refused            | `defect` "engine"      | as above, at once: no look is left to come                   |
+| `MargonemEngineMethodUnwritable`                | `defect` "engine"      | as above; the engine's own method stands                     |
+| `MargonemEngineMethodUnwritable` on a detach    | `none`                 | returned by `deinit`, which only a test calls                |
+| `Caught` from the search's own report           | console line           | nothing on the panel; one console line, the first time       |
+| `Caught` cancelling the search's timer          | console line           | a search done, its timer ticking; one console line           |
+| `Caught` cancelling the frame                   | console line           | a frame that finds nothing to do; one console line           |
+| `Caught` from a clock that will not state now   | `defect` "keeping"     | at a fight's close: the fight is not kept                    |
+| `Caught` from a clock, on a handover            | `defect` "file"        | no file                                                      |
 
 A class `FAILURE_FATES` marks `by-place` — `Caught`, the three of `StoreFailure`,
 `MargonemEngineAbsent`, `…BattleAbsent` and `MargonemEngineMethodUnwritable` — is met in places that

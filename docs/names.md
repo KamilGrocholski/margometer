@@ -3575,6 +3575,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MargonemEngineBattleAbsent` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineMethodAbsent` — `src/ports/margonem-engine-battle.ts`
 - `MargonemEngineMethodUnwritable` — `src/ports/margonem-engine-battle.ts`
+- `MargonemEngineWarriorCollectionAbsent` — `src/ports/margonem-engine-warriors.ts`
 - `MargonemEngineWarriorsAbsent` — `src/ports/margonem-engine-warriors.ts`
 - `MargonemEngineWarriorsExceeded` — `src/ports/margonem-engine-warriors.ts`
 - `MargonemValueAbsent` — `src/ports/margonem-value.ts`
@@ -5757,6 +5758,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `from` — `src/ports/margonem-client-build.ts`
 - `getEngine` — `src/ports/margonem-engine-battle.ts`
 - `handle` — `src/ports/browser-time.ts`
+- `hasCollection` — `src/ports/margonem-engine-warriors.ts`
 - `hasEngine` — `src/ports/margonem-engine-battle.ts`
 - `head` — `src/ports/margonem-client-build.ts`
 - `health` — `src/ports/payload-envelope.ts`
@@ -8853,7 +8855,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unfolding` — `tests/runtime/margometer-runtime.test.ts`
 - `ungraded` — `tests/tools/turn-count.test.ts`
 - `unguarded` — `tests/repository/handed-callbacks.test.ts`
-- `unheld` — `tests/core/legendary-standing.test.ts`, `tests/repository/design-tokens.test.ts`
+- `unheld` — `tests/core/legendary-standing.test.ts`, `tests/ports/margonem-engine-battle.test.ts`,
+  `tests/repository/design-tokens.test.ts`
 - `unknown` — in 5 files: `tests/`
 - `unknownKey` — `tests/ui/panel-content.test.ts`
 - `unlisted` — `tests/runtime/live-fight.test.ts`
@@ -10958,6 +10961,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `MargonemEngineMethodAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineMethodUnwritable` — `src/runtime/failure-fate.ts`
 - `MargonemEngineTooltipRefused` — `src/runtime/failure-fate.ts`
+- `MargonemEngineWarriorCollectionAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineWarriorsAbsent` — `src/runtime/failure-fate.ts`
 - `MargonemEngineWarriorsExceeded` — `src/runtime/failure-fate.ts`
 - `MargonemValueAbsent` — `src/runtime/failure-fate.ts`
@@ -13597,7 +13601,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `waited` — `tests/runtime/panel-frame.test.ts`
 - `walk` — `tests/source-tree.ts`
 - `warriors` — `tests/ports/margonem-engine-warriors.test.ts`
-- `warriorsList` — in 6 files: `tests/`
+- `warriorsList` — in 7 files: `tests/`
 - `wasRefused` — `tests/ports/fight-capture.test.ts`, `tests/runtime/live-fight.test.ts`
 - `wasTurnLostRead` — `tests/ui/panel-card.test.ts`
 - `weak` — `tests/verb-purities.ts`

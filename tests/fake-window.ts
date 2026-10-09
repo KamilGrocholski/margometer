@@ -87,7 +87,8 @@ export function composeFakeWindow(options: FakeWindowOptions = {}): FakeWindow {
         innerHeight: 900,
         location: { hostname: "tempest.margonem.pl" },
         navigator: { userAgent: "a browser that said so" },
-        Engine: { battle: { updateData: () => 1 } },
+        // `DHSqC3Uh` builds its battle holding an empty `warriorsList`, as the e2e page does.
+        Engine: { battle: { warriorsList: {}, updateData: () => 1 } },
         ...options.margonem,
     };
     return window;
