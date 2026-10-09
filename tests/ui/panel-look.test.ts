@@ -10,9 +10,11 @@ import {
     assertArrayIncludes,
     assertEquals,
     assertExists,
+    AssertionError,
     assertNotStrictEquals,
     assertStrictEquals,
     assertStringIncludes,
+    assertThrows,
 } from "@std/assert";
 import {
     BAR_ICON,
@@ -43,8 +45,13 @@ import {
     PALETTE_COLOURS,
     SIGNAL,
 } from "#/src/ui/panel-palette.ts";
+import { NOTHING_SUSPECT, presentScreen } from "#/src/ui/panel-content.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
+import { tallyRecordedFight } from "#/tests/recorded-fights.ts";
+import { composeFakeDocument, type FakeElement, getElementsWithin } from "#/tests/fake-document.ts";
+import { initTestView } from "#/tests/panel-view.ts";
+import { composeShownScreen } from "#/tests/shown-screen.ts";
 import {
     getDeclaration,
     getRuleBody,
@@ -62,6 +69,19 @@ interface SheetDeparture {
     develop: string | null;
     here: string | null;
     moved?: readonly string[];
+}
+
+/** A token a rule names for its words, and the opacity the element wearing it is drawn through. */
+interface PaintedInk {
+    selector: string;
+    name: string;
+    opacity: number;
+}
+
+/** A ground a test draws on, and the words it is reported in. */
+interface NamedGround {
+    named: string;
+    colour: Colour;
 }
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
@@ -112,18 +132,19 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * ADR 0013, 0014, 0015, 0033, 0036 and 0046: the rules the options, the sizing, the fight's line,
- * the card in two columns, the bar's controls and the caveat letter, and the shelf's outcome move.
+ * ADR 0013, 0014, 0015, 0033, 0036, 0046 and 0048: the rules the options, the sizing, the fight's
+ * line, the card in two columns, the bar's controls and the caveat letter, the shelf's outcome,
+ * and the inks a bar or an opacity held under the floor move.
  */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
     // Each step's width is its bar measured in one font; where a reader's asks more, the version
-    // gives way and no control does.
+    // gives way and no control does. Its ink is drawn through no opacity (ADR 0048).
     {
         develop: ".titlebar-version",
         here: ".titlebar-version",
-        moved: ["min-width", "overflow", "text-overflow"],
+        moved: ["opacity", "min-width", "overflow", "text-overflow"],
     },
     // A window sized by its corner: its width and its body's height are the reader's, a sized
     // panel stands past the share of the window, and its list takes the room it is given.
@@ -221,43 +242,87 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".card-note.card-defect" },
     { develop: null, here: ".card-outcome.outcome-won" },
     { develop: null, here: ".card-outcome.outcome-lost" },
+    // Every cell a bar reaches in an ink that clears AA over it, a signal mark on a ground of its
+    // own, and no word drawn through an opacity (ADR 0048).
+    { develop: ".sides-label", here: ".sides-label", moved: ["opacity"] },
+    { develop: ".row-rank", here: ".row-rank", moved: ["color"] },
+    { develop: ".row-suspect", here: ".row-suspect", moved: ["background", "border-radius"] },
+    { develop: ".row-caveat", here: ".row-caveat", moved: ["background"] },
+    { develop: ".row-turn", here: ".row-turn", moved: ["color"] },
+    { develop: ".row-share", here: ".row-share", moved: ["color"] },
+    { develop: null, here: ".helper-holding .row-share" },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
-const AA_GRAPHIC_RATIO = 3;
 
 /**
- * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above
- * reach three of them.** The sheet prints words in five inks and the signal ones were in none,
- * which is why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15,
- * the thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
- * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
+ * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and a check of the tokens
+ * alone reaches few of them.** The sheet prints words in nine inks, and the ground each one is
+ * drawn on is named here rather than assumed. A row's bar is the ground this register cannot
+ * name, because its hue is the row's own: what stands over one is `BAR_CELLS`'. Measured
+ * 2026-10-08, the thinnest pairing registered here is `heading` over `raised` at 4.82, and the
+ * thinnest of the signal inks is `defect` over `track` at 6.61.
  */
 const INK_GROUNDS: Record<string, readonly string[]> = {
     text: ["surface", "raised", "track"],
     quiet: ["surface", "raised", "track"],
     suspect: ["surface", "raised", "track"],
     caveat: ["surface", "raised", "track"],
-    heading: ["surface"],
-    // The defects block stands in the panel body under a rule of its own, and on no row.
+    // A section's heading over the list, and a run's on a card.
+    heading: ["surface", "raised"],
+    // The defects block in the panel body, a kept fight's mark on its shelf row, and the note on
+    // that fight's card (ADR 0046).
     defect: ["surface", "raised", "track"],
     // How a fight went: a shelf row's letter on `track`, the header's word on `surface`, a fight
     // card's on `raised` (ADR 0046). The text floor holds them as the sides bar's fills too, which
     // stand on `track`.
     ours: ["surface", "raised", "track"],
     theirs: ["surface", "raised", "track"],
+    // ⚠️ **One `color:` doing two jobs**: the segment of the sides bar nobody's share fills, on
+    // `track`, and the line under it naming that share, whose words take the ink the line wears.
+    nobody: ["surface", "track"],
 };
 
 /**
- * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
- * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
- * like a rule printing words. This one is that — held at the graphical floor rather than exempted,
- * because an exemption says nothing on the day it prints a word, which is the day `ours` and
- * `theirs` moved up to the register above.
+ * The cells a ranking row draws after its bar, each as the classes it wears (`renderRow` in
+ * `src/ui/panel-element.ts`). A bar reaches any of them: the rank's at a fill of a tenth, the
+ * share's at a full one.
  */
-const FILL_GROUNDS: Record<string, readonly string[]> = {
-    nobody: ["track"],
-};
+const BAR_CELLS: readonly (readonly string[])[] = [
+    [CLASS.rowRank],
+    [CLASS.rowSuspect],
+    [CLASS.rowCaveat],
+    [CLASS.rowTurn],
+    [CLASS.rowName],
+    [CLASS.rowValue, CLASS.figure],
+    [CLASS.rowShare],
+];
+/** What a row draws that prints no word: its bar, the bar's cap, and the side's edge. */
+const BAR_FILLS: readonly string[] = [CLASS.bar, CLASS.barCap];
+const ROW_FILLS: readonly string[] = [...BAR_FILLS, CLASS.rowSide];
+/**
+ * What a row with a bar and the regions holding it can wear. A rule selecting a bar cell through
+ * any other class — a shelf row's `unread`, the helper's holding row — selects a row with no bar.
+ */
+const BAR_ROW_CLASSES: readonly string[] = [
+    CLASS.meter,
+    CLASS.list,
+    CLASS.pinned,
+    CLASS.outside,
+    CLASS.row,
+    CLASS.rowDrillable,
+    CLASS.rowLeaf,
+    CLASS.rowChosen,
+    CLASS.rowApart,
+    CLASS.bar,
+    CLASS.rowValue,
+    CLASS.figure,
+];
+const VARIABLE_CALL_OPENER = `var(${VARIABLE_OPENER}`;
+/** A selector's combinators, which part one element from the next. */
+const COMBINATORS = [">", "~", "+"];
+/** A fight of eleven, whose ranking rows a turn mark and a suspicion are drawn onto. */
+const RANKED_FIGHT = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 /** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
 const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
@@ -351,27 +416,30 @@ Deno.test("every ink the sheet paints with clears its floor over the ground it i
             "the sheet ships the surface it is read for",
         );
 
-        const painted = readNamesUsedBy(sheet, "color");
+        const painted = readPaintedInks(sheet, values);
         const grounds = readNamesUsedBy(sheet, "background");
-        assert(painted.size > 0, "the sheet paints with something");
+        assert(painted.length > 0, "the sheet paints with something");
         let checked = 0;
-        for (const name of painted) {
-            const fills = FILL_GROUNDS[name];
-            if (fills !== undefined) {
-                checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
-                continue;
-            }
-            const over = INK_GROUNDS[name];
-            assertExists(over, `${name}: the sheet paints with it and the register omits it`);
-            checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
+        for (const ink of painted) {
+            const over = INK_GROUNDS[ink.name];
+            assertExists(
+                over,
+                `${ink.name}: the sheet paints with it and the register omits it`,
+            );
+            checked += countPairingsClearing(values, ink, over);
             for (const where of over) {
-                assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+                assertArrayIncludes(
+                    [...grounds],
+                    [where],
+                    `${where}: a ground nothing paints`,
+                );
             }
         }
         assert(checked > 0, "some pairing was asked");
-        for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
+        const names = painted.map((ink) => ink.name);
+        for (const name of Object.keys(INK_GROUNDS)) {
             assertArrayIncludes(
-                [...painted],
+                names,
                 [name],
                 `${name}: registered, and painted with never`,
             );
@@ -388,7 +456,10 @@ function readSheetVariables(sheet: string): Map<string, string> {
         const colon = sheet.indexOf(":", openerIndex);
         const shut = sheet.indexOf(";", openerIndex);
         const name = sheet.slice(openerIndex + VARIABLE_OPENER.length, colon);
-        openerIndex = sheet.indexOf(VARIABLE_OPENER, openerIndex + VARIABLE_OPENER.length);
+        openerIndex = sheet.indexOf(
+            VARIABLE_OPENER,
+            openerIndex + VARIABLE_OPENER.length,
+        );
         if (colon === -1) continue;
         if (shut === -1) continue;
         if (shut < colon) continue;
@@ -396,6 +467,98 @@ function readSheetVariables(sheet: string): Map<string, string> {
         valueByName.set(name, sheet.slice(colon + 1, shut).trim());
     }
     return valueByName;
+}
+
+/**
+ * Every token the sheet names for `color`, rule by rule, at the lowest opacity any rule gives an
+ * element that rule selects. ⚠️ **An opacity dims what a reader sees, and the token does not say
+ * so**: `opacity:0.7` stood the version 3.77 off its bar while the token read 6.28 (ADR 0048). An
+ * element dimmed whose ink no rule names, or names as `inherit`, is a pairing nobody can check,
+ * and is refused rather than read at full strength. A bar's fill is dimmed and prints no word.
+ */
+function readPaintedInks(
+    sheet: string,
+    values: ReadonlyMap<string, string>,
+): PaintedInk[] {
+    const rules = readRules(sheet);
+    const opacityByClass = new Map<string, number>();
+    for (const rule of rules) {
+        const stated = readOpacity(rule.body, values);
+        if (stated === null) continue;
+        for (const name of readSelectedClasses(rule.selector).flat()) {
+            opacityByClass.set(name, Math.min(stated, opacityByClass.get(name) ?? 1));
+        }
+    }
+    const painted: PaintedInk[] = [];
+    const inked = new Set<string>();
+    for (const rule of rules) {
+        if (!rule.body.includes("color:")) continue;
+        const stated = getDeclaration(rule.body, "color");
+        if (stated === null) continue;
+        const classes = readSelectedClasses(rule.selector).flat();
+        const opacity = Math.min(
+            1,
+            ...classes.map((name) => opacityByClass.get(name) ?? 1),
+        );
+        const name = readVariableName(stated);
+        if (name === null) {
+            assertStrictEquals(
+                opacity,
+                1,
+                `${rule.selector}: dims an ink it names as ${stated}`,
+            );
+            continue;
+        }
+        for (const selected of classes) inked.add(selected);
+        painted.push({ selector: rule.selector, name, opacity });
+    }
+    for (const [dimmed, opacity] of opacityByClass) {
+        if (BAR_FILLS.includes(dimmed)) continue;
+        assert(
+            inked.has(dimmed),
+            `.${dimmed}: drawn at ${opacity} in an ink no rule names`,
+        );
+    }
+    return painted;
+}
+
+/** The opacity a rule states, a token's read through, or null where it states none. */
+function readOpacity(
+    body: string,
+    values: ReadonlyMap<string, string>,
+): number | null {
+    if (!body.includes("opacity:")) return null;
+    const stated = getDeclaration(body, "opacity");
+    if (stated === null) return null;
+    const name = readVariableName(stated);
+    const opacity = Number(name === null ? stated : values.get(name));
+    assert(Number.isFinite(opacity), `opacity ${stated} is a number`);
+    assert(opacity >= 0, `opacity ${stated} is no less than none`);
+    assert(opacity <= 1, `opacity ${stated} is no more than whole`);
+    return opacity;
+}
+
+/** The token a value spends, or null where it is no `var(--MargoMeter-…)`. */
+function readVariableName(stated: string): string | null {
+    if (!stated.startsWith(VARIABLE_CALL_OPENER)) return null;
+    if (!stated.endsWith(")")) return null;
+    return stated.slice(VARIABLE_CALL_OPENER.length, -1);
+}
+
+/** The classes of the element each part of a selector lands on: its last compound's. */
+function readSelectedClasses(selector: string): string[][] {
+    return selector.split(",").map((selected) => readCompounds(selected).at(-1) ?? []);
+}
+
+/** A selector's compounds, each as its classes, a pseudo-class or -element set aside. */
+function readCompounds(selected: string): string[][] {
+    let spaced = selected;
+    for (const combinator of COMBINATORS) {
+        spaced = spaced.replaceAll(combinator, " ");
+    }
+    return spaced.split(" ").filter((compound) => compound.length > 0).map((
+        compound,
+    ) => (compound.split(":")[0] ?? "").split(".").filter((name) => name.length > 0));
 }
 
 /** The variables named after one property, so `color:` and `background:` are asked apart. */
@@ -412,25 +575,281 @@ function readNamesUsedBy(sheet: string, property: string): Set<string> {
     return names;
 }
 
-/** Each ink-over-ground pairing held to its floor, and how many were asked. */
+/** Each pairing of an ink, drawn through its opacity, held to the text floor; how many were. */
 function countPairingsClearing(
     values: ReadonlyMap<string, string>,
-    name: string,
+    ink: PaintedInk,
     grounds: readonly string[],
-    floor: number,
 ): number {
-    const ink = parseSheetColour(values.get(name) ?? "");
-    assertExists(ink, `${name}: painted with, and never declared as a colour`);
+    const token = parseSheetColour(values.get(ink.name) ?? "");
+    assertExists(
+        token,
+        `${ink.name}: painted with, and never declared as a colour`,
+    );
     let counted = 0;
     for (const where of grounds) {
         const ground = parseSheetColour(values.get(where) ?? "");
         assertExists(ground, `${where}: drawn on, and never declared as a colour`);
-        const ratio = getContrastRatio(ink, ground);
-        assert(ratio >= floor, `${name} on ${where}: ${ratio.toFixed(2)} under ${floor}`);
+        const ratio = getContrastRatio(
+            composeInkOver(token, ground, ink.opacity),
+            ground,
+        );
+        assert(
+            ratio >= AA_TEXT_RATIO,
+            `${ink.selector} in ${ink.name} at ${ink.opacity} on ${where}: ` +
+                `${ratio.toFixed(2)} under ${AA_TEXT_RATIO}`,
+        );
         counted += 1;
     }
     return counted;
 }
+
+/** One colour over another at an alpha, a channel at a time and rounded, as a browser draws it. */
+function composeInkOver(top: Colour, bottom: Colour, alpha: number): Colour {
+    const mix = (above: number, below: number) => Math.round(alpha * above + (1 - alpha) * below);
+    return [mix(top[0], bottom[0]), mix(top[1], bottom[1]), mix(top[2], bottom[2])];
+}
+
+Deno.test("an ink is read through the opacity it is drawn at, and an unnamed one is refused", () => {
+    const values = new Map([["text", "#ffffff"], ["tint", "0.5"]]);
+    const dimmed = readPaintedInks(
+        ".a{color:var(--MargoMeter-text);opacity:0.5;}",
+        values,
+    );
+    assertEquals(dimmed.map((ink) => ink.opacity), [0.5], "a rule's own opacity");
+    const apart = readPaintedInks(
+        ".a{color:var(--MargoMeter-text);}.x .a{opacity:var(--MargoMeter-tint);}",
+        values,
+    );
+    assertEquals(
+        apart.map((ink) => ink.opacity),
+        [0.5],
+        "and one another rule gives it",
+    );
+    const whole = readPaintedInks(".a{color:var(--MargoMeter-text);}", values);
+    assertEquals(
+        whole.map((ink) => ink.opacity),
+        [1],
+        "and none, which is whole",
+    );
+    assertThrows(
+        () => readPaintedInks(".a{opacity:0.7;}", values),
+        AssertionError,
+        "in an ink no rule names",
+    );
+    assertThrows(
+        () =>
+            readPaintedInks(
+                ".a{color:var(--MargoMeter-text);opacity:0.8;}.b .a{color:inherit;}",
+                values,
+            ),
+        AssertionError,
+        "dims an ink it names as inherit",
+    );
+    assertEquals(
+        readPaintedInks(".bar{opacity:0.4;}", values),
+        [],
+        "a bar's fill prints nothing",
+    );
+    assertEquals(readSelectedClasses(".a .b.c>.d::before,.e:hover"), [["d"], [
+        "e",
+    ]], "the element");
+});
+
+/**
+ * ⚠️ **A bar is the ground a row's cells stand on, and its hue is the row's.** Every cell the bar
+ * reaches is held over every bar the sheet can draw: each profession's and the colourless one a
+ * cut of a figure takes, at each strength a bar is drawn at. A cell that paints a ground of its
+ * own stands on that instead. The quiet ink over the colourless bar reads 2.25 (ADR 0048).
+ */
+Deno.test("every cell a bar reaches clears AA over every bar the panel draws", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const values = readSheetVariables(sheet);
+        const bars = readBarGrounds(sheet, values);
+        let checked = 0;
+        for (const cell of BAR_CELLS) {
+            const paint = readCellPaint(sheet, values, cell);
+            const under = paint.grounds.length > 0 ? paint.grounds : bars;
+            for (const ink of paint.inks) {
+                const token = parseSheetColour(values.get(ink.name) ?? "");
+                assertExists(
+                    token,
+                    `${ink.name}: painted with, and never declared as a colour`,
+                );
+                for (const ground of under) {
+                    const drawn = composeInkOver(token, ground.colour, ink.opacity);
+                    const ratio = getContrastRatio(drawn, ground.colour);
+                    assert(
+                        ratio >= AA_TEXT_RATIO,
+                        `.${cell.join(".")} in ${ink.name} on ${ground.named}: ` +
+                            `${ratio.toFixed(2)} under ${AA_TEXT_RATIO}`,
+                    );
+                    checked += 1;
+                }
+            }
+        }
+        assert(checked > BAR_CELLS.length * bars.length / 2, "most cells were asked over a bar");
+    }
+});
+
+/**
+ * Every bar the sheet can draw: each hue over the row's own ground, at each opacity a rule gives
+ * a bar. The tint is read off the sheet and composed here, and tied to `composeBarColour`.
+ */
+function readBarGrounds(
+    sheet: string,
+    values: ReadonlyMap<string, string>,
+): NamedGround[] {
+    const rowGround = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "background") ?? "";
+    const trackName = readVariableName(rowGround);
+    assertExists(trackName, "a row paints its own ground with a token");
+    const track = parseSheetColour(values.get(trackName) ?? "");
+    assertExists(track, `${trackName}: a row's ground, and declared as a colour`);
+    const tints = readRules(sheet).filter((rule) =>
+        readSelectedClasses(rule.selector).some((element) => element.includes(CLASS.bar))
+    ).map((rule) => readOpacity(rule.body, values)).filter((tint) => tint !== null);
+    assert(
+        tints.length > 1,
+        "a bar is drawn at the ranking's strength, and apart at another",
+    );
+    const hues = [
+        ...PROFESSIONS.map((profession) => lookupColourForProfession(profession)),
+        lookupColourForProfession(null),
+    ];
+    const grounds: NamedGround[] = [];
+    for (const tint of tints) {
+        for (const hue of hues) {
+            const named = `${formatColour(hue)} at ${tint}`;
+            grounds.push({ named, colour: composeInkOver(hue, track, tint) });
+        }
+    }
+    for (const hue of hues) {
+        assertArrayIncludes(
+            grounds.map((ground) => ground.colour),
+            [composeBarColour(hue)],
+            `${formatColour(hue)}: the bar this test draws is the one the look composes`,
+        );
+    }
+    return grounds;
+}
+
+/**
+ * What a bar cell is painted in and on, from every rule that can reach it in a row with a bar:
+ * the inks those rules name, or the one it inherits where they name none, and the grounds they
+ * paint under it, which it then stands on rather than on the bar.
+ */
+function readCellPaint(
+    sheet: string,
+    values: ReadonlyMap<string, string>,
+    cell: readonly string[],
+): { inks: PaintedInk[]; grounds: NamedGround[] } {
+    const inks: PaintedInk[] = [];
+    const grounds: NamedGround[] = [];
+    for (const rule of readRules(sheet)) {
+        const reaching = rule.selector.split(",").filter((selected) => {
+            if (selected.includes("::")) return false;
+            const compounds = readCompounds(selected);
+            const element = compounds.at(-1) ?? [];
+            if (element.length === 0) return false;
+            if (!element.every((name) => cell.includes(name))) return false;
+            return compounds.slice(0, -1).flat().every((name) => BAR_ROW_CLASSES.includes(name));
+        });
+        if (reaching.length === 0) continue;
+        const opacity = readOpacity(rule.body, values) ?? 1;
+        const stated = rule.body.includes("color:") ? getDeclaration(rule.body, "color") : null;
+        if (stated !== null) {
+            const name = readVariableName(stated);
+            assertExists(
+                name,
+                `${rule.selector}: a bar cell's ink is a token, never ${stated}`,
+            );
+            inks.push({ selector: rule.selector, name, opacity });
+        }
+        const painted = readVariableName(
+            getDeclaration(rule.body, "background") ?? "",
+        );
+        if (painted !== null) {
+            const colour = parseSheetColour(values.get(painted) ?? "");
+            assertExists(
+                colour,
+                `${painted}: a cell's own ground, and declared as a colour`,
+            );
+            grounds.push({ named: painted, colour });
+        }
+    }
+    if (inks.length === 0) {
+        const inherited = readVariableName(
+            getDeclaration(getRuleBody(sheet, `.${CLASS.meter}`), "color") ?? "",
+        );
+        assertExists(
+            inherited,
+            "a cell naming no ink inherits the panel's, which is a token",
+        );
+        inks.push({ selector: `.${CLASS.meter}`, name: inherited, opacity: 1 });
+    }
+    return { inks, grounds };
+}
+
+/**
+ * ⚠️ **`BAR_CELLS` is a register, and a register goes stale the day a row draws a cell more.**
+ * So a fight's ranking is drawn, with a turn mark and a suspicion on its top row, and every cell
+ * standing beside a bar has to be one the register names or a fill that prints no word.
+ */
+Deno.test("every cell a ranking row draws beside its bar is one the contrast check holds", () => {
+    const { roster, statistics } = tallyRecordedFight(RANKED_FIGHT);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "damageDealt",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const topRow = reading.rows[0];
+    assertExists(topRow, "the fight ranks somebody");
+    const marked = reading.rows.map((row) =>
+        row === topRow ? { ...row, detail: { ...row.detail, unreadMessagesUnknownKey: 2 } } : row
+    );
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen({ ...reading, rows: marked }),
+        readerSide: 1,
+        turnHolderId: topRow.combatantId,
+    });
+    const rows = getElementsWithin(panel.element as FakeElement).filter((drawn) =>
+        drawn.children.some((child) => child.className === CLASS.bar)
+    );
+    assert(rows.length > 1, "the ranking draws its rows with a bar each");
+    const registered = BAR_CELLS.map((cell) => cell.join(" "));
+    const drawn = new Set<string>();
+    for (const row of rows) {
+        const cells = row.children.flatMap((child) => [child, ...child.children]);
+        for (const cell of cells) {
+            if (ROW_FILLS.includes(cell.className)) continue;
+            drawn.add(cell.className);
+            assertArrayIncludes(
+                registered,
+                [cell.className],
+                `${cell.className}: unregistered`,
+            );
+        }
+    }
+    for (
+        const mark of [
+            CLASS.rowTurn,
+            CLASS.rowSuspect,
+            CLASS.rowShare,
+            CLASS.rowRank,
+        ]
+    ) {
+        assert(
+            drawn.has(mark),
+            `${mark}: drawn, so the walk reached what it is asked about`,
+        );
+    }
+});
 
 Deno.test("text over every surface clears AA", () => {
     for (const surface of Object.values(SURFACE)) {
@@ -449,12 +868,11 @@ Deno.test("text over every surface clears AA", () => {
 });
 
 Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for", () => {
-    // Every hue the panel can put under a figure: a profession on a ranking row, the colourless
-    // one every cut of a figure takes, and the two hues of the palette no profession spends.
+    // Every hue the panel can put under a figure: a profession on a ranking row, and the
+    // colourless one every cut of a figure takes.
     const hues = [
         ...PROFESSIONS.map((profession) => lookupColourForProfession(profession)),
         lookupColourForProfession(null),
-        ...PALETTE_COLOURS,
     ];
     let lightest = 21;
     for (const hue of hues) {

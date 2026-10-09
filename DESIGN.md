@@ -146,7 +146,8 @@ pixels is the small size's unless it says which.
 
 - **Figures** — the reader's eye target. Full `text`, tabular where columns must align.
 - **Names** — same size, same weight, `text`.
-- **Labels and units** — `textQuiet`. A unit never competes with the number it qualifies.
+- **Labels and units** — `textQuiet`, except over a bar (the ranking row, below). A unit never
+  competes with the number it qualifies.
 - **Every line height is a whole number of pixels**, so every box in the panel lands on the pixel
   grid. A factor leaves a fractional line box, and a browser then rounds a bar and the glyphs on it
   apart — by a different fraction on every screen.
@@ -241,6 +242,11 @@ the tint is what keeps the figures printed over it readable, and the cap gives t
 text sits. **Its length is the row against the biggest figure on screen**, never against the whole —
 the top row of a ten-person fight is a full bar, and the share in brackets is what states the
 fraction.
+
+**Every cell a bar can reach is in the plain ink.** The rank, the turn mark and the share stand over
+the bar as the name does, and the quiet ink over a bar falls under the AA floor. The suspect and
+caveat marks, whose ink is their meaning, stand on a `track` ground of their own instead, and no
+word in the panel is drawn through an `opacity`. **ADR 0048.**
 
 **A row says which side it stands on, on the edge opposite the cap.** The left three pixels are the
 profession's — the bar's cap at full strength — and the open row's inset shadow is on that side too,

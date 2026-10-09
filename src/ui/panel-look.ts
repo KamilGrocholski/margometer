@@ -572,14 +572,6 @@ export function getControlHeightPixels(tokens: TypeTokens): number {
     return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH_PIXELS;
 }
 
-/**
- * And this wide, whatever its mark: a little wider than tall, so the widest mark, `—`, keeps air
- * at both sides, and one width for all so the four stand as a row of equals (ADR 0036).
- */
-export function getControlWidthPixels(tokens: TypeTokens): number {
-    return getControlHeightPixels(tokens) + SPACE_PIXELS.small;
-}
-
 /** The class a bar control wears for the icon it draws. */
 export function composeBarIconClass(icon: BarIcon): string {
     return `${CLASS.control}-${icon}`;
@@ -629,10 +621,11 @@ function composeFrameRules(tokens: TypeTokens): string {
         `box-sizing:border-box;width:${width};` +
         `cursor:move;${NO_SELECTION}touch-action:none;}` +
         // Every width in `TYPE_TOKENS` is a bar measured in one font, and a reader's may ask more:
-        // on CI's Ubuntu runner on 2026-09-29 the middle step's bar asked 0.44px past its width and
-        // pushed the fold off it.
+        // in the Google Chrome that CI's `ubuntu-latest` image ships, its version not recorded,
+        // the middle step's bar asked 0.44px past its width on 2026-09-29 and pushed the fold off.
         // The version is what gives way, because a control cut off is one a reader cannot press.
-        `.${CLASS.titleVersion}{opacity:0.7;font-size:${tokens.fontSmallPixels}px;` +
+        // Its quiet ink is drawn undimmed: at `opacity:0.7` it would stand 3.77 off `raised` (ADR 0048).
+        `.${CLASS.titleVersion}{font-size:${tokens.fontSmallPixels}px;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;}` +
         // A box of one size with its icon centred in it, rather than air around a glyph: each mark
         // is a different width, so padding made a row of four widths (ADR 0036). The mark stays
@@ -669,6 +662,15 @@ function composeFrameRules(tokens: TypeTokens): string {
         `min-height:calc(var(${SIZED_METER_VARIABLES.listRowsLeast},0) * ` +
         `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half)));}` +
         `.${CLASS.slot}{display:none;}`;
+}
+
+/**
+ * A bar control is this wide, whatever its mark: a little wider than tall, so the widest mark,
+ * `—`, keeps air at both sides, and one width for all so the four stand as a row of equals
+ * (ADR 0036).
+ */
+function getControlWidthPixels(tokens: TypeTokens): number {
+    return getControlHeightPixels(tokens) + SPACE_PIXELS.small;
 }
 
 /**
@@ -851,13 +853,13 @@ function composeListRules(tokens: TypeTokens): string {
         `height:calc(var(${ROWS_VARIABLE},${ROWS_BY_DEFAULT}) * ${rowCost});` +
         `overflow-y:auto;overflow-x:hidden;` +
         `overscroll-behavior:contain;scrollbar-width:none;}` +
-        // The background and the layer are not decoration: a row's bar is positioned and comes
-        // later in the tree, so without both the bars paint over the sticky heading. A figure is
-        // one word and its cell never gives way; the words beside it are what shortens.
-        // `DESIGN.md` owns the rule, and every region that draws a figure wears this.
+        // A figure is one word and its cell never gives way; the words beside it are what
+        // shortens. `DESIGN.md` owns the rule, and every region that draws a figure wears this.
         `.${CLASS.figure}{flex:none;white-space:nowrap;}` +
         `.${CLASS.sectionWords}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}` +
+        // The background and the layer are not decoration: a row's bar is positioned and comes
+        // later in the tree, so without both the bars paint over the sticky heading.
         `.${CLASS.section}{position:sticky;` +
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:${LAYER.section};` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
@@ -878,7 +880,7 @@ function composeListRules(tokens: TypeTokens): string {
         `border-top:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
-        `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
+        `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `font-size:${tokens.fontSmallPixels}px;}` +
@@ -929,7 +931,11 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.barCap}{position:absolute;left:0;top:0;bottom:0;width:${CAP_WIDTH_PIXELS}px;` +
         `border-radius:${cap};}` +
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
-        `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}quiet);` +
+        // ⚠️ **A bar reaches every cell of a ranking row, and the quiet ink clears AA over none of
+        // them**: 2.84 over the palette's worst bar, 2.25 over the colourless one (ADR 0048). So
+        // the rank, the turn mark and the share are in the plain ink, and the two signal marks,
+        // whose ink is their meaning, stand on a ground of their own.
+        `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}text);` +
         `font-variant-numeric:tabular-nums;flex:none;box-sizing:border-box;` +
         `width:${tokens.rankWidthPixels}px;text-align:right;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
@@ -943,17 +949,18 @@ function composeRowRules(tokens: TypeTokens): string {
         // drawn on the rows a suspicion reaches: none of the 1,348 ranking rows the 37
         // recordings of `captures/` draw on the four screens, measured on 2026-10-06.
         `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
-        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        `padding-right:var(${VARIABLE_PREFIX}small);background:var(${VARIABLE_PREFIX}track);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);}` +
         // Beside the suspect mark and under the same argument: it reaches the row closing a damage
         // section and no other. A mark on every row was measured and refused: `DESIGN.md`
         // has the share, `develop ADR 0089` the decision. The ring is drawn once for both places
         // it stands, below; margin and not padding, because the ring is this box's border.
         `.${CLASS.rowCaveat}{position:relative;` +
-        `margin-right:var(${VARIABLE_PREFIX}small);}` +
+        `margin-right:var(${VARIABLE_PREFIX}small);background:var(${VARIABLE_PREFIX}track);}` +
         // Beside the suspect mark and under the same argument: it reaches the one row whose turn
         // the game is numbering, never every row. `DESIGN.md` owns the rule,
         // `develop ADR 0066` the cost.
-        `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
+        `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}text);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // The edge opposite the cap: the left `CAP_WIDTH_PIXELS` are the profession's, and the open
         // row's inset shadow is on that side too. `develop ADR 0065`.
@@ -963,8 +970,8 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset ${CAP_WIDTH_PIXELS}px 0 0 ` +
         `var(${VARIABLE_PREFIX}text);}` +
-        // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, and the row walked sideways
-        // under the hand that pressed it.
+        // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, no version recorded, and the row
+        // walked sideways under the hand that pressed it.
         `.${CLASS.rowPin}{position:relative;cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
         `width:var(${VARIABLE_PREFIX}row-height);flex:none;align-self:stretch;display:flex;` +
         `align-items:center;justify-content:center;` +
@@ -982,7 +989,7 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.row}.${CLASS.rowUnread} .${CLASS.rowName}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.row}.${CLASS.rowUnread} .${CLASS.rowOutcome}{` +
         `color:var(${VARIABLE_PREFIX}defect);}` +
-        `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}text);` +
         `padding-left:var(${VARIABLE_PREFIX}small);font-weight:400;}` +
         // Worn by the row and not by the region under the list, because the rows that earn it stand
         // inside a section too: a sum a bound left undrawn stands there, and a solid bar on it
@@ -1196,10 +1203,11 @@ function composeHelperRules(tokens: TypeTokens): string {
         `.${CLASS.helperUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
         // ⚠️ **Three cells on one row, and the order they give way in is stated here rather than
         // left to the panel's own rule.** That rule gives a row's name `flex:1`, which is basis
-        // `0` — the name takes what is left rather than what it needs — and measured in Chrome on
-        // 2026-09-18 it drew `Gracz 4` at 3px of the 42 it wanted, because the shout beside it
-        // had claimed the row's width as its basis first. A nickname cut to `Gracz…` has lost the
-        // digit that tells two players apart, which is the whole of what a name is for here.
+        // `0` — the name takes what is left rather than what it needs — and measured in Chrome at
+        // the panel's own size on 2026-09-18, its version not recorded, it drew `Gracz 4` at 3px
+        // of the 42 it wanted, because the shout beside it had claimed the row's width as its
+        // basis first. A nickname cut to `Gracz…` has lost the digit that tells two players
+        // apart, which is the whole of what a name is for here.
         //
         // So on this row the name is sized by its own text and the **cast** takes what is left:
         // cutting the shout costs less, because the two spellings differ in their first word —
@@ -1208,6 +1216,8 @@ function composeHelperRules(tokens: TypeTokens): string {
         // than running off it. Scoped to the row that carries a cast, because every other row in
         // this window has two cells and wants the panel's rule (`develop ADR 0097`).
         `.${CLASS.helperHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
+        // The separator before the shout keeps the shout's quiet ink: no bar stands in this window.
+        `.${CLASS.helperHolding} .${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.helperCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
         `min-width:min(${tokens.castWidthPixelsMinimum}px,100%);` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
