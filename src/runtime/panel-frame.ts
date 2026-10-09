@@ -208,10 +208,9 @@ export function renderFrame(parts: FrameParts): void {
     // because a panel of zeroes over a game that has not started is a claim.
     const rendered = errors.attempt(() => {
         const { screen, keeper, live: liveFight } = parts;
-        const view = composeFightView(liveFight.session);
-        const liveFightState = view === null ? null : tallyFightState(view);
+        const liveView = composeFightView(liveFight.session);
         const shownFight = lookupShownFight(
-            liveFightState,
+            liveView,
             screen.chosenFightOpenedAt,
             keeper.getFights(),
             keeper.getKeptFightStates(),
@@ -220,7 +219,7 @@ export function renderFrame(parts: FrameParts): void {
             // A kept fight chosen and still none shown is a fight that no longer reads, and the
             // reader is told which one rather than that there has been none.
             const unreadKeptFight = lookupShownKeptFight(
-                liveFightState,
+                liveView !== null,
                 screen.chosenFightOpenedAt,
                 keeper.getFights(),
             );
@@ -249,6 +248,18 @@ export function renderFrame(parts: FrameParts): void {
             shownFight.fightState.view.payloadsApplied > 0,
             "a fight stood on was read from something",
         );
+        let liveFightState: FightState | null;
+        // Tally the live fight for its shelf row where a kept one is shown, under a guard of its
+        // own: a live fight that will not tally costs its row, and never the fight the reader chose.
+        if (shownFight.keptFight === null) liveFightState = shownFight.fightState;
+        else if (liveView === null) liveFightState = null;
+        else {
+            const tallied = errors.attempt(() => tallyFightState(liveView));
+            if (tallied instanceof Error) {
+                parts.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: tallied });
+                liveFightState = null;
+            } else liveFightState = tallied;
+        }
         const shownScreen = presentFrameScreen(
             parts,
             shownFight,

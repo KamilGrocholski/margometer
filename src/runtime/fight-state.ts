@@ -91,23 +91,25 @@ export function replayFightPayloads(
 /**
  * The kept fight the reader chose, else the live one; a page between fights has no live reading,
  * and the newest kept fight is what it has instead (`develop ADR 0033`). Null where there is
- * nothing to stand on, or where the kept fight no longer reads (a panel of zeroes is a claim).
+ * nothing to stand on, or where the kept fight no longer reads (a panel of zeroes is a claim). The
+ * live fight is tallied only where it is the one shown, so a live fight that will not tally never
+ * costs a kept fight the reader chose.
  */
 export function lookupShownFight(
-    liveFightState: FightState | null,
+    liveView: FightView | null,
     chosenFightOpenedAt: number | null,
     fights: readonly KeptFight[],
     keptFightStatesByOpenedAt: ReadonlyMap<number, KeptFightState | null>,
 ): ShownFight | null {
-    const keptFight = lookupShownKeptFight(liveFightState, chosenFightOpenedAt, fights);
+    const keptFight = lookupShownKeptFight(liveView !== null, chosenFightOpenedAt, fights);
     if (keptFight !== undefined) {
         const keptFightState = keptFightStatesByOpenedAt.get(keptFight.openedAt);
         assert(keptFightState !== undefined, "a fight on the shelf has its reading held");
         if (keptFightState === null) return null;
         return { keptFight, fightState: keptFightState };
     }
-    if (liveFightState === null) return null;
-    return { keptFight: null, fightState: liveFightState };
+    if (liveView === null) return null;
+    return { keptFight: null, fightState: tallyFightState(liveView) };
 }
 
 /**
@@ -115,7 +117,7 @@ export function lookupShownFight(
  * is going on. Undefined where the panel stands on the live fight, or on nothing.
  */
 export function lookupShownKeptFight(
-    liveFightState: FightState | null,
+    hasLiveView: boolean,
     chosenFightOpenedAt: number | null,
     fights: readonly KeptFight[],
 ): KeptFight | undefined {
@@ -123,7 +125,7 @@ export function lookupShownKeptFight(
     const chosen = chosenFightOpenedAt === null
         ? undefined
         : fights.find((keptFight) => keptFight.openedAt === chosenFightOpenedAt);
-    return chosen ?? (liveFightState === null ? lookupNewestFight(fights) : undefined);
+    return chosen ?? (hasLiveView ? undefined : lookupNewestFight(fights));
 }
 
 function lookupNewestFight(fights: readonly KeptFight[]): KeptFight | undefined {

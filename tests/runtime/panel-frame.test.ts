@@ -4,8 +4,16 @@
  * `presentScreen` that broke could draw one, and the frame is handed such a reading here instead.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertInstanceOf,
+    assertStrictEquals,
+} from "@std/assert";
+import * as errors from "#/libs/errors.ts";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
+import { BATTLE_EVENT } from "#/src/core/battle-event.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { createFightCapture } from "#/src/ports/fight-capture.ts";
@@ -290,6 +298,52 @@ Deno.test("a kept fight that reads has its save, and one that does not read has 
     renderFrame(illegible.parts);
     assertStrictEquals(illegible.shown.length, 0, "a fight that does not read is not drawn");
     assertStrictEquals(illegible.waited[0]?.hasFightToSave, false, "and has no file to hand over");
+});
+
+/**
+ * A kept fight the reader chose is drawn whatever the live fight does: the live one is tallied for
+ * its shelf row alone, under a guard of its own, so one that breaks an invariant costs that row.
+ */
+Deno.test("a live fight that will not tally costs its row, and not the kept fight chosen", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const world = composeFrameWorld(fight, replayed);
+    const live = replayRecordedFight(lookupRecordedFight(HILDUR));
+    // Healing below nothing, which the figures assert never happens: the live fight alone broken.
+    live.events.push({
+        kind: BATTLE_EVENT.healingToNamedCombatant,
+        targetName: "nobody",
+        targetId: null,
+        targetHealthPercent: null,
+        amount: -1,
+        source: "heal=-1",
+    });
+    world.parts.live.session = live;
+    world.parts.live.openedAt = null;
+    world.parts.screen.chosenFightOpenedAt = fight.openedAt;
+    renderFrame(world.parts);
+    assertStrictEquals(world.waited.length, 0, "the panel does not wait");
+    const shown = world.shown[0];
+    assertExists(shown, "it draws the kept fight chosen");
+    assertEquals(
+        shown.shelf.map((shelfRow) => [shelfRow.openedAt, shelfRow.isLive]),
+        [[fight.openedAt, false]],
+        "beside no row for the live fight that would not tally",
+    );
+    const reading = world.defects.getCounts().find((defectCount) =>
+        defectCount.kind === DEFECT_KIND.reading
+    );
+    assertExists(reading, "and the live fight's failure is a reading defect");
+    assertInstanceOf(reading.first, errors.Caught, "carrying what its tally threw");
 });
 
 /**

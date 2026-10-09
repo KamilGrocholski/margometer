@@ -1030,6 +1030,8 @@ listener ─ reads a PanelIntent off data-* (isOneOf; unknown → GestureDropped
 4. tallyFightFigures → verifyFightFigures → presentScreen → render → undrawn → "region" defects
    nothing to stand on → renderWaiting; a broken invariant → a "reading" defect, unread
    a kept fight stood on that no longer reads → renderWaiting, saying so, and when and where
+   a kept fight stood on → the live fight tallied for its shelf row alone, under its own guard:
+   a broken invariant → a "reading" defect and no live row, the kept fight drawn
 5. Caught in any step → that step's defect; the rest of the frame goes on
 6. the first frame mounts the panel
 ```

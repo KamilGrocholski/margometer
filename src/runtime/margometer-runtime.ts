@@ -40,7 +40,7 @@ import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
 import { writeLiveCallsFile, writeShownFightFile } from "./fight-handover.ts";
-import { lookupShownFight, tallyFightState } from "./fight-state.ts";
+import { lookupShownFight } from "./fight-state.ts";
 import { initLiveFight, type LiveFight } from "./live-fight.ts";
 import { renderFrame } from "./panel-frame.ts";
 import {
@@ -474,15 +474,13 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
                 // The release of the file lands on the browser's clock after this has
                 // returned, so its failure is handed the same mark by the sink.
                 const { screen, keeper, live: liveFight, defects } = state;
-                const view = composeFightView(liveFight.session);
-                const liveFightState = view === null ? null : tallyFightState(view);
-                isTallied = true;
                 const shownFight = lookupShownFight(
-                    liveFightState,
+                    composeFightView(liveFight.session),
                     screen.chosenFightOpenedAt,
                     keeper.getFights(),
                     keeper.getKeptFightStates(),
                 );
+                isTallied = true;
                 if (shownFight !== null) {
                     const applied = shownFight.fightState.view.payloadsApplied;
                     assert(applied > 0, "a fight handed over was read from something");
