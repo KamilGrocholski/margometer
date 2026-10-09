@@ -453,12 +453,12 @@ function onFrame(state: RuntimeState): void {
         translate: state.translate,
         world,
     });
+    assert(!state.isStale, "a frame asks for no second frame of its own");
     if (state.isMounted) return;
     const mounted = state.ports.mountPanel(state.view.element);
     if (mounted instanceof Error) {
         state.defects.add({ kind: DEFECT_KIND.mount, region: null, failure: mounted });
     } else state.isMounted = true;
-    assert(!state.isStale, "a frame asks for no second frame of its own");
 }
 
 function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
