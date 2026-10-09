@@ -13624,7 +13624,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `worded` — `tests/repository/comment-share.test.ts`
 - `words` — `tests/tools/preview-page.test.ts`, `tests/ui/card-window.test.ts`
 - `world` — in 8 files: `tests/`
-- `woundsAttacker` — `tests/repository/protocol-keys.test.ts`
+- `woundsActor` — `tests/repository/protocol-keys.test.ts`
 - `wpisy` — `tests/tools/capture-intake.test.ts`
 - `wrapped` — `tests/runtime/live-fight.test.ts`
 - `wraps` — `tests/runtime/margonem-engine-search.test.ts`
@@ -13838,7 +13838,7 @@ Each `as const` object of a module, by its keys.
 ### `tests/`
 
 - `CAUSE` — `tests/repository/protocol-keys.test.ts`: `subjectsOwn`, `announcementsActor`,
-  `messageActor`, `woundsAttacker`, `nobody`
+  `messageActor`, `woundsActor`, `nobody`
 - `ENDING` — `tests/ui/panel-words.test.ts`: `fullStop`, `colon`, `bare`, `spelled`
 - `KEYS` — `tests/libs/unknown-value.test.ts`: `figure`, `named`, `nested`, `listed`, `inherited`,
   `method`

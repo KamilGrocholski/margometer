@@ -189,7 +189,7 @@ did it**. Every entry stating `*Health:* moves health` answers it on one line, f
 | `the subject's own`        | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person                                           | `SELF_SOURCED_HEALING_KEYS`                                               |
 | `the announcement's actor` | the figure sits on the message **target** and a skill announcement names the giver — the message's own where it carries one, the one before it otherwise | `HEALTH_CHANGE_BY_KEY`, the entries reading the target slot               |
 | `the message actor`        | the protocol states the cause in the actor slot of the message itself                                                                                    | `KEY_FAMILY`'s unaccounted health and named damage, and the attack family |
-| `the wound's attacker`     | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (**develop ADR 0022**)            | `WOUND_ANNOUNCEMENT_KEY` with `WOUND_TICK_KEY`                            |
+| `the wound's actor`        | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (**develop ADR 0022**)            | `WOUND_ANNOUNCEMENT_KEY` with `WOUND_TICK_KEY`                            |
 | `nobody`                   | the protocol states no cause, and nothing else supplies one                                                                                              | the rest of `HEALTH_CHANGE_BY_KEY`                                        |
 
 **Required exactly where `*Health:*` is, and refused everywhere else.** A key that reports no health
@@ -344,8 +344,8 @@ the combatant named inside the value is both ends of it and is credited with giv
 `lastheal`, read 2026-08-19).
 
 ⚠️ **Read the value, never a slot.** Most occurrences ride a group blow whose target is a third
-party, so both slots are the wrong combatant — the actor would credit an attacker with healing their
-own victim, and the target would credit whoever that blow happened to land on.
+party, so both slots are the wrong combatant — the actor would credit whoever struck with healing
+the one they struck, and the target would credit whoever that blow happened to land on.
 
 ⚠️ **The witness cannot see this one.** The capture that carried it first has no snapshot taken
 before its messages — the whole fight arrives in one engine call — so the replay produces no
@@ -358,10 +358,9 @@ heal itself, and that is health stated nowhere else.
 
 Health restored to, or lost by, the combatant in the **actor** slot of a message whose target is
 nobody: `<combatant>=<percent>;0;heal=<amount>`. The slot holds the subject here rather than an
-attacker, and no message of this shape names anyone else. Read as a positive health change; the
-client will state a loss with a negative amount, which needs no special case because the figure is
-signed (production build `DHSqC3Uh`, fetched 2026-10-06, words the figure gained or lost by its
-sign).
+actor, and no message of this shape names anyone else. Read as a positive health change; the client
+will state a loss with a negative amount, which needs no special case because the figure is signed
+(production build `DHSqC3Uh`, fetched 2026-10-06, words the figure gained or lost by its sign).
 
 _Health:_ moves health
 
@@ -439,9 +438,9 @@ other half.** The help's table of damage over time puts fire among the types a f
 **does** overwrite, which is the rule the wound join runs on (**develop ADR 0022**). What is missing
 here is the announcement: the client's key list carries no `+fire`, so nothing states that an
 application happened, let alone with what figure. The captures as the set stood 2026-08-19 show what
-reading the neighbouring message instead would come to — all 12 ticks fall on one victim, the figure
-changes across the fight (96, then 97, then 117 twice, then 124 for the last eight), and the blow
-standing before them belongs to eight different combatants
+reading the neighbouring message instead would come to — all 12 ticks fall on one combatant, the
+figure changes across the fight (96, then 97, then 117 twice, then 124 for the last eight), and the
+blow standing before them belongs to eight different combatants
 (`git show v0.10.1:docs/specs/the-ends-a-figure-names.md`).
 
 _Health:_ moves health
@@ -479,9 +478,9 @@ lightning down.
 so nothing announces that an application happened — the same missing half that keeps `fire` from
 being read the way the wound join reads one (**develop ADR 0022**). Here there is not even a figure
 to match one against, and every occurrence falls on the one opponent of the recording it is in —
-measured over the set as it stands 2026-08-26, two recordings carry the key and each has a single
-victim for all of it — so the neighbouring message would be the only thing left to read and that is
-the guess this repository refuses (`AGENTS.md`).
+measured over the set as it stands 2026-08-26, two recordings carry the key and each ticks on a
+single combatant throughout — so the neighbouring message would be the only thing left to read and
+that is the guess this repository refuses (`AGENTS.md`).
 
 _Health:_ moves health
 
@@ -501,10 +500,10 @@ occurrences it had then all sat on one combatant in
 `captures/2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json` against a pool of 279 072, and
 before it was read the witness disagreed 195 times, on that combatant and on nothing else in the
 corpus. The 12 that `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` added on
-2026-08-26 are the same shape — one victim, the recording's single opponent — and the witness judges
-that fight and agrees. Reading it closed every one first try and introduced no disagreement anywhere
-(`tests/core/health-witness.test.ts`). The absence of `+light` from the client's list is
-`frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
+2026-08-26 are the same shape — one combatant ticked, the recording's single opponent — and the
+witness judges that fight and agrees. Reading it closed every one first try and introduced no
+disagreement anywhere (`tests/core/health-witness.test.ts`). The absence of `+light` from the
+client's list is `frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
 
 ### `anguish` — decoded
 
@@ -531,12 +530,12 @@ spread over five turns, occurring only where the blow met no evade, `arrowblock`
 the damage given by a formula over the item's apparent level and the character's base attributes.
 Production build `1786514810315` composes it from the actor slot off `c.tmpHpp` and splits the value
 on the same comma `poison` and `fire` split on; no occurrence here carries a second member. What
-this reading rests on beyond the arithmetic — that a tick is charged to its victim and never to
-whoever applied it — is measured by `tests/core/anguish-rule.test.ts`. Three recordings carry it as
-the set stood 2026-08-25, and the two against a Draugr are what make the refusal legible rather than
-theoretical: in `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` two combatants apply the
-bleed to the same victim and 25 ticks come back off it, each stating one of several figures and none
-of them announced.
+this reading rests on beyond the arithmetic — that a tick is charged to the combatant it ticks on
+and never to whoever applied it — is measured by `tests/core/anguish-rule.test.ts`. Three recordings
+carry it as the set stood 2026-08-25, and the two against a Draugr are what make the refusal legible
+rather than theoretical: in `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` two
+combatants apply the bleed to one opponent and 25 ticks come back off it, each stating one of
+several figures and none of them announced.
 
 ### `heal_target` — decoded
 
@@ -621,7 +620,7 @@ of `injure`.
 
 _Health:_ moves health
 
-_Cause:_ the wound's attacker
+_Cause:_ the wound's actor
 
 _Shape:_ 222 occurrences; alone in its message; text
 
@@ -631,15 +630,15 @@ residue was exact, over the corpus as it stood on 2026-08-06: after `-10000249=9
 the stated percentage sat 148 below the arithmetic, and reading it as damage turned that
 disagreement, and eighty-odd others, into agreements.
 
-⚠️ **Every tick has an attacker the protocol named, and `*Cause:*` above is where that is read.**
-The wound arrives carrying the figure its own announcement stated, and the help says a victim
-carries one at a time: article `view,372` at the engine name `injure` (read 2026-08-18) states that
-the damage does not accumulate and is overwritten by the freshest value applied to that opponent. So
-the freshest `+injure` against a victim is whose wound is ticking, and the figure says which one it
-is. Measured over `captures/` as the set stood 2026-08-19: every tick lands on a victim already
-carrying a wound, and every one states exactly what that wound announced — on material where a
-victim was wounded by three different attackers, which is what makes _freshest_ a claim rather than
-a coincidence. Re-earned by `tests/core/injure-rule.test.ts`, and the join is made in
+⚠️ **Every tick's wound was applied by somebody the protocol named, and `*Cause:*` above is where
+that is read.** The wound arrives carrying the figure its own announcement stated, and the help says
+a combatant carries one at a time: article `view,372` at the engine name `injure` (read 2026-08-18)
+states that the damage does not accumulate and is overwritten by the freshest value applied to that
+opponent. So the freshest `+injure` against a combatant is whose wound is ticking, and the figure
+says which one it is. Measured over `captures/` as the set stood 2026-08-19: every tick lands on a
+combatant already carrying a wound, and every one states exactly what that wound announced — on
+material where a combatant was wounded by three others, which is what makes _freshest_ a claim
+rather than a coincidence. Re-earned by `tests/core/injure-rule.test.ts`, and the join is made in
 `src/core/fight-statistics.ts` rather than in the decoder — **develop ADR 0022** carries why, and
 what a tick stating anything else is charged to.
 
@@ -790,7 +789,7 @@ _Help:_ names `nieuchronne`, `dmgmulcombo`
 
 _Evidence:_ article view,372 (read 2026-09-10) gives this damage a section under that name and the
 engine name of the item bonus raising it, `dmgmulcombo`. It states which effects deal it — one
-scaling with combination points, one reflecting damage back at the attacker — that it reaches the
+scaling with combination points, one reflecting damage back at whoever struck — that it reaches the
 log in the attack, the skill and the over-time sections alike, and that two named effects reduce it
 and nothing else does: neither armour nor resistance is among them. The key's own spelling is absent
 from the article, which is `+crit`'s case rather than a silence — documented effect, undocumented
@@ -1415,9 +1414,8 @@ and its trigger. Production build `Cl9U89Zr` composes it on the branch that comp
 interpolating the value into a log slot and assigning nothing; build `1785244275300` fills that slot
 with a sentence counting points of armour. On
 `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` the 1 occurrence states `7` and
-rides a blow carrying `+crit`, `+pierce` and `+acdmg=18`; that attacker's `+acdmg` is `18` on the
-blow before it and on both blows after, so the seven points are additional and are stated nowhere
-else.
+rides a blow carrying `+crit`, `+pierce` and `+acdmg=18`; that actor's `+acdmg` is `18` on the blow
+before it and on both blows after, so the seven points are additional and are stated nowhere else.
 
 ### `+resdmg` — decoded
 
@@ -1690,9 +1688,8 @@ protocol's quantities occupy, so a cap and a count of points cannot be confused 
 
 ### `+engback` — decoded
 
-Energy returned to the attacker by this blow. Rides the blow, states a whole number, and — measured
-— **never arrives without a critical hit**: every occurrence sits beside `+crit` or beside
-`+of_crit`.
+Energy returned to the actor by this blow. Rides the blow, states a whole number, and — measured —
+**never arrives without a critical hit**: every occurrence sits beside `+crit` or beside `+of_crit`.
 
 ⚠️ **Not `+crit` alone, though one recording reads that way.** The 13 occurrences
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carries all sit beside
@@ -1840,9 +1837,9 @@ _Help:_ names `taken_dmg`
 
 _Evidence:_ article view,372 (read 2026-08-09) documents `taken_dmg_per`, `taken_dmg_per-all` and
 `taken_dmg_per-row` as effects that raise the damage aimed at the target by a share, computed
-against the attacker's damage before any reduction, and states that the added damage is itself
-reduced by armour. That is what makes a raw/applied split expected — and what makes the readings
-where this figure is the _smaller_ of the two decisive against it being the raw side.
+against the damage dealt before any reduction, and states that the added damage is itself reduced by
+armour. That is what makes a raw/applied split expected — and what makes the readings where this
+figure is the _smaller_ of the two decisive against it being the raw side.
 
 ⚠️ **What the differences measure is not settled.** They are consistent with a second source of
 added damage on the same blow, and the material does not say which. What is settled is the
@@ -1949,13 +1946,13 @@ message, is damage that pool stopped and is counted as dealt and taken (ADR 0012
 pool being refilled: not damage, not a prevention, and not a statistic destroyed.
 
 ⚠️ **Whose pool refilled is the help's answer, and it gives one.** Every occurrence rides a blow
-where the attacker is named on one side and the absorbing combatant on the other, and the slot
-settles nothing — which combatant a figure belongs to comes from the help and never from the sign
-(this section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is
-generated with every blow **performed**, as the effect of a skill (`absagain_per`), and the effect
-table gives that effect as restoring part of the absorption **after an attack that hit**. A blow
-**performed** is the holder's own, so the pool that refills is the **striker's**; the published
-skill table's skills carrying the effect say the same of it (fetched 2026-10-06, `+absorb` below).
+where the actor is named on one side and the absorbing combatant on the other, and the slot settles
+nothing — which combatant a figure belongs to comes from the help and never from the sign (this
+section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is generated
+with every blow **performed**, as the effect of a skill (`absagain_per`), and the effect table gives
+that effect as restoring part of the absorption **after an attack that hit**. A blow **performed**
+is the holder's own, so the pool that refills is the **striker's**; the published skill table's
+skills carrying the effect say the same of it (fetched 2026-10-06, `+absorb` below).
 
 ⚠️ **The second clause alone would not have settled it.** An attack that hit reads both ways in the
 help's Polish — an attack they landed, or one that landed on them — and the first clause is what
@@ -1995,21 +1992,20 @@ refilled, so adding it to the key it resembles would count points of absorption 
 gives `absagain_per` to skills 7, 9, 12, 59 and 90 alone (fetched 2026-10-06), and describes the
 renewal of the two that are not a school's mastery as coming with a blow their holder deals; every
 occurrence here rides a blow whose actor deals magical damage, the school those masteries belong to.
-The message still names an attacker and the combatant whose absorption stopped damage, and says
-which gained nowhere, so both keys stay declarations: carrying the figure on a row is a decision,
-not an unknown.
+The message still names an actor and the combatant whose absorption stopped damage, and says which
+gained nowhere, so both keys stay declarations: carrying the figure on a row is a decision, not an
+unknown.
 
 _Shape:_ 8 occurrences; on a blow; a whole number
 
 _Help:_ names `absorb`, `absagain_per`
 
 _Evidence:_ article view,372 at the engine names `absorb` and `absagain_per` (read 2026-08-25).
-Production build `53XkBRxF` composes it as `msg_+absorb %val%` in the attacker's log slot,
-immediately beside `+absorbm` and with the identical shape, as `1786514810315` did before it;
-development build `1781609507010` names the effect on that branch as a renewal of absorption. Every
-occurrence over every recording sits in a recording of its own and rides a blow whose actor deals
-magical damage and no physical (read 2026-09-17) — far too little material to read a rule off, and
-none is read.
+Production build `53XkBRxF` composes it as `msg_+absorb %val%` in the actor's log slot, immediately
+beside `+absorbm` and with the identical shape, as `1786514810315` did before it; development build
+`1781609507010` names the effect on that branch as a renewal of absorption. Every occurrence over
+every recording sits in a recording of its own and rides a blow whose actor deals magical damage and
+no physical (read 2026-09-17) — far too little material to read a rule off, and none is read.
 
 ### `active_decblock_per` — decoded
 
@@ -2693,7 +2689,7 @@ word the rule `injure` carries, at 10% where that one is 15%, and off a critical
 is off a monster's attack.
 
 ⚠️ **It is not `injure` under another name, and the join is where they part.** The wound join
-(develop ADR 0022) charges a wound to the attacker its announcement named, because the announcement
+(develop ADR 0022) charges a wound to the actor its announcement named, because the announcement
 states the figure and the figure identifies which application is ticking. `+critwound` states **no
 figure at all** — see the entry below — so the same reading is not available here, and adopting it
 by analogy would be charging damage to somebody on the strength of a resemblance. `[ASK]`, and
@@ -2785,7 +2781,7 @@ carrying either half of this pair as the set stood 2026-08-24.
 ### `+of_wound` — decoded
 
 `+wound`'s other half: the deep wound an **auxiliary weapon** left, announced by the blow that left
-it and stating no figure. Read as a proc on the attacker's end, where `+wound` is read, and given
+it and stating no figure. Read as a proc on the actor's end, where `+wound` is read, and given
 `+wound`'s own word on the card rather than one of its own — one mechanic from two hands, and the
 panel has no column in which the hand is a thing a player acts on (`src/ui/panel-words.ts`). It
 draws no line under that row either, because nothing weakened what it announces.
@@ -2814,8 +2810,8 @@ the client writes it into a hole the sentence closes with a `%`, and the same sw
 `+woundfrost` and `+woundmagic` for the two other things that weaken a wound. Two of the three have
 an `+of_` twin for the auxiliary weapon; `+woundfrost` has none.
 
-Read as a **proc on the attacker's end**, which is where `+wound` is read, and the figure it carries
-is not read at all: a percentage is a unit no total here keeps, and what the wound does to health
+Read as a **proc on the actor's end**, which is where `+wound` is read, and the figure it carries is
+not read at all: a percentage is a unit no total here keeps, and what the wound does to health
 arrives separately as the `wound` ticks the entry above reads. It is one of five keys in
 `PROC_END_BY_KEY` read as a proc while stating a value — the four below are the others — and
 `src/core/protocol-key.ts` names that set rather than letting every proc take one (**develop ADR
@@ -2865,9 +2861,9 @@ the set stood 2026-09-11.
 ### `+woundfrost` — decoded
 
 The same announcement as `+woundpoison` above, for the second of the three things that weaken a deep
-wound. Read as a **proc on the attacker's end** and the figure it carries is not read, for the
-reason that entry gives, which holds here twice over: the help settles the halving for poison and
-says nothing of frost, so neither the base nor the rule behind this key is documented at all.
+wound. Read as a **proc on the actor's end** and the figure it carries is not read, for the reason
+that entry gives, which holds here twice over: the help settles the halving for poison and says
+nothing of frost, so neither the base nor the rule behind this key is documented at all.
 
 ⚠️ **No recording carries it, and it has no `+of_` twin.** The client composes an auxiliary-weapon
 variant for the other two weakeners and none for this one — a claim about the switch, read on
@@ -2920,20 +2916,20 @@ _Evidence:_ the help prints no entry for the announcing form, as it prints none 
 `anguish` (read 2026-08-25) — the stem this prefixed key was searched by, the full key occurring
 nowhere. Every occurrence rides a blow naming both ends, and three recordings carry this pair as the
 set stood 2026-08-25 — all three of that day. Two of them hold one applier each;
-`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` holds two, applying to the same victim,
-which is the material the absent figure is worst in: it is what a tick would have to be matched by,
-and every announcement states nothing.
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` holds two, applying to the same
+combatant, which is the material the absent figure is worst in: it is what a tick would have to be
+matched by, and every announcement states nothing.
 
 ### `+swing` — decoded
 
 **Szeroki zamach** — a chance event on a **landed attack** whose effect reaches further opponents
-inside that same attack, each drawn at random without repeating and each one the attacker could
-already reach without moving; the additional damage is rolled from the main weapon's own range.
-Carries no figure of its own.
+inside that same attack, each drawn at random without repeating and each one the actor could already
+reach without moving; the additional damage is rolled from the main weapon's own range. Carries no
+figure of its own.
 
 **It is not a second blow.** The further targets ride the message the swing fired on, each as a
 `+oth_dmg` naming them with an empty element, so one swing is one blow in `blowsStruck`, and what it
-spread is damage against a name, charged to the attacker as every `+oth_dmg` is. Both occurrences in
+spread is damage against a name, charged to the actor as every `+oth_dmg` is. Both occurrences in
 `captures/2026-10-04-tempest-grupa-vs-umibozu-DHSqC3Uh-0.22.0.json` have that shape.
 
 _Shape:_ 2 occurrences; on a blow; no value
@@ -2942,7 +2938,7 @@ _Help:_ names `swing`
 
 _Evidence:_ production build `DHSqC3Uh` composes `msg_+swing` with **no `%val%`**, on the switch
 where `+injure` carries one — so the key announces its event and states no figure, as `+fastarrow`
-and `-contra` do, and `PROC_END_BY_KEY` reads it as the attacker's. The published help documents the
+and `-contra` do, and `PROC_END_BY_KEY` reads it as the actor's. The published help documents the
 effect twice, both times under the engine name `swing` — article `view,372` (read 2026-08-21) — once
 as a monster's statistic, naming two more targets, and once as an active effect, naming at most
 three. The recording's swings are a monster's and each reaches three, which is more than the

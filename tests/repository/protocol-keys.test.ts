@@ -47,7 +47,7 @@ const CAUSE = {
     subjectsOwn: "the subject's own",
     announcementsActor: "the announcement's actor",
     messageActor: "the message actor",
-    woundsAttacker: "the wound's attacker",
+    woundsActor: "the wound's actor",
     nobody: "nobody",
 } as const;
 type Cause = VocabularyWord<typeof CAUSE>;
@@ -449,7 +449,7 @@ function lookupDecodedCause(key: string): Cause | null {
     assert(key.length > 0, "a key is asked about by name");
     if (key === DAMAGE_FAMILY_HEADING) return CAUSE.messageActor;
     if (SELF_SOURCED_HEALING_KEYS.includes(key)) return CAUSE.subjectsOwn;
-    if (key === WOUND_TICK_KEY) return CAUSE.woundsAttacker;
+    if (key === WOUND_TICK_KEY) return CAUSE.woundsActor;
     const reading = lookupKeyMeaning(key);
     if (reading === null) return null;
     switch (reading.kind) {

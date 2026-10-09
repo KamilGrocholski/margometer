@@ -209,7 +209,7 @@ evidence.
   judges — 164 comparisons, against 0 for the recordings whose whole fight is in the opening call.
 
   It is also where a tick's missing figure is worst: two combatants apply the bleed
-  `+legbon_anguish` announces to the same victim, and 25 `anguish` ticks come back off it naming
+  `+legbon_anguish` announces to the same combatant, and 25 `anguish` ticks come back off it naming
   nobody. And it is where `tcustom`, the second spelling of an announcement, arrived — five of the
   seven occurrences the material holds (`docs/protocol-keys.md`).
 
