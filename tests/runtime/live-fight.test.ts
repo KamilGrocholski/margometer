@@ -483,6 +483,23 @@ Deno.test("a payload that breaks the envelope as it is read leaves the fight unk
     assertInstanceOf(keeping?.first, errors.Caught, "the break, carried to the close");
 });
 
+Deno.test("an opening that breaks the envelope as it is read still ends the fight before it", () => {
+    const margonem = composeMargonem([[], [], [], []]);
+    const { options, keeper } = composeOptions(margonem);
+    const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
+    const breaking = {
+        init: 1,
+        get m(): unknown {
+            throw new TypeError("an opening that breaks as it is read");
+        },
+    };
+    const { live } = playInto(margonem, options, [{ init: 1 }, end, breaking]);
+    assertStrictEquals(live.capture.calls.length, 1, "the capture starts over on it");
+    assertStrictEquals(composeFightView(live.session), null, "and so does the fight read");
+    assertInstanceOf(live.payloadRefusal, errors.Caught, "whose gap is its own break");
+    assertStrictEquals(keeper.getFights().length, 1, "the fight before it kept, and only it");
+});
+
 Deno.test("a gap in one fight costs that fight, and the next one opened is kept", () => {
     const margonem = composeMargonem([[], [], [], [], []]);
     let moments = OPENED_AT;

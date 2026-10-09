@@ -42,14 +42,14 @@ export function writeCarriedTooltips(
 ): TooltipWritten | MargonemEngineWarriorsExceeded | errors.Caught {
     const fightStandings = replayAuraStandings(view, tables.statedSkills);
     const figuresByCombatantAndBit = new Map<string, CarriedFigure>();
-    const carried = tallyCarriedFigures({
+    const carriedFigures = tallyCarriedFigures({
         statuses: view.carriedStatuses,
         casts: fightStandings.casts,
         roster: view.roster,
         turnsByCombatantId: view.turnsByCombatantId,
         keyByStatusBit: tables.keyByStatusBit,
     });
-    for (const carriedFigure of carried) {
+    for (const carriedFigure of carriedFigures) {
         figuresByCombatantAndBit.set(
             `${carriedFigure.combatantId}/${carriedFigure.bit}`,
             carriedFigure,

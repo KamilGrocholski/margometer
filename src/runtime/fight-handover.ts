@@ -60,8 +60,7 @@ export function writeShownFightFile(
     assert(ports.addOnVersion.length > 0, "a file names the build that wrote it");
     if (shownFight === null) return new ShownFightAbsent();
     // A fight that has ended is on the shelf and on the screen at once, and stays the live
-    // recording through it: the one carrying the snapshots. The moment a live file states is now,
-    // because what it says is when it was taken off.
+    // recording through it: the one carrying the snapshots.
     let handover: Handover;
     if (shownFight.keptFight === null) {
         const surroundings = readLiveFileSurroundings(ports);

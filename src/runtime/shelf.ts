@@ -180,10 +180,10 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
     const version = getNumberField(parsed, SHELF_FIELDS, "version");
     const stated = version instanceof Error ? null : version;
     if (stated !== SHELF_VERSION) return new ShelfVersionUnknown(stated);
-    const listed = getListField(parsed, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
-    if (listed instanceof Error) return new ShelfUnreadable({ cause: listed });
+    const storedFights = getListField(parsed, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
+    if (storedFights instanceof Error) return new ShelfUnreadable({ cause: storedFights });
     const fights: KeptFight[] = [];
-    for (const storedFight of listed ?? []) {
+    for (const storedFight of storedFights ?? []) {
         let fight: KeptFight | null;
         // Read the fight, or null where this version does not recognise it, whole fight and all.
         readFight: {
@@ -309,7 +309,7 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
         if (fight !== null) fights.push(fight);
     }
     assert(fights.length <= KEPT_MAXIMUM, "a shelf read back stays inside its stated bound");
-    const fightsUnreadable = (listed ?? []).length - fights.length;
+    const fightsUnreadable = (storedFights ?? []).length - fights.length;
     assert(fightsUnreadable >= 0, "a fight read back is one the store held");
     return { fights, fightsUnreadable };
 }
@@ -363,13 +363,14 @@ function writeShelf(
         if (!(written instanceof Error)) {
             // Say what was offered and did not go down: the rotation, stated rather than silent.
             const keptOpenedAts = new Set(offered.map((keptFight) => keptFight.openedAt));
-            const dropped = fights.filter((keptFight) => !keptOpenedAts.has(keptFight.openedAt))
-                .map((keptFight) => keptFight.openedAt);
+            const droppedOpenedAts = fights.filter((keptFight) =>
+                !keptOpenedAts.has(keptFight.openedAt)
+            ).map((keptFight) => keptFight.openedAt);
             assert(
-                dropped.length + offered.length === fights.length,
+                droppedOpenedAts.length + offered.length === fights.length,
                 "every fight offered is kept or dropped",
             );
-            return { contents: { fights: offered }, droppedOpenedAt: dropped };
+            return { contents: { fights: offered }, droppedOpenedAt: droppedOpenedAts };
         }
         if (written instanceof StoreUnavailable) return written;
         refused = written;
@@ -449,7 +450,7 @@ export function deleteShelf(store: KeyValueStore): undefined | StoreFailure {
 /** What a full shelf keeps: the newest, and everything the reader pinned. */
 export function rotateShelf(fights: readonly KeptFight[]): KeptFight[] {
     let rotated = [...fights];
-    for (let dropped = 0; dropped < fights.length; dropped += 1) {
+    for (let rotations = 0; rotations < fights.length; rotations += 1) {
         if (rotated.length <= KEPT_MAXIMUM) break;
         const shorter = dropOldestUnpinned(rotated);
         if (shorter === null) break;

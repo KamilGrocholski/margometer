@@ -112,16 +112,20 @@ export function initLiveFight(options: LiveFightOptions): {
         },
         onPayload(payload) {
             // Read the payload, each step under its own guard. Whether it opens a fight is read
-            // apart where the envelope refuses it, since a refused opening still ends the last.
+            // apart, since an opening the envelope refuses, or breaks on, still ends the last. A
+            // break in that reading is the envelope's too, which marks it.
+            const openingRead = errors.attempt(() => isPayloadOpening(payload));
+            const isOpeningApart = openingRead instanceof errors.Caught ? false : openingRead;
+            // An opening is the first call the capture keeps of the next fight, gap and all.
+            if (isOpeningApart) liveFight.payloadRefusal = null;
             const { record, isOpening } = executeLiveReading(
                 liveFight,
                 options,
                 DEFECT_KIND.reading,
-                { record: null, isOpening: false },
+                { record: null, isOpening: isOpeningApart },
                 (): { record: PayloadRecord | null; isOpening: boolean } => {
                     const payloadRecord = readPayloadEnvelope(payload);
                     if (!(payloadRecord instanceof Error)) {
-                        if (payloadRecord.isInit) liveFight.payloadRefusal = null;
                         return { record: payloadRecord, isOpening: payloadRecord.isInit };
                     }
                     options.defects.add({
@@ -129,11 +133,8 @@ export function initLiveFight(options: LiveFightOptions): {
                         region: null,
                         failure: payloadRecord,
                     });
-                    const isRefusedOpening = isPayloadOpening(payload);
-                    // A refused opening is the first call the capture keeps of the next fight.
-                    if (isRefusedOpening) liveFight.payloadRefusal = null;
                     liveFight.payloadRefusal ??= payloadRecord;
-                    return { record: null, isOpening: isRefusedOpening };
+                    return { record: null, isOpening: isOpeningApart };
                 },
             );
             const snapshotAfter = executeLiveStep(

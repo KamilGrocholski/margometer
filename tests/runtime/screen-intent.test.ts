@@ -82,4 +82,5 @@ Deno.test("an end left out is pressed from the level over it, never beside a pai
         AssertionError,
         "not a pair with somebody",
     );
+    assertStrictEquals(opened.pairCombatantId, null, "and the press refused moved nothing");
 });

@@ -5898,8 +5898,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `calls` — `src/runtime/fight-handover.ts`
 - `cancelled` — `src/runtime/margometer-runtime.ts`
 - `capturedAt` — `src/runtime/fight-handover.ts`
-- `carried` — `src/runtime/carried-tooltip.ts`
 - `carriedFigure` — `src/runtime/carried-tooltip.ts`
+- `carriedFigures` — `src/runtime/carried-tooltip.ts`
 - `caster` — `src/runtime/carried-tooltip.ts`
 - `chosen` — `src/runtime/fight-state.ts`, `src/runtime/shelf-keeper.ts`
 - `chosenFightOpenedAt` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
@@ -5913,7 +5913,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `defects` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`,
   `src/runtime/shelf-keeper.ts`
 - `deleted` — `src/runtime/shelf-keeper.ts`
-- `dropped` — `src/runtime/shelf.ts`
+- `droppedOpenedAts` — `src/runtime/shelf.ts`
 - `encoded` — `src/runtime/fight-handover.ts`, `src/runtime/shelf.ts`
 - `end` — `src/runtime/margometer-runtime.ts`
 - `escaped` — `src/runtime/margometer-runtime.ts`
@@ -5947,7 +5947,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isCaptured` — `src/runtime/live-fight.ts`
 - `isCollapsed` — `src/runtime/margometer-runtime.ts`
 - `isOpening` — `src/runtime/live-fight.ts`
-- `isRefusedOpening` — `src/runtime/live-fight.ts`
+- `isOpeningApart` — `src/runtime/live-fight.ts`
 - `isShelfEmpty` — `src/runtime/panel-frame.ts`
 - `isTallied` — `src/runtime/margometer-runtime.ts`
 - `keeper` — `src/runtime/margometer-runtime.ts`, `src/runtime/panel-frame.ts`
@@ -5965,7 +5965,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `label` — `src/runtime/margometer-runtime.ts`
 - `ledger` — `src/runtime/panel-frame.ts`
 - `legendary` — `src/runtime/carried-tooltip.ts`
-- `listed` — `src/runtime/shelf.ts`
 - `listener` — `src/runtime/live-fight.ts`, `src/runtime/margometer-runtime.ts`
 - `liveFight` — `src/runtime/live-fight.ts`, `src/runtime/margometer-runtime.ts`,
   `src/runtime/panel-frame.ts`
@@ -5987,6 +5986,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `opened` — `src/runtime/panel-frame.ts`, `src/runtime/shelf-keeper.ts`
 - `openedAt` — `src/runtime/live-fight.ts`, `src/runtime/shelf-keeper.ts`, `src/runtime/shelf.ts`
 - `openedLevels` — `src/runtime/panel-frame.ts`
+- `openingRead` — `src/runtime/live-fight.ts`
 - `outcome` — `src/runtime/panel-frame.ts`
 - `pair` — `src/runtime/fight-file.ts`, `src/runtime/panel-frame.ts`, `src/runtime/settings.ts`
 - `parsed` — `src/runtime/settings.ts`, `src/runtime/shelf.ts`
@@ -6019,6 +6019,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `requested` — `src/runtime/margometer-runtime.ts`
 - `roster` — `src/runtime/panel-frame.ts`
 - `rotated` — `src/runtime/shelf.ts`
+- `rotations` — `src/runtime/shelf.ts`
 - `rowKey` — `src/runtime/defect-ledger.ts`
 - `rows` — `src/runtime/defect-ledger.ts`, `src/runtime/panel-frame.ts`
 - `rowsByCombatantId` — `src/runtime/carried-tooltip.ts`
@@ -6051,6 +6052,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `store` — `src/runtime/shelf-keeper.ts`
 - `stored` — `src/runtime/shelf.ts`
 - `storedFight` — `src/runtime/shelf.ts`
+- `storedFights` — `src/runtime/shelf.ts`
 - `storedText` — `src/runtime/settings.ts`
 - `subject` — `src/runtime/fight-handover.ts`
 - `surroundings` — `src/runtime/fight-handover.ts`

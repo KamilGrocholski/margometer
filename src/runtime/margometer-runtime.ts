@@ -315,7 +315,6 @@ export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runti
     }
     return {
         onIntent: (intent) => onRuntimeIntent(state, intent),
-        // Stop looking, take the wrap off, and cancel the frame asked for.
         deinit: () => {
             state.search?.stop();
             // A cancel the page refuses is said on the console, once: the frame is let go of here.
@@ -783,9 +782,16 @@ export function executeScreenIntent(screen: ScreenState, intent: PanelIntent): b
                     );
                     // An opened row covers the screen it was opened on, so a press inside it is a
                     // pair, or that person's share of what nobody was named for under a pinned row.
-                    if (screen.openedCombatantId !== null) screen.pairCombatantId = combatantId;
-                    else if (screen.openUnnamedEnd !== null) screen.pairCombatantId = combatantId;
-                    else screen.openedCombatantId = combatantId;
+                    // A refused press leaves the screen as it stood (**A7**).
+                    if (screen.openedCombatantId !== null) {
+                        assert(
+                            screen.openUnnamedEnd === null,
+                            "a person's end left out is not a pair with somebody",
+                        );
+                        screen.pairCombatantId = combatantId;
+                    } else if (screen.openUnnamedEnd !== null) {
+                        screen.pairCombatantId = combatantId;
+                    } else screen.openedCombatantId = combatantId;
                     hasMoved = true;
                 }
                 break;
