@@ -456,5 +456,7 @@ export function rotateShelf(fights: readonly KeptFight[]): KeptFight[] {
         rotated = shorter;
     }
     assert(rotated.length <= fights.length, "a rotation never grows the shelf it was handed");
-    return rotated.length <= KEPT_MAXIMUM ? rotated : rotated.slice(0, KEPT_MAXIMUM);
+    // A shelf pinned past its bound is refused before it is offered (`EverySlotPinned`).
+    assert(rotated.length <= KEPT_MAXIMUM, "a rotation leaves the shelf inside its bound");
+    return rotated;
 }

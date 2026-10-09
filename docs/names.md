@@ -240,6 +240,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getOnlyAttack` — `tests/core/fight-decoder.test.ts`
 - `getOnlyUnread` — `tests/core/fight-decoder.test.ts`
 - `getOnlyUnreadAfterAttack` — `tests/core/fight-decoder.test.ts`
+- `getOpenedAts` — `tests/runtime/shelf.test.ts`
 - `getOperatorsAtDepth` — `tests/ui/panel-look.test.ts`
 - `getOtherEndKey` — `src/core/fight-statistics.ts`
 - `getOutcomeForReaderSide` — `src/ui/panel-content.ts`
@@ -8171,6 +8172,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `oneMore` — `tests/core/turn-clock.test.ts`
 - `onePayload` — `tests/runtime/shelf.test.ts`
 - `oneSection` — `tests/tools/develop-reports.test.ts`
+- `oneUnpinned` — `tests/runtime/shelf.test.ts`
 - `only` — in 4 files: `tests/`
 - `onlyKind` — `tests/ui/panel-element.test.ts`
 - `onlyName` — `tests/ports/margonem-engine-place.test.ts`

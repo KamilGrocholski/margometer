@@ -29,6 +29,7 @@ import {
     KEPT_MAXIMUM,
     type KeptFight,
     openShelf,
+    rotateShelf,
     RotationRefused,
     type ShelfContents,
     type ShelfOpened,
@@ -282,6 +283,31 @@ Deno.test("a shelf with every slot pinned refuses the newest rather than droppin
     const arrives = writeKeptFight(store, released.contents, composeFight(KEPT_MAXIMUM));
     assert(!(arrives instanceof Error), "and the newest arrives");
     assertEquals(arrives.droppedOpenedAt, [0], "in the place the unpinned one gave up");
+});
+
+/** A shelf with every slot pinned is refused before it is offered, so no rotation meets one. */
+Deno.test("a rotation keeps the shelf at its bound, and a shelf pinned past it is a caller's bug", () => {
+    const getOpenedAts = (fights: readonly KeptFight[]) => fights.map((fight) => fight.openedAt);
+    const atBound = Array.from(
+        { length: KEPT_MAXIMUM },
+        (_, openedAt) => composeFight(openedAt, true),
+    );
+    assertEquals(
+        getOpenedAts(rotateShelf(atBound)),
+        getOpenedAts(atBound),
+        "a shelf at its bound, pinned whole, is kept whole",
+    );
+    const oneUnpinned = [composeFight(KEPT_MAXIMUM), ...atBound];
+    assertEquals(
+        getOpenedAts(rotateShelf(oneUnpinned)),
+        getOpenedAts(atBound),
+        "one past it drops the one fight nobody pinned",
+    );
+    assertThrows(
+        () => rotateShelf([...atBound, composeFight(KEPT_MAXIMUM, true)]),
+        AssertionError,
+        "a rotation leaves the shelf inside its bound",
+    );
 });
 
 /** No quota is assumed, so a shelf that will not fit asks for less. */

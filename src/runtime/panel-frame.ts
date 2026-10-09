@@ -477,7 +477,7 @@ function presentShelfRows(
     liveRow: LiveRow | null,
     chosenFightOpenedAt: number | null,
 ): ShelfRow[] {
-    const keptFights = parts.keeper.getFights().slice(0, KEPT_MAXIMUM);
+    const keptFights = parts.keeper.getFights();
     const keptFightStatesByOpenedAt = parts.keeper.getKeptFightStates();
     const rows: ShelfRow[] = [];
     const alsoKept = liveRow === null
