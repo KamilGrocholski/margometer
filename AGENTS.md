@@ -141,11 +141,12 @@ What a function may touch, across `libs/`, `src/` and `tools/`. ADR 0018, after 
 - **P1. A function's verb states its purity, and the function keeps it.** **N2**'s table gives each
   verb one: a **strong** function reads only its parameters and module constants, changes none of
   them and returns a value; a **weak** one changes only what it is handed; a verb of **none**, or
-  one outside the table, may reach anything; `read` is **either**, because **N16** names where a
-  value comes from, not what reaching it touches. A strong or weak function calls only strong, weak
-  and `read` functions. Observation: a strong or weak function calling one of none, or a strong one
-  assigning into a parameter or calling a method that changes one — `push`, `set`, `delete`,
-  `splice`, `sort`, and every other that changes a collection in place.
+  one outside the table, may reach anything; `read` and `attempt` are **either**, because **N16**
+  names where a value comes from, not what reaching it touches, and an attempt is the call it is
+  handed (ADR 0049). A strong or weak function calls only strong, weak and either functions.
+  Observation: a strong or weak function calling one of none, by its name or through a module
+  imported whole, or a strong one assigning into a parameter or calling a method that changes one —
+  `push`, `set`, `delete`, `splice`, `sort`, and every other that changes a collection in place.
 - **P2. Each event changes state at one point.** The payload, the gesture, the frame and the card of
   `docs/design.md` §10 each read top-down as the sequence of the changes they make; anywhere else
   that wants one sets a flag (`markStale`), and the entry makes it. Observation: a `render…` called
@@ -313,7 +314,7 @@ TypeScript idiom, with the naming rules stated here.
   | `reset`             | Restores to the initial state                                                              | weak            |
   | `require`           | A value narrowed to a type, or throws — `tools/` only (**E1**)                             | strong          |
   | `expect`            | Fails a test unless something holds — a test's action and nobody else's                    | strong          |
-  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)                           | none            |
+  | `attempt`           | Calls what may throw, answering its value or a `Caught` (**E4**)                           | either          |
   | `compose`           | A new value made of several, where no verb above fits                                      | strong          |
 
   `compose` is the residue, not the default. Other verbs are allowed where they are more precise,

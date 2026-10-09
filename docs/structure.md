@@ -117,6 +117,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0046-a-shelf-row-says-how-a-fight-went-in-a-letter-and-keeps-a-fight-it-cannot-read.md`      | a shelf row ends in the outcome's letter in the ink of the side that took it, and a fight it cannot read stays a row that opens nothing                         |
 | `docs/adr/0047-a-development-build-installs-beside-the-release-under-a-name-of-its-own.md`             | the preview server's build installs as `MargoMeter Dev` beside the release, dated to the minute it was built, and polled where it was installed                 |
 | `docs/adr/0048-every-cell-a-bar-reaches-is-in-the-plain-ink.md`                                        | a ranking row's rank, turn mark and share are in the plain ink over its bar, the signal marks on a ground of their own, and no word is drawn through an opacity |
+| `docs/adr/0049-an-attempt-is-as-pure-as-the-call-it-is-handed.md`                                      | `attempt` is either, as `read` is, and the purity guard follows a call through a module imported whole                                                          |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

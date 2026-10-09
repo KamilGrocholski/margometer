@@ -3,9 +3,10 @@
  * a module holds no state of its own. The purity of each verb is read off N2's table in
  * `AGENTS.md`, never spelled here a second time.
  *
- * ⚠️ **A call is read by name.** A method called on a port, and a handed thing reached through a
- * local alias or a callback's parameter, name nothing a parse can follow, so both are outside this
- * reading, as they are outside S1's.
+ * ⚠️ **A call is read by name**, its own or a module's imported whole (`errors.attempt`). A method
+ * called on a port, and a handed thing reached through a local alias or a callback's parameter,
+ * name nothing a parse can follow, so both are outside this reading, as they are outside S1's; so
+ * is what an either function is handed to call.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
@@ -15,6 +16,7 @@ import {
     formatNodePlace,
     indexCallableNames,
     lookupCallerDeclaration,
+    lookupImportedPath,
     NAME_MARK,
     readAstNodes,
     readDeclaredFunctionName,
@@ -95,12 +97,15 @@ Deno.test("a strong or weak function calling one of none is flagged, and a read 
         "function readRows(rows) { return rows; }",
         "function formatRows(rows) { return rows; }",
         "function writeRow(rows) { return rows; }",
+        'import * as rowStore from "./row-store.ts";',
+        "function getRows(rows) { rowStore.renderRows(rows); rows.renderRows(); }",
     ]);
     assertEquals(
         lookupPurityBreaches([sample], TABLE),
         [
             "sample.ts:1 tallyRows, strong, calls renderRows, of none",
             "sample.ts:2 addRow, weak, calls writeRow, of none",
+            "sample.ts:9 getRows, strong, calls renderRows, of none",
         ],
         "P1",
     );
@@ -114,8 +119,9 @@ function lookupPurityBreaches(
     const breaches: string[] = [];
     for (const file of files) {
         const known = indexCallableNames(file);
+        const namespaces = indexNamespaceImports(file);
         for (const call of readAstNodes(file, ["CallExpression"])) {
-            const callee = known.get(call.callee?.name ?? "");
+            const callee = lookupCalleeName(call.callee, known, namespaces);
             if (callee === undefined) continue;
             const caller = lookupCallerDeclaration(call);
             if (caller === null) continue;
@@ -125,6 +131,37 @@ function lookupPurityBreaches(
         breaches.push(...lookupHandedChanges(file, purities));
     }
     return breaches;
+}
+
+/** The modules a file imports whole, each by the name it is reached through. */
+function indexNamespaceImports(file: SourceFile): Map<string, string> {
+    const namespaces = new Map<string, string>();
+    for (const imported of readAstNodes(file, ["ImportDeclaration"])) {
+        const source = imported.source?.value;
+        if (typeof source !== "string") continue;
+        const path = lookupImportedPath(file, source);
+        if (path === null) continue;
+        for (const specifier of imported.specifiers ?? []) {
+            if (specifier.type !== "ImportNamespaceSpecifier") continue;
+            const local = specifier.local?.name;
+            if (local !== undefined) namespaces.set(local, path);
+        }
+    }
+    return namespaces;
+}
+
+/** The function a call names: by its own name, or through a module imported whole. */
+function lookupCalleeName(
+    callee: AstNode | undefined,
+    known: ReadonlyMap<string, string>,
+    namespaces: ReadonlyMap<string, string>,
+): string | undefined {
+    if (callee?.type !== "MemberExpression") return known.get(callee?.name ?? "");
+    const path = namespaces.get(callee.object?.name ?? "");
+    if (path === undefined) return undefined;
+    const name = callee.property?.name;
+    if (name === undefined) return undefined;
+    return path + NAME_MARK + name;
 }
 
 /** What a call breaks of P1, or null where it keeps it. */

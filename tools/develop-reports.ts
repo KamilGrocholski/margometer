@@ -78,7 +78,7 @@ function readDevelopReport(revision: string, task: string): string {
     assert(revision.length > 0, "develop is read at a revision");
     assert(task.length > 0, "and by one of its tasks");
     const directory = `${CACHE_DIRECTORY}/develop-${revision}`;
-    if (!isTreeComplete(directory)) {
+    if (!readTreeComplete(directory)) {
         // Write the tree out afresh, so nothing a half-finished run left behind is read.
         const emptied = errors.attempt(() => emptyDirSync(directory));
         if (emptied instanceof errors.Caught) {
@@ -104,7 +104,7 @@ function readDevelopReport(revision: string, task: string): string {
         if (marked instanceof errors.Caught) {
             throw new DevelopReportError(`${directory} cannot be marked whole`, { cause: marked });
         }
-        assert(isTreeComplete(directory), "a tree taken out is marked whole");
+        assert(readTreeComplete(directory), "a tree taken out is marked whole");
     }
     const output = errors.attempt(() =>
         new Deno.Command(Deno.execPath(), {
@@ -126,7 +126,7 @@ function readDevelopReport(revision: string, task: string): string {
     return text;
 }
 
-function isTreeComplete(directory: string): boolean {
+function readTreeComplete(directory: string): boolean {
     assert(directory.length > 0, "a tree is looked for somewhere");
     const mark = errors.attempt(() => Deno.statSync(`${directory}/${COMPLETE_MARK}`));
     if (!(mark instanceof Error)) return mark.isFile;
