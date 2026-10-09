@@ -118,6 +118,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0047-a-development-build-installs-beside-the-release-under-a-name-of-its-own.md`             | the preview server's build installs as `MargoMeter Dev` beside the release, dated to the minute it was built, and polled where it was installed                 |
 | `docs/adr/0048-every-cell-a-bar-reaches-is-in-the-plain-ink.md`                                        | a ranking row's rank, turn mark and share are in the plain ink over its bar, the signal marks on a ground of their own, and no word is drawn through an opacity |
 | `docs/adr/0049-an-attempt-is-as-pure-as-the-call-it-is-handed.md`                                      | `attempt` is either, as `read` is, and the purity guard follows a call through a module imported whole                                                          |
+| `docs/adr/0050-a-development-build-is-dated-to-the-second.md`                                          | the preview server's build is dated to the second, so two edits saved in one minute are both offered                                                            |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

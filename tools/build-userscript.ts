@@ -122,8 +122,8 @@ const WORD_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 const DEVELOPMENT_SUFFIX = "-dev";
 const DIRECTIVE_KEY_WIDTH = 12;
 /** `YYYYMMDDHHMM`, so a later build sorts higher as a number and as text alike. */
-const DATED_MINUTE_LENGTH = 12;
-const ISO_MINUTE_LENGTH = "YYYY-MM-DDTHH:MM".length;
+const DATED_SECOND_LENGTH = 14;
+const ISO_SECOND_LENGTH = "YYYY-MM-DDTHH:MM:SS".length;
 const DIGITS = "0123456789";
 
 /** The file, written where a release picks it up. Answers the path of the script it wrote. */
@@ -502,19 +502,19 @@ export function readDevelopmentVersion(): string {
 }
 
 /**
- * A development build's version with the minute it was built after it, in UTC, as one number: a
- * separate `.HHMM` would begin with a nought before ten o'clock, which semantic versioning refuses
+ * A development build's version with the second it was built after it, in UTC, as one number: a
+ * separate `.HHMMSS` would begin with a nought before ten o'clock, which semantic versioning refuses
  * in a numeric identifier, and a manager compares versions in its own way.
  */
 export function formatDatedDevelopmentVersion(developmentVersion: string, moment: Date): string {
     assert(developmentVersion.endsWith(DEVELOPMENT_SUFFIX), "a dated build is a development one");
     assert(Number.isFinite(moment.getTime()), "a build was made at a moment");
     // `toISOString` writes UTC whatever zone the machine is in.
-    const minute = [...moment.toISOString().slice(0, ISO_MINUTE_LENGTH)]
+    const second = [...moment.toISOString().slice(0, ISO_SECOND_LENGTH)]
         .filter((character) => DIGITS.includes(character))
         .join("");
-    assertStrictEquals(minute.length, DATED_MINUTE_LENGTH, "a minute is written at one width");
-    return `${developmentVersion}.${minute}`;
+    assertStrictEquals(second.length, DATED_SECOND_LENGTH, "a second is written at one width");
+    return `${developmentVersion}.${second}`;
 }
 
 /** `deno.json` carries comments, which `JSON.parse` refuses and `@std/jsonc` reads. */

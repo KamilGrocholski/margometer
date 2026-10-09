@@ -4249,7 +4249,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `COUNT_WIDTH` — in 5 files: `tools/`
 - `COUNT_WORDS` — `tools/protocol-key-shape.ts`
 - `DAMAGE_FAMILY_HEADING` — `tools/protocol-key-shape.ts`
-- `DATED_MINUTE_LENGTH` — `tools/build-userscript.ts`
+- `DATED_SECOND_LENGTH` — `tools/build-userscript.ts`
 - `DATE_INDENT` — `tools/frozen-files.ts`
 - `DATE_NOTE` — `tools/skill-table.ts`
 - `DATE_SEPARATOR` — `tools/frozen-files.ts`
@@ -4342,7 +4342,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `INSTALL_NEEDS_MAXIMUM` — `tools/preview-page.ts`
 - `INTAKE_KEYS` — `tools/recorded-material.ts`
 - `INTO_DEFAULT` — `tools/panel-giving-way.ts`
-- `ISO_MINUTE_LENGTH` — `tools/build-userscript.ts`
+- `ISO_SECOND_LENGTH` — `tools/build-userscript.ts`
 - `KEEP_ALIVE_EVERY_MILLISECONDS` — `tools/preview-server.ts`
 - `KEPT_BREAK` — `tools/capture-intake.ts`
 - `KEYS_MAXIMUM` — `tools/protocol-key-shape.ts`
@@ -6886,7 +6886,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `metadataWritten` — `tools/build-userscript.ts`
 - `milliseconds` — `tools/help-article.ts`
 - `mine` — `tools/aura-lifetime.ts`, `tools/turn-count.ts`
-- `minute` — `tools/build-userscript.ts`
 - `missing` — `tools/help-article.ts`
 - `mode` — `tools/aura-lifetime.ts`
 - `monsterName` — `tools/capture-intake.ts`
@@ -7030,6 +7029,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `screens` — `tools/drill-report.ts`
 - `script` — `tools/build-userscript.ts`, `tools/preview-page.ts`
 - `scriptWritten` — `tools/build-userscript.ts`
+- `second` — `tools/build-userscript.ts`
 - `section` — `tools/changelog.ts`, `tools/develop-reports.ts`
 - `sections` — `tools/develop-reports.ts`
 - `sentence` — `tools/fabricated-fight.ts`, `tools/protocol-key-shape.ts`
@@ -8100,7 +8100,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `metric` — in 7 files: `tests/`
 - `midStrike` — `tests/core/granted-blow-rule.test.ts`
 - `middle` — `tests/e2e/panel-type.spec.ts`, `tests/runtime/margometer-runtime.test.ts`
-- `minute` — `tests/tools/preview-server.test.ts`
 - `misnamed` — `tests/repository/names.test.ts`
 - `misplaced` — `tests/repository/declaration-order.test.ts`
 - `missed` — `tests/repository/skill-durations.test.ts`
@@ -8526,7 +8525,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `seated` — `tests/core/fight-session.test.ts`, `tests/tools/fabricated-fight.test.ts`
 - `seatless` — in 4 files: `tests/`
 - `seats` — `tests/ui/panel-content.test.ts`, `tests/ui/share-column.test.ts`
-- `second` — in 6 files: `tests/`
+- `second` — in 7 files: `tests/`
 - `secondFight` — `tests/e2e/panel-shelf.spec.ts`, `tests/ports/recorded-session.test.ts`
 - `secondFile` — `tests/tools/frozen-files.test.ts`
 - `secondId` — `tests/core/fight-decoder.test.ts`
@@ -15694,6 +15693,7 @@ suite's material.
 - `docs/adr/0047-a-development-build-installs-beside-the-release-under-a-name-of-its-own.md`
 - `docs/adr/0048-every-cell-a-bar-reaches-is-in-the-plain-ink.md`
 - `docs/adr/0049-an-attempt-is-as-pure-as-the-call-it-is-handed.md`
+- `docs/adr/0050-a-development-build-is-dated-to-the-second.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

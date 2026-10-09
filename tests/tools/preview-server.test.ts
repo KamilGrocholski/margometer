@@ -246,7 +246,7 @@ Deno.test("a server offering no install draws no button and serves no install", 
     }
 });
 
-Deno.test("the build a server makes is dated to its minute, and polled at this server", async () => {
+Deno.test("the build a server makes is dated to its second, and polled at this server", async () => {
     // The one case here that runs the bundler: the injected reader holds the routes, not this.
     const preview = initPreviewServer({ port: 0, shouldWatch: false });
     try {
@@ -260,9 +260,9 @@ Deno.test("the build a server makes is dated to its minute, and polled at this s
         const stated = `// @version      ${readDevelopmentVersion()}.`;
         const opens = banner.indexOf(stated);
         assert(opens >= 0, "at the declaration marked as development");
-        const minute = banner.slice(opens + stated.length, banner.indexOf("\n", opens));
-        assertStrictEquals(minute.length, 12, "and dated to the minute");
-        assert([...minute].every((character) => "0123456789".includes(character)), "as one number");
+        const second = banner.slice(opens + stated.length, banner.indexOf("\n", opens));
+        assertStrictEquals(second.length, 14, "and dated to the second");
+        assert([...second].every((character) => "0123456789".includes(character)), "as one number");
     } finally {
         await preview.stop();
     }

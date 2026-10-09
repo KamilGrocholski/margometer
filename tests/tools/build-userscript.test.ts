@@ -61,7 +61,7 @@ Deno.test("an edition of its own is a script of its own, polled where it was ins
         scriptAddress: "http://127.0.0.1:4173/margometer-dev.user.js",
         metadataAddress: "http://127.0.0.1:4173/margometer-dev.meta.js",
     };
-    const banner = encodeUserscriptBanner("1.2.3-dev.202610081432", edition);
+    const banner = encodeUserscriptBanner("1.2.3-dev.20261008143205", edition);
     assertStringIncludes(banner, "// @name         MargoMeter Dev\n", "a name the release lacks");
     assertStringIncludes(
         banner,
@@ -78,36 +78,40 @@ Deno.test("an edition of its own is a script of its own, polled where it was ins
     );
 });
 
-Deno.test("a dated build names its minute in UTC, at one width, and only on a development one", () => {
+Deno.test("a dated build names its second in UTC, at one width, and only on a development one", () => {
     const formatBuiltAt = (iso: string) =>
         formatDatedDevelopmentVersion("1.2.3-dev", new Date(iso));
     assertStrictEquals(
         formatBuiltAt("2026-01-02T03:04:05Z"),
-        "1.2.3-dev.202601020304",
+        "1.2.3-dev.20260102030405",
         "padded with noughts",
     );
     assertStrictEquals(
         formatBuiltAt("2026-10-08T14:32:59.999Z"),
-        "1.2.3-dev.202610081432",
-        "to the minute",
+        "1.2.3-dev.20261008143259",
+        "to the second",
     );
     assertStrictEquals(
         formatBuiltAt("2026-10-08T23:30:00+02:00"),
-        "1.2.3-dev.202610082130",
+        "1.2.3-dev.20261008213000",
         "in UTC",
     );
     assertStrictEquals(
-        formatBuiltAt("2026-12-31T23:59:00Z"),
-        "1.2.3-dev.202612312359",
-        "the last minute",
+        formatBuiltAt("2026-12-31T23:59:59Z"),
+        "1.2.3-dev.20261231235959",
+        "the last second",
     );
     assertStrictEquals(
         formatBuiltAt("2027-01-01T00:00:00Z"),
-        "1.2.3-dev.202701010000",
+        "1.2.3-dev.20270101000000",
         "and the first",
     );
     assert(
-        formatBuiltAt("2027-01-01T00:00:00Z") > formatBuiltAt("2026-12-31T23:59:00Z"),
+        formatBuiltAt("2026-10-08T14:32:01Z") > formatBuiltAt("2026-10-08T14:32:00Z"),
+        "a build a second after another, in the same minute, sorts higher",
+    );
+    assert(
+        formatBuiltAt("2027-01-01T00:00:00Z") > formatBuiltAt("2026-12-31T23:59:59Z"),
         "a later build sorts higher",
     );
     assertThrows(() => formatDatedDevelopmentVersion("1.2.3", new Date()), Error, "development");
