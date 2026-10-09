@@ -17,9 +17,9 @@ import {
 } from "#/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
-    countUnreadMessages,
     type FightStatistics,
     tallyFightStatistics,
+    tallyUnreadMessages,
 } from "#/src/core/fight-statistics.ts";
 import type { ShownScreen } from "#/src/ui/panel-element.ts";
 import { NOTHING_SUSPECT, type ScreenContent } from "#/src/ui/panel-content.ts";
@@ -51,7 +51,7 @@ const THEIRS = 2;
 Deno.test("the widest fight built here fields a full cast, with both ends left out", () => {
     const { roster, statistics } = composeWidestFight();
     assertStrictEquals(roster.byId.size, COMBATANTS_MAXIMUM, "ten a side is the widest roster");
-    assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing in it went unread");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "and nothing in it went unread");
     assert(statistics.damageDealtByNobody > 0, "a blow the protocol gave no striker");
     assert(statistics.damageTakenByNobody > 0, "and one it gave no target");
 });

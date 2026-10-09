@@ -12,13 +12,13 @@ import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
-    countUnreadMessages,
     CUT_MAXIMUM,
     type FightStatistics,
     type FightTotals,
     type FigureCut,
     type SkillFigures,
     SKILLS_MAXIMUM,
+    tallyUnreadMessages,
 } from "#/src/core/fight-statistics.ts";
 import { getRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
@@ -200,7 +200,7 @@ function formatBlowLines(figures: CombatantFigures): string[] {
  * these, and a report silent about one looks exactly like one that never learned to state it.
  */
 function formatReadingLines(statistics: FightStatistics, messagesLost: number): string[] {
-    assert(countUnreadMessages(statistics) >= 0, "a reading states what it could not read");
+    assert(tallyUnreadMessages(statistics) >= 0, "a reading states what it could not read");
     assert(messagesLost >= 0, "and what never reached it, even as none");
     const counts: [string, number][] = [
         ["unread, key unknown", statistics.unreadMessagesUnknownKey],

@@ -20,10 +20,10 @@ import { COMBATANTS_MAXIMUM, indexCombatantRoster } from "#/src/core/combatant-r
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
-    countUnreadMessages,
     createCombatantFigures,
     SKILLS_MAXIMUM as SKILLS_KEPT_MAXIMUM,
     tallyFightStatistics,
+    tallyUnreadMessages,
 } from "#/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { FightStatistics } from "#/src/core/fight-statistics.ts";
@@ -508,7 +508,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         NOTHING_SUSPECT,
     );
     assertStrictEquals(
-        countUnreadMessages(whole.statistics),
+        tallyUnreadMessages(whole.statistics),
         0,
         "every key this fight carries is read",
     );
@@ -565,7 +565,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
         new Map(),
     );
     assertStrictEquals(
-        countUnreadMessages(unplaced),
+        tallyUnreadMessages(unplaced),
         0,
         "nothing here is unread, so the casts are the whole of it",
     );

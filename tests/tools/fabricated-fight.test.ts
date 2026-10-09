@@ -14,7 +14,7 @@ import { getNumberField, isRecord } from "#/libs/unknown-value.ts";
 import { replayAuraStandings } from "#/src/core/aura-standing.ts";
 import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
-import { countUnreadMessages } from "#/src/core/fight-statistics.ts";
+import { tallyUnreadMessages } from "#/src/core/fight-statistics.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { parseProtocolMessage } from "#/src/core/fight-decoder.ts";
 import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
@@ -106,7 +106,7 @@ Deno.test("every exemption names a key the register really carries", () => {
 
 Deno.test("the fabricated fight goes through the chain with nothing left unread", () => {
     const view = REPLAY.reading.view;
-    assertStrictEquals(countUnreadMessages(REPLAY.reading.figures.statistics), 0, "unread");
+    assertStrictEquals(tallyUnreadMessages(REPLAY.reading.figures.statistics), 0, "unread");
     assertStrictEquals(view.messagesLost, 0, "a message the payload said it carried");
     assert(view.isOver, "and the fight it composed reached its end");
     assert(!view.hasJoinedInProgress, "and was read from its own opening");
@@ -283,7 +283,7 @@ Deno.test("a fight at another level is fought at that level's figures", () => {
     );
     const replay = replayFabricatedFight(DUEL, "duel");
     const statistics = replay.reading.figures.statistics;
-    assertStrictEquals(countUnreadMessages(statistics), 0, "a message the panel could not read");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "a message the panel could not read");
     assertStrictEquals(replay.reading.view.messagesLost, 0, "a message the payload carried");
     const figures = [...statistics.byCombatantId.values()];
     assert(
@@ -311,7 +311,7 @@ function replayFabricatedFight(fight: FabricatedFight, name: string): ReplayedFi
 Deno.test("a fight the script breaks off states an escape and names no side", () => {
     const replay = replayFabricatedFight(FLED, "fled");
     const statistics = replay.reading.figures.statistics;
-    assertStrictEquals(countUnreadMessages(statistics), 0, "the escape leaves nothing unread");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "the escape leaves nothing unread");
     const outcome = statistics.outcome;
     assertExists(outcome, "a fight broken off still says how it ended");
     assertStrictEquals(outcome.isFled, true, "and what it says is that somebody escaped");
@@ -369,7 +369,7 @@ Deno.test("a fight closing on shouts leaves everybody on the board held", () => 
     const sides = new Set([...casters].map((id) => roster.byId.get(id)?.side));
     assertStrictEquals(sides.size, 2, "one on each side, which is what holds both of them at once");
     const statistics = replay.reading.figures.statistics;
-    assertStrictEquals(countUnreadMessages(statistics), 0, "and the two turns read clean");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "and the two turns read clean");
     assertStrictEquals(replay.reading.view.messagesLost, 0, "with no message lost");
 });
 

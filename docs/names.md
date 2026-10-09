@@ -1082,6 +1082,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyTakenByKind` — `tests/core/fight-statistics.test.ts`
 - `tallyTotals` — `src/core/fight-statistics.ts`
 - `tallyTurnDelta` — `tools/turn-count.ts`
+- `tallyUnreadMessages` — `src/core/fight-statistics.ts`
 - `tallyUnsharedPairParts` — `src/ui/panel-content.ts`
 
 ### `count` — strong
@@ -1109,7 +1110,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `countRowsForOpenedLevel` — `src/ui/panel-element.ts`
 - `countRowsForPairLevel` — `src/ui/panel-element.ts`
 - `countRowsThatOpen` — `tests/runtime/margometer-runtime.test.ts`
-- `countUnreadMessages` — `src/core/fight-statistics.ts`
 
 ### `clamp` — strong
 

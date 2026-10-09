@@ -558,7 +558,7 @@ export function tallyFightStatistics(
         }
     }
     assert(tallying.byCombatantId.size <= COMBATANTS_MAXIMUM, "a fight stays inside its bound");
-    assert(countUnreadMessages(tallying) <= events.length, "a message is counted unread once");
+    assert(tallyUnreadMessages(tallying) <= events.length, "a message is counted unread once");
     return {
         byCombatantId: tallying.byCombatantId,
         totals: tallyTotals(tallying.byCombatantId),
@@ -1298,7 +1298,7 @@ export function composeKindsAbsorbed(event: AttackEvent): string[] {
     return kinds;
 }
 
-export function countUnreadMessages(counted: UnreadMessageCounts): number {
+export function tallyUnreadMessages(counted: UnreadMessageCounts): number {
     const unread = counted.unreadMessagesUnknownKey + counted.unreadMessagesNoParameter +
         counted.unreadMessagesGrammarRefused;
     assert(Number.isSafeInteger(unread), "a count of messages stays inside what a number holds");

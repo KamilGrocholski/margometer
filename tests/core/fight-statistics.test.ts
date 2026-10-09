@@ -21,10 +21,10 @@ import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant
 import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
-    countUnreadMessages,
     CUT_MAXIMUM,
     type FightStatistics,
     tallyFightStatistics,
+    tallyUnreadMessages,
     verifyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
@@ -181,7 +181,7 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
     assertStrictEquals(target?.damageTakenAbsorbed, 545, "and their pool this much of it");
     assertStrictEquals(target?.damageTaken, 1557, "which together are what they took");
     assertStrictEquals(target?.damagePrevented, 0, "so no defence is said to have stopped it");
-    assertStrictEquals(countUnreadMessages(statistics), 0, "nothing about this blow went unread");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "nothing about this blow went unread");
 });
 
 /** Tallied, and held to its balances, which is the pair a caller always runs. */
@@ -549,7 +549,7 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
 Deno.test("a fight nothing was read from states nothing rather than zeroes", () => {
     const statistics = tally([], new Map());
     assertStrictEquals(statistics.byCombatantId.size, 0, "no combatant is invented");
-    assertStrictEquals(countUnreadMessages(statistics), 0, "and nothing went unread either");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "and nothing went unread either");
 });
 
 Deno.test("every point applied is counted once at each end, in every recording", () => {
@@ -1070,7 +1070,7 @@ Deno.test("a proc nobody can place is charged to nobody rather than to whoever w
         new Map(),
     );
     assertStrictEquals(
-        countUnreadMessages(statistics),
+        tallyUnreadMessages(statistics),
         0,
         "the key is read: it is whose it is that is unknown",
     );
@@ -1448,7 +1448,7 @@ Deno.test("health that came back to nobody is counted, under the key it came bac
         "the health the protocol says came back",
     );
     assertStrictEquals(statistics.byCombatantId.size, 0, "nobody was invented to carry it");
-    assertStrictEquals(countUnreadMessages(statistics), 0, "and the message was read, not skipped");
+    assertStrictEquals(tallyUnreadMessages(statistics), 0, "and the message was read, not skipped");
     assertStrictEquals(statistics.totals.healthRestored, 0, "no combatant's total holds it");
 });
 
