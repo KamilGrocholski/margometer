@@ -521,7 +521,7 @@ Deno.test("a fight nothing has happened in says so, rather than drawing nothing"
 Deno.test("what nobody can be charged with is a row apart from the ranking", () => {
     const reading = readFight();
     const host = draw(reading);
-    assert(reading.pinned.length > 0, "this fight has damage tied to no attacker");
+    assert(reading.pinned.length > 0, "this fight has damage tied to no actor");
     const blocks = getElementsWithin(host).filter((drawn) => drawn.className === "pinned-region");
     assertStrictEquals(blocks.length, 1, "which stands below the ranking in a block of its own");
     const inside = blocks[0]?.children ?? [];

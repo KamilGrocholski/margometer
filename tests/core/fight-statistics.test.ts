@@ -170,11 +170,11 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
         new Map(),
     );
     const dealer = statistics.byCombatantId.get(467968);
-    assertStrictEquals(dealer?.damageDealtRaw, 1557, "what the attacker put out");
+    assertStrictEquals(dealer?.damageDealtRaw, 1557, "what the actor put out");
     assertStrictEquals(dealer?.damageDealtApplied, 1012, "and what of it landed");
     assertStrictEquals(dealer?.damageDealtAbsorbed, 545, "and what a pool took of it");
     assertStrictEquals(dealer?.damageDealt, 1557, "which together are what they dealt");
-    assertStrictEquals(dealer?.damageTakenApplied, 0, "the attacker took nothing here");
+    assertStrictEquals(dealer?.damageTakenApplied, 0, "the actor took nothing here");
     assertStrictEquals(dealer?.damageTaken, 0, "nothing at all");
     const target = statistics.byCombatantId.get(-10000249);
     assertStrictEquals(target?.damageTakenApplied, 1012, "the target lost what landed");
@@ -207,7 +207,7 @@ function decode(messages: readonly string[], roster: CombatantRoster | null): Ba
 Deno.test("what was dealt is what landed and what a pool took, and never the raw", () => {
     const statistics = tally(decode([TWO_HIT_FIRST], null), new Map());
     const dealer = statistics.byCombatantId.get(441390);
-    assertStrictEquals(dealer?.damageDealtRaw, 1863, "what the attacker put out");
+    assertStrictEquals(dealer?.damageDealtRaw, 1863, "what the actor put out");
     assertStrictEquals(dealer?.damageDealtApplied, 89, "what reached health");
     assertStrictEquals(dealer?.damageDealtAbsorbed, 338, "what the two pools took");
     assertStrictEquals(dealer?.damageDealt, 427, "and what they dealt is the last two together");
@@ -344,7 +344,7 @@ Deno.test("a swing that landed nothing is still a swing under its announcement",
     assertStrictEquals(skill?.blows, 1, "and the swing that was stopped still went out");
 });
 
-Deno.test("health moving without an attacker is taken by somebody and dealt by nobody", () => {
+Deno.test("health moving without an actor is taken by somebody and dealt by nobody", () => {
     const statistics = tally(
         decode([POISON], null),
         new Map(),
@@ -354,7 +354,7 @@ Deno.test("health moving without an attacker is taken by somebody and dealt by n
     assertStrictEquals(
         statistics.damageDealtByNobody,
         140,
-        "and the log ties it to no attacker at all",
+        "and the log ties it to no actor at all",
     );
     assertStrictEquals(bitten?.healthRestored, 0, "which is not healing, and zero is a reading");
 });
@@ -370,7 +370,7 @@ Deno.test("health restored is not damage, and its own key says who gave it", () 
     assertStrictEquals(
         statistics.damageDealtByNobody,
         0,
-        "and no attacker was invented to balance it",
+        "and no actor was invented to balance it",
     );
     // `heal` carries `_Cause:_ the subject's own` in `docs/protocol-keys.md`, so the giver
     // is the one healed: on the published help's word, not because the grammar names one end.
@@ -873,7 +873,7 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
 
 /**
  * The inequality an opened pair on the screen about what reached this combatant rests on, over
- * every recording. The announcements are the **attacker's**, so the panel reads them off that
+ * every recording. The announcements are the **actor's**, so the panel reads them off that
  * combatant's row and closes what is left against `Zwykły cios` — and a sum that overshot would
  * leave `composePairParts` asserting rather than drawing.
  *

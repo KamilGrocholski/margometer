@@ -73,11 +73,11 @@ Deno.test("the key is read as damage, and all of it lands on the combatant it ti
         return event.source === TICK_KEY;
     });
     assertStrictEquals(ticked.length, 15, "the material carries this many ticks, 2026-08-30");
-    const victims = new Set<number>();
+    const woundedIds = new Set<number>();
     for (const event of ticked) {
         assertStrictEquals(event.kind, "health-change", "a tick is a health change");
         assertExists(event.combatantId, "naming whose health moved");
-        victims.add(event.combatantId);
+        woundedIds.add(event.combatantId);
     }
-    assertStrictEquals(victims.size, 1, "and every one of them names the same combatant");
+    assertStrictEquals(woundedIds.size, 1, "and every one of them names the same combatant");
 });

@@ -41,7 +41,7 @@ Deno.test("the pair with no marker is read by name", () => {
 
 Deno.test("a proc's end is the table's, never the sign's", () => {
     const curse = lookupKeyMeaning("+legbon_curse");
-    assertEquals(curse, { kind: KEY_FAMILY.proc, end: "actor", doesTakeValue: false }, "attacker");
+    assertEquals(curse, { kind: KEY_FAMILY.proc, end: "actor", doesTakeValue: false }, "actor");
     const cleanse = lookupKeyMeaning("-legbon_cleanse");
     assertEquals(cleanse, { kind: KEY_FAMILY.proc, end: "target", doesTakeValue: false }, "struck");
     const tenacity = lookupKeyMeaning("-tenacity");

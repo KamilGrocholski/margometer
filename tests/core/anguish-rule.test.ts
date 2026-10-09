@@ -1,7 +1,7 @@
 /**
  * `anguish`, and the announcement that applies it, held to what the register claims of both.
  *
- * The tick names its victim and nothing else, and the announcement carries no figure, so a tick
+ * The tick names the combatant it bleeds and nothing else, and the announcement carries no figure, so a tick
  * cannot be matched to an application, and the reading that charges one to whoever applied it has
  * nothing to stand on (`docs/protocol-keys.md`).
  */
@@ -22,13 +22,13 @@ import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights
 const TICK_KEY = "anguish";
 const ANNOUNCEMENT_KEY = "+legbon_anguish";
 /**
- * The one recording where two combatants apply the bleed to the same victim. It is what makes the
+ * The one recording where two combatants apply the bleed to the same combatant. It is what makes the
  * refusal legible: with one applier, charging a tick to them cannot be told from charging it to
  * nobody.
  */
 const TWO_APPLIERS = "captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json";
 
-Deno.test("every tick names its victim in the actor slot and nobody at the other end", () => {
+Deno.test("every tick names the combatant it bleeds in the actor slot and nobody at the other end", () => {
     let ticks = 0;
     for (const fight of readRecordedFights()) {
         for (const message of fight.messages) {
@@ -75,7 +75,7 @@ Deno.test("the announcement carries no figure, so nothing says which application
     );
 });
 
-Deno.test("a tick is charged to its victim, and to nobody who applied the bleed", () => {
+Deno.test("a tick is charged to the combatant it bleeds, and to nobody who applied the bleed", () => {
     const appliers = new Set<number>();
     for (const message of lookupRecordedFight(TWO_APPLIERS).messages) {
         const parsed = parseOrFail(message, TWO_APPLIERS);
@@ -89,7 +89,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
         event.kind === BATTLE_EVENT.healthChange && event.source === TICK_KEY
     );
     assertStrictEquals(ticked.length, 25, "and this many ticks come back off it");
-    const victims = new Set<number>();
+    const bledIds = new Set<number>();
     for (const event of ticked) {
         assertStrictEquals(event.kind, BATTLE_EVENT.healthChange, "a tick is a health change");
         assert(event.amount < 0, "a bleed takes health rather than putting it back");
@@ -97,11 +97,15 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
         // Not `add(combatantId)`: a reading off the empty slot answers null for every tick, and a
         // set of one null is a set of one, which would pass.
         assertExists(event.combatantId, "a tick names whose health moved");
-        victims.add(event.combatantId);
+        bledIds.add(event.combatantId);
     }
-    assertStrictEquals(victims.size, 1, "every tick lands on the one victim both appliers reached");
+    assertStrictEquals(
+        bledIds.size,
+        1,
+        "every tick lands on the one combatant both appliers reached",
+    );
     for (const applier of appliers) {
-        assert(!victims.has(applier), "and never on whoever applied it");
+        assert(!bledIds.has(applier), "and never on whoever applied it");
     }
 });
 
@@ -112,7 +116,7 @@ function decodeTwoAppliers() {
     return decodePayloadMessages(fight.messages, context).events;
 }
 
-Deno.test("the bleed reaches the victim's own figures and credits nobody with dealing it", () => {
+Deno.test("the bleed reaches the bled combatant's figures and credits nobody with dealing it", () => {
     const bled = decodeTwoAppliers().filter((event) =>
         event.kind === BATTLE_EVENT.healthChange && event.source === TICK_KEY
     );
@@ -123,11 +127,11 @@ Deno.test("the bleed reaches the victim's own figures and credits nobody with de
     assert(total > 0, "the ticks come to something");
     const only = tallyFightStatistics(bled, new Map());
     verifyFightStatistics(only);
-    const victim = [...only.byCombatantId.entries()][0];
-    assertExists(victim, "the victim has a row of their own");
+    const bledRow = [...only.byCombatantId.entries()][0];
+    assertExists(bledRow, "the bled combatant has a row of their own");
     assertStrictEquals(only.byCombatantId.size, 1, "and is the only combatant the ticks name");
     assertStrictEquals(
-        victim[1].damageTakenApplied,
+        bledRow[1].damageTakenApplied,
         total,
         "who is charged the whole of the bleed",
     );

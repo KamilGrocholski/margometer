@@ -4573,6 +4573,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ABSORBED` — `tests/core/fight-decoder.test.ts`, `tests/core/fight-statistics.test.ts`
 - `ACCEPTED` — `tests/repository/decisions.test.ts`
 - `ACROSS` — `tests/e2e/panel-drag.spec.ts`, `tests/e2e/panel-reload.spec.ts`
+- `ACTOR` — `tests/core/injure-rule.test.ts`
 - `ACTS_SCRIPTED` — `tests/tools/fabricated-fight.test.ts`
 - `ADD_ON_NAME` — `tests/e2e/panel-tooltip.spec.ts`
 - `ADD_ON_ROW` — `tests/runtime/carried-tooltip.test.ts`
@@ -4597,7 +4598,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ASSERT_NAME` — `tests/repository/assert-imports.test.ts`
 - `ASSERT_PACKAGE` — `tests/repository/assert-imports.test.ts`,
   `tests/repository/reader-layer.test.ts`
-- `ATTACKER` — `tests/core/injure-rule.test.ts`
 - `AT_A_TIME` — `tests/e2e/panel-level.spec.ts`, `tests/e2e/panel-states.spec.ts`
 - `AURA` — `tests/core/fight-statistics.test.ts`
 - `AUTO` — `tests/core/fight-decoder.test.ts`
@@ -5259,6 +5259,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `TABLE_OPENER` — `tests/repository/design-tokens.test.ts`
 - `TALLER` — `tests/e2e/panel-size.spec.ts`
 - `TALLEST_LISTED` — `tests/tools/card-height.test.ts`
+- `TARGET` — `tests/core/injure-rule.test.ts`
 - `TARGET_HEADING` — `tests/repository/browser-support.test.ts`
 - `TERMINAL_DIRECTORIES` — `tests/repository/throws.test.ts`
 - `TEST_VERSION` — `tests/panel-view.ts`
@@ -5266,7 +5267,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `THEN_NAME` — `tests/repository/synchronous-bundle.test.ts`
 - `THIRD` — `tests/runtime/margometer-runtime.test.ts`
 - `THIRD_BLOW` — `tests/core/fight-decoder.test.ts`
-- `THREE_ATTACKERS` — `tests/core/injure-rule.test.ts`
 - `THRESHOLD` — `tests/core/last-heal-rule.test.ts`
 - `TICK_KEY` — `tests/core/anguish-rule.test.ts`, `tests/core/wound-rule.test.ts`
 - `TICK_ON_ANNOUNCER` — `tests/core/fight-decoder.test.ts`
@@ -5319,7 +5319,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `VERSION` — `tests/tools/preview-site.test.ts`
 - `VERSION_HEADING` — `tests/repository/changelog.test.ts`
 - `VERSION_OPENER` — `tests/e2e/build-once.ts`
-- `VICTIM` — `tests/core/injure-rule.test.ts`
 - `VIEWPORT` — `tests/ui/panel-gesture.test.ts`, `tests/ui/view-failure.test.ts`
 - `VIEWPORT_WIDTH` — `tests/tools/panel-shots.test.ts`
 - `VISIBLE_LEAST` — `tests/e2e/panel-drag.spec.ts`
@@ -5348,6 +5347,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `WORKFLOWS_DIRECTORY` — `tests/repository/workflows.test.ts`
 - `WORLD` — `tests/runtime-world.ts`
 - `WOUND` — `tests/core/injure-rule.test.ts`, `tests/core/wound-rule.test.ts`
+- `WOUNDED_THRICE` — `tests/core/injure-rule.test.ts`
 - `WRAP_FAILURES_MAXIMUM` — `tests/ports/margonem-engine-battle.test.ts`
 - `WRITE_FLAG` — `tests/repository/name-register.test.ts`
 - `gradesHeld` — `tests/tools/turn-count.test.ts`
@@ -7187,11 +7187,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `across` — `tests/ui/panel-look.test.ts`
 - `acted` — `tests/core/turn-clock.test.ts`
 - `action` — `tests/repository/workflows.test.ts`
-- `actor` — `tests/core/combatant-health.test.ts`, `tests/core/message-grammar.test.ts`,
-  `tests/ui/panel-screen.test.ts`
+- `actor` — in 4 files: `tests/`
 - `actorId` — `tests/core/granted-blow-rule.test.ts`, `tests/core/injure-rule.test.ts`,
   `tests/core/turn-clock.test.ts`
 - `actors` — `tests/core/npc-heal-rule.test.ts`
+- `actorsByTargetId` — `tests/core/injure-rule.test.ts`
 - `addOn` — `tests/repository/captured-fight-register.test.ts`
 - `added` — `tests/runtime/defect-ledger.test.ts`
 - `addon` — `tests/tools/preview-page.test.ts`
@@ -7255,8 +7255,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `atShare` — `tests/core/combatant-health.test.ts`
 - `atTheBound` — `tests/ui/panel-words.test.ts`
 - `attack` — `tests/core/fight-decoder.test.ts`
-- `attacker` — `tests/core/injure-rule.test.ts`
-- `attackers` — `tests/core/injure-rule.test.ts`
 - `attacks` — `tests/core/fight-decoder.test.ts`
 - `aura` — `tests/core/aura-standing.test.ts`, `tests/core/fight-statistics.test.ts`,
   `tests/tools/frozen-files.test.ts`
@@ -7305,6 +7303,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `bitten` — `tests/core/fight-statistics.test.ts`
 - `blank` — `tests/runtime/fight-file.test.ts`
 - `bled` — `tests/core/anguish-rule.test.ts`
+- `bledIds` — `tests/core/anguish-rule.test.ts`
+- `bledRow` — `tests/core/anguish-rule.test.ts`
 - `blind` — `tests/runtime/fight-file.test.ts`
 - `block` — `tests/runtime/margometer-runtime.test.ts`, `tests/tools/help-article.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -8478,7 +8478,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `roster` — in 31 files: `tests/`
 - `roundTripped` — `tests/runtime/fight-file.test.ts`
 - `rounded` — `tests/core/combatant-health.test.ts`, `tests/core/injure-rule.test.ts`
-- `roundedAttacker` — `tests/core/injure-rule.test.ts`
+- `roundedActor` — `tests/core/injure-rule.test.ts`
 - `row` — in 28 files: `tests/`
 - `rowCells` — `tests/register-table.ts`
 - `rowGround` — `tests/ui/panel-look.test.ts`
@@ -8743,7 +8743,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tally` — `tests/core/fight-decoder.test.ts`, `tests/core/legendary-standing.test.ts`,
   `tests/tools/turn-reading.test.ts`
 - `tallyTakenByKind` — `tests/core/fight-statistics.test.ts`
-- `target` — in 8 files: `tests/`
+- `target` — in 9 files: `tests/`
 - `targets` — `tests/core/npc-heal-rule.test.ts`, `tests/ports/margonem-engine-tooltip.test.ts`,
   `tests/rebuilding-battle.ts`
 - `tearing` — `tests/ports/margonem-engine-battle.test.ts`
@@ -8899,8 +8899,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `verdict` — `tests/tools/drill-report.test.ts`, `tests/tools/turn-count.test.ts`
 - `version` — in 4 files: `tests/`
 - `versions` — `tests/repository/browser-support.test.ts`
-- `victim` — `tests/core/anguish-rule.test.ts`, `tests/core/injure-rule.test.ts`
-- `victims` — `tests/core/anguish-rule.test.ts`, `tests/core/wound-rule.test.ts`
 - `view` — in 15 files: `tests/`
 - `viewportHeight` — `tests/ui/card-window.test.ts`
 - `visited` — `tests/fake-document.ts`
@@ -8964,6 +8962,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `world` — in 4 files: `tests/`
 - `wound` — `tests/core/injure-rule.test.ts`, `tests/ports/browser-frame.test.ts`,
   `tests/ports/browser-interval.test.ts`
+- `woundedIds` — `tests/core/wound-rule.test.ts`
 - `wounds` — `tests/core/injure-rule.test.ts`
 - `wrap` — `tests/ports/margonem-engine-battle.test.ts`
 - `wrapped` — in 5 files: `tests/`
@@ -9945,6 +9944,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `_text` — `tests/runtime/margometer-runtime.test.ts`
 - `above` — `tests/ui/panel-look.test.ts`
 - `actorId` — in 6 files: `tests/`
+- `actorIds` — `tests/core/injure-rule.test.ts`
 - `addName` — `tests/repository/name-register.test.ts`
 - `after` — `tests/runtime/live-fight.test.ts`
 - `all` — `tests/e2e/panel-options.spec.ts`, `tests/ui/panel-content.test.ts`
@@ -9961,7 +9961,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `assertion` — `tests/repository/non-null-assertions.test.ts`,
   `tests/repository/type-assertions.test.ts`
 - `assignment` — `tests/repository/purity.test.ts`
-- `attackerIds` — `tests/core/injure-rule.test.ts`
 - `attributeValue` — `tests/fake-document.ts`, `tests/ui/view-failure.test.ts`
 - `aura` — `tests/core/aura-standing.test.ts`
 - `base` — `tests/runtime-world.ts`, `tests/runtime/margometer-runtime.test.ts`

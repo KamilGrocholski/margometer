@@ -2112,7 +2112,7 @@ function tallyCut(cut: FigureCut): number {
 
 /**
  * The remainder is a figure whose other end the protocol never named: health that moved down
- * outside a blow carries the movement and no attacker, so there is nobody to charge it to. Over
+ * outside a blow carries the movement and no actor, so there is nobody to charge it to. Over
  * `captures/` on 2026-08-30 that is 45 of 1,060 combatant-and-screen readings, in 28 of the
  * recordings, and every one of them on damage taken — which is where the protocol states a bare
  * movement and the dealing side never is.
