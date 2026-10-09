@@ -1,6 +1,7 @@
 /**
- * The page's console: one branded line per kind of failure, never per render (`AGENTS.md` E9).
- * The kind arrives as text, because this layer imports nothing above it.
+ * The page's console: a branded line for each failure it is handed. Once per kind, never per render
+ * (`AGENTS.md` E9), is the defect ledger's to hold. The kind arrives as text, because this layer
+ * imports nothing above it.
  */
 
 import * as errors from "#/libs/errors.ts";

@@ -73,17 +73,24 @@ const WARRIOR_COLLECTIONS = ["warriorsList", "warriors"] as const;
  * `originalId` is only ever a fallback for a recording.
  */
 export const WARRIOR_ID_KEY = WARRIOR_FIELDS.id;
-const IDENTITY_KEYS = [WARRIOR_ID_KEY, "originalId"] as const;
+/** The keys a warrior carries that no payload's envelope reads, and a snapshot copies. */
+export const WARRIOR_SNAPSHOT_FIELDS = {
+    originalId: "originalId",
+    mana: "mana",
+    energy: "energy",
+    armour: "ac",
+} as const;
+const IDENTITY_KEYS = [WARRIOR_ID_KEY, WARRIOR_SNAPSHOT_FIELDS.originalId] as const;
 const COPIED_KEYS = [
     WARRIOR_FIELDS.name,
     WARRIOR_FIELDS.side,
     WARRIOR_FIELDS.profession,
     WARRIOR_FIELDS.level,
-    "mana",
-    "energy",
+    WARRIOR_SNAPSHOT_FIELDS.mana,
+    WARRIOR_SNAPSHOT_FIELDS.energy,
 ] as const;
 /** Live objects the game goes on mutating: held by reference, the after reads as the before. */
-const SHALLOW_COPIED_KEYS = [WARRIOR_FIELDS.health, "ac"] as const;
+const SHALLOW_COPIED_KEYS = [WARRIOR_FIELDS.health, WARRIOR_SNAPSHOT_FIELDS.armour] as const;
 const NAME_KEY = WARRIOR_FIELDS.name;
 
 export function readMargonemEngineWarriorSnapshot(
@@ -144,11 +151,12 @@ export function readMargonemEngineWarriorsNamed(
                 idsSeen.add(id);
             }
             named.push(warrior);
+            // A board past the bound is refused as soon as it is past it, never walked to its end.
+            if (named.length > COMBATANTS_MAXIMUM) {
+                return new MargonemEngineWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
+            }
         }
         if (named.length === 0) continue;
-        if (named.length > COMBATANTS_MAXIMUM) {
-            return new MargonemEngineWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
-        }
         return named;
     }
     if (!hasCollection) return new MargonemEngineWarriorCollectionAbsent();

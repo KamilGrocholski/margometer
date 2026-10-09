@@ -127,7 +127,10 @@ export function initBrowserClock(date: BrowserDate): BrowserClock {
             return moment;
         },
         readTimestampText(atMilliseconds) {
-            assert(Number.isFinite(atMilliseconds), "a moment written down is one on the clock");
+            assert(
+                Number.isSafeInteger(atMilliseconds),
+                "a moment written down is one a clock stated",
+            );
             // A text that is no text breaks the page's `Date` as a throw would, and is answered so.
             return errors.attempt((): string => {
                 const timestampText: unknown = new date(atMilliseconds).toISOString();

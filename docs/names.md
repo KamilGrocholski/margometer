@@ -3888,6 +3888,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `WARRIOR_ELEMENT_FIELD` — `src/ports/margonem-engine-tooltip.ts`
 - `WARRIOR_FIELDS` — `src/ports/payload-envelope.ts`
 - `WARRIOR_ID_KEY` — `src/ports/margonem-engine-warriors.ts`
+- `WARRIOR_SNAPSHOT_FIELDS` — `src/ports/margonem-engine-warriors.ts`
 - `WORLD_UNKNOWN` — `src/ports/browser-surroundings.ts`
 - `WRAPPED_METHOD` — `src/ports/margonem-engine-battle.ts`
 - `WRAP_MARKER` — `src/ports/margonem-engine-battle.ts`
@@ -5801,6 +5802,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `level` — `src/ports/payload-envelope.ts`
 - `listed` — `src/ports/payload-envelope.ts`
 - `look` — `src/ports/margonem-client-build.ts`
+- `looked` — `src/ports/margonem-engine-battle.ts`
 - `lvl` — `src/ports/margonem-engine-warriors.ts`
 - `mana` — `src/ports/margonem-engine-warriors.ts`
 - `map` — `src/ports/margonem-engine-place.ts`
@@ -5812,6 +5814,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `message` — `src/ports/payload-envelope.ts`
 - `messages` — `src/ports/payload-envelope.ts`
 - `messagesStated` — `src/ports/payload-envelope.ts`
+- `method` — `src/ports/margonem-engine-battle.ts`
 - `minute` — `src/ports/browser-time.ts`
 - `moment` — `src/ports/browser-time.ts`
 - `monthFromZero` — `src/ports/browser-time.ts`
@@ -7519,7 +7522,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/view-failure.test.ts`
 - `created` — `tests/fake-document.ts`, `tests/ui/view-failure.test.ts`
 - `critical` — `tests/core/message-grammar.test.ts`
-- `crowded` — `tests/runtime/live-fight.test.ts`, `tests/runtime/panel-frame.test.ts`
+- `crowded` — `tests/ports/margonem-engine-warriors.test.ts`, `tests/runtime/live-fight.test.ts`,
+  `tests/runtime/panel-frame.test.ts`
 - `crumb` — `tests/ui/panel-element.test.ts`
 - `crumbs` — `tests/ui/panel-element.test.ts`
 - `currentLine` — `tests/tools/margonem-readings.test.ts`
@@ -10863,6 +10867,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `ac` — `src/ports/margonem-engine-warriors.ts`
 - `answer` — `src/ports/margonem-engine-battle.ts`
+- `armour` — `src/ports/margonem-engine-warriors.ts`
 - `blockLeft` — `src/ports/margonem-engine-tooltip.ts`
 - `build` — `src/ports/margonem-value.ts`
 - `buildEnd` — `src/ports/margonem-client-build.ts`
@@ -10908,6 +10913,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isInit` — `src/ports/payload-envelope.ts`
 - `isOnAuto` — `src/ports/payload-envelope.ts`
 - `isOpening` — `src/ports/fight-capture.ts`
+- `isOurs` — `src/ports/margonem-engine-battle.ts`
 - `isPastCeiling` — `src/ports/fight-capture.ts`
 - `isTruncated` — `src/ports/fight-capture.ts`
 - `kept` — `src/ports/fight-capture.ts`, `src/ports/margonem-engine-tooltip.ts`
@@ -10927,6 +10933,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `meterFolded` — `src/ports/browser-store.ts`
 - `meterPosition` — `src/ports/browser-store.ts`
 - `meterSize` — `src/ports/browser-store.ts`
+- `method` — `src/ports/margonem-engine-battle.ts`
 - `minute` — `src/ports/browser-time.ts`
 - `month` — `src/ports/browser-time.ts`
 - `name` — in 7 files: `src/ports/`
@@ -10935,6 +10942,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `off` — `src/ports/margonem-engine-tooltip.ts`
 - `on` — `src/ports/margonem-engine-tooltip.ts`
 - `ordinal` — `src/ports/payload-envelope.ts`
+- `originalId` — `src/ports/margonem-engine-warriors.ts`
 - `payload` — `src/ports/fight-capture.ts`
 - `place` — `src/ports/margonem-value.ts`
 - `prof` — `src/ports/margonem-engine-warriors.ts`
@@ -13692,6 +13700,8 @@ Each `as const` object of a module, by its keys.
 - `MARGONEM_VALUE` — `src/ports/margonem-value.ts`: `place`, `hero`, `label`, `build`
 - `STORE_KEY` — `src/ports/browser-store.ts`: `fights`, `meterFolded`, `meterPosition`,
   `helperFolded`, `helperPosition`, `storage`, `typeStep`, `meterSize`, `helperSize`
+- `WARRIOR_SNAPSHOT_FIELDS` — `src/ports/margonem-engine-warriors.ts`: `originalId`, `mana`,
+  `energy`, `armour`
 
 ### `src/runtime/`
 
@@ -14644,10 +14654,10 @@ suite's material.
 
 ### `src/ports/margonem-engine-warriors.ts`
 
-- `"ac"` — `SHALLOW_COPIED_KEYS`
-- `"energy"` — `COPIED_KEYS`
-- `"mana"` — `COPIED_KEYS`
-- `"originalId"` — `IDENTITY_KEYS`
+- `"ac"` — `WARRIOR_SNAPSHOT_FIELDS`
+- `"energy"` — `WARRIOR_SNAPSHOT_FIELDS`
+- `"mana"` — `WARRIOR_SNAPSHOT_FIELDS`
+- `"originalId"` — `WARRIOR_SNAPSHOT_FIELDS`
 - `"warriors"` — `WARRIOR_COLLECTIONS`
 - `"warriorsList"` — `WARRIOR_COLLECTIONS`
 
@@ -15261,7 +15271,6 @@ suite's material.
 - `"-dmgo"` — `ELEMENTS`
 - `".json"` — `FILE_SUFFIX`
 - `"/"` — `PATH_SEPARATOR`
-- `"ac"` — `CLIENT_FIELDS`
 - `"act"` — `CLIENT_FIELDS`
 - `"b"` — `PROFESSIONS`
 - `"battleground"` — `CLIENT_FIELDS`
@@ -15273,7 +15282,6 @@ suite's material.
 - `"cur"` — `CLIENT_FIELDS`
 - `"d"` — `ELEMENTS`
 - `"ending"` — `ENDING_FLAG`
-- `"energy"` — `CLIENT_FIELDS`
 - `"f"` — `ELEMENTS`
 - `"fabricated"` — `FABRICATED_DIRECTORY`, `FABRICATED_WORLD`
 - `"fabricatedBy"` — `FABRICATION_FIELDS`
@@ -15292,12 +15300,10 @@ suite's material.
 - `"level"` — `LEVEL_FLAG`
 - `"loser"` — `OUTCOME_LOSER_KEY`
 - `"m"` — `PROFESSIONS`
-- `"mana"` — `CLIENT_FIELDS`
 - `"minimum"` — `CLIENT_FIELDS`
 - `"move"` — `CLIENT_FIELDS`
 - `"o"` — `ELEMENTS`
 - `"oplvl"` — `CLIENT_FIELDS`
-- `"originalId"` — `CLIENT_FIELDS`
 - `"out"` — `OUTPUT_FLAG`
 - `"p"` — `PROFESSIONS`
 - `"penalty"` — `CLIENT_FIELDS`

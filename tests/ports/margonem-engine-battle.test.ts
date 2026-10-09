@@ -375,6 +375,31 @@ Deno.test("the page's call is asked only where the field holds no answer", () =>
     );
 });
 
+Deno.test("an engine the field found with no battle is what was said, whatever the call threw", () => {
+    const page = {
+        Engine: { battle: null },
+        getEngine: () => {
+            throw new RangeError("a client being torn down");
+        },
+    };
+    assertInstanceOf(
+        initMargonemEngineBattle(page).readBattle(),
+        MargonemEngineBattleAbsent,
+        "an engine with no battle, not the call's throw",
+    );
+});
+
+Deno.test("a method whose getter throws is one the wrap cannot go on, said and not thrown", () => {
+    const battle = {
+        get updateData(): unknown {
+            throw new RangeError("a method being torn down");
+        },
+    };
+    const wrapped = readBattleOn(battle).wrap(composeListener({}));
+    assertInstanceOf(wrapped, MargonemEngineMethodUnwritable, "the wrap answers a failure");
+    assertInstanceOf(wrapped.cause, errors.Caught, "carrying what the page threw");
+});
+
 Deno.test("the warriors are read off the live battle, and a battle holding none says so", () => {
     const live = readBattleOn({
         updateData: () => 1,

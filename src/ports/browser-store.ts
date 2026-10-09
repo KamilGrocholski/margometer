@@ -69,8 +69,9 @@ const STORE_KEYS = Object.values(STORE_KEY);
 
 /**
  * What one write may run to; past it the store **refuses**. The widest kept fight over
- * `captures/` is 219,128 characters as the shelf writes it (2026-09-21), so twenty of
- * them are past this, and the refusal is what lets the rotation drop the oldest.
+ * `captures/` is 219,128 characters as the shelf writes it (2026-09-21), so a shelf
+ * full to `KEPT_MAXIMUM` of them is past this, and the refusal is what lets the rotation drop the
+ * oldest.
  */
 export const STORE_VALUE_LENGTH_MAXIMUM = 4194304;
 

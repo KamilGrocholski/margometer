@@ -55,7 +55,10 @@ import {
     WARRIOR_FIELDS,
 } from "#/src/ports/payload-envelope.ts";
 import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
-import type { CapturedCombatant } from "#/src/ports/margonem-engine-warriors.ts";
+import {
+    type CapturedCombatant,
+    WARRIOR_SNAPSHOT_FIELDS,
+} from "#/src/ports/margonem-engine-warriors.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { INTAKE_KEYS } from "./recorded-material.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
@@ -205,14 +208,14 @@ const CLIENT_FIELDS = {
     poolLeft: "left",
     moveOpening: "start_move",
     move: "move",
-    originalId: "originalId",
+    originalId: WARRIOR_SNAPSHOT_FIELDS.originalId,
     otherLevel: "oplvl",
     gender: "gender",
     gridRow: "y",
     icon: "icon",
-    mana: "mana",
-    energy: "energy",
-    armour: "ac",
+    mana: WARRIOR_SNAPSHOT_FIELDS.mana,
+    energy: WARRIOR_SNAPSHOT_FIELDS.energy,
+    armour: WARRIOR_SNAPSHOT_FIELDS.armour,
     resistanceFire: "resfire",
     resistanceFrost: "resfrost",
     resistanceLight: "reslight",

@@ -13,6 +13,7 @@ import { COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import { readMargonemEngineBattle } from "./margonem-engine-battle.ts";
 import {
     MargonemEngineWarriorCollectionAbsent,
+    MargonemEngineWarriorsAbsent,
     MargonemEngineWarriorsExceeded,
     readMargonemEngineWarriorsNamed,
     WARRIOR_ID_KEY,
@@ -117,7 +118,9 @@ export function initMargonemEngineTooltip(browserWindow: unknown): MargonemEngin
             if (warriorsById instanceof MargonemEngineWarriorCollectionAbsent) {
                 return { written: 0, refused: asked };
             }
-            if (warriorsById instanceof Error) return { written: 0, refused: 0 };
+            if (warriorsById instanceof MargonemEngineWarriorsAbsent) {
+                return { written: 0, refused: 0 };
+            }
             const nextBlocksById = new Map(blocksById);
             // Write every fighter's block.
             const blocksWritten = errors.attempt(() => {

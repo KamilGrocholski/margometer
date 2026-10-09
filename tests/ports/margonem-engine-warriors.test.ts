@@ -124,8 +124,13 @@ Deno.test("a fight of twenty is read, and one of twenty-one is refused", () => {
     assertEquals(
         { count: past.count, maximum: past.maximum },
         { count: COMBATANTS_MAXIMUM + 1, maximum: COMBATANTS_MAXIMUM },
-        "saying by how much",
+        "saying where it stopped",
     );
+    const crowded = readMargonemEngineWarriorSnapshot({
+        warriorsList: cast(COMBATANTS_MAXIMUM * 2),
+    });
+    assertInstanceOf(crowded, MargonemEngineWarriorsExceeded, "a crowded board is refused");
+    assertStrictEquals(crowded.count, COMBATANTS_MAXIMUM + 1, "at the first one past the bound");
 });
 
 /** The page's collection is theirs, and nothing stops it holding one id under two keys. */

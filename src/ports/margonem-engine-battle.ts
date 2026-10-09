@@ -152,9 +152,18 @@ export function initMargonemEngineBattle(browserWindow: unknown): MargonemEngine
             return {
                 // Put the wrap on the engine's own method.
                 wrap: (listener): WrapHandle | MargonemEngineFailure => {
-                    const original = battle[WRAPPED_METHOD];
+                    // Read the engine's own method, and whether it is a wrap of ours: both reads
+                    // are of the page's object, whose getter may throw.
+                    const looked = errors.attempt(() => {
+                        const method = battle[WRAPPED_METHOD];
+                        return { method, isOurs: isOurWrap(method) };
+                    });
+                    if (looked instanceof errors.Caught) {
+                        return new MargonemEngineMethodUnwritable(looked);
+                    }
+                    const original = looked.method;
                     if (typeof original !== "function") return new MargonemEngineMethodAbsent();
-                    if (isOurWrap(original)) return new MargonemEngineAlreadyWrapped();
+                    if (looked.isOurs) return new MargonemEngineAlreadyWrapped();
                     const failures: { count: number; first: errors.Caught | null } = {
                         count: 0,
                         first: null,
@@ -255,6 +264,8 @@ export function readMargonemEngineAnswer<Answer>(
         hasEngine = true;
         if (asked.answer !== null) return { answer: asked.answer, hasEngine };
     }
+    // An engine some spelling found is what was said, whatever another spelling threw.
+    if (hasEngine) return { answer: null, hasEngine };
     if (firstFailure !== null) return firstFailure;
     return { answer: null, hasEngine };
 }
