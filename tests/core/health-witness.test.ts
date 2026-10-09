@@ -9,8 +9,8 @@
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { BattleEvent } from "#/src/core/battle-event.ts";
 import {
-    composeHealthFromPercent,
-    composeHealthTolerance,
+    calculateHealthFromPercent,
+    calculateHealthTolerance,
     getHealthPercentsFromEvent,
     indexSideHeals,
 } from "#/src/core/combatant-health.ts";
@@ -184,13 +184,13 @@ function isPoolRaiseAmong(declared: readonly { effect: string }[]): boolean {
  * raise moves the maximum the two percentages either side of it are read against.
  */
 function addComparison(reading: WitnessReading, comparison: Comparison): void {
-    const wasAt = composeHealthFromPercent(comparison.percentBefore, comparison.healthMaximum);
-    const isAt = composeHealthFromPercent(comparison.percentAfter, comparison.healthMaximum);
+    const wasAt = calculateHealthFromPercent(comparison.percentBefore, comparison.healthMaximum);
+    const isAt = calculateHealthFromPercent(comparison.percentAfter, comparison.healthMaximum);
     assertExists(wasAt, `${comparison.path}: a maximum that was read`);
     assertExists(isAt, `${comparison.path}: a maximum that was read`);
     reading.compared += 1;
     const stated = isAt - wasAt;
-    const tolerance = composeHealthTolerance(comparison.healthMaximum) * READINGS_COMPARED;
+    const tolerance = calculateHealthTolerance(comparison.healthMaximum) * READINGS_COMPARED;
     if (Math.abs(stated - comparison.moved) <= tolerance) {
         reading.agreed += 1;
         return;

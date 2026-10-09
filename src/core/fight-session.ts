@@ -534,7 +534,7 @@ function preparePayloadStanding(
     return {
         combatants,
         unread: preparePayloadUnread(stateBefore?.unread ?? NO_UNREAD, decoded),
-        messagesLost: (stateBefore?.messagesLost ?? 0) + countMessagesLost(record),
+        messagesLost: (stateBefore?.messagesLost ?? 0) + calculateMessagesLost(record),
         messagesRead: (stateBefore?.messagesRead ?? 0) + record.messages.length,
         // `init` arrives once, so only the first payload of a fight can answer this.
         hasJoinedInProgress: stateBefore === null
@@ -574,7 +574,7 @@ function preparePayloadUnread(unreadBefore: UnreadCounts, decoded: PayloadDecode
  * An envelope that stated no count is nothing to measure the reading against, so nothing is
  * counted lost: which is not the same claim as a count of zero.
  */
-function countMessagesLost(record: PayloadRecord): number {
+function calculateMessagesLost(record: PayloadRecord): number {
     if (record.messagesStated === null) return 0;
     const messagesLost = record.messagesStated - record.messages.length;
     assert(record.messagesStated <= MESSAGES_MAXIMUM, "the envelope bounded what it stated");

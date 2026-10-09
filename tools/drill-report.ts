@@ -194,7 +194,7 @@ export function tallyDrillCases(
         opens: counted.opens,
         shut: counted.shut,
     }));
-    cases.sort(compareCases);
+    cases.sort(calculateCaseOrder);
     assertStrictEquals(
         cases.length,
         tally.size,
@@ -557,7 +557,7 @@ function addPartRungToTally(
 }
 
 /** By screen in the order the strips draw them, then by rung, then by row. */
-function compareCases(drillCase: DrillCase, otherDrillCase: DrillCase): number {
+function calculateCaseOrder(drillCase: DrillCase, otherDrillCase: DrillCase): number {
     const screens = SCREEN_ORDER.indexOf(drillCase.screen) -
         SCREEN_ORDER.indexOf(otherDrillCase.screen);
     if (screens !== 0) return screens;

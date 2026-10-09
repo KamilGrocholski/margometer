@@ -220,7 +220,7 @@ function addStruck(tally: StruckTally, isAtShouter: boolean): void {
  * A share as whole percent, which is what a register states and a guard re-earns. Null over no
  * blows at all, which is no share rather than a share of nothing (E6).
  */
-export function tallyStruckShare(atShouter: number, atSomebodyElse: number): number | null {
+export function calculateStruckShare(atShouter: number, atSomebodyElse: number): number | null {
     const total = atShouter + atSomebodyElse;
     assert(atShouter >= 0, "a share is taken over blows that were counted");
     assert(atSomebodyElse >= 0, "and over the blows that went elsewhere as well");
@@ -246,7 +246,7 @@ function formatHoldingReport(reading: HoldingReading): string[] {
 }
 
 function formatHoldingLine(turn: string, atShouter: number, atSomebodyElse: number): string {
-    const share = tallyStruckShare(atShouter, atSomebodyElse);
+    const share = calculateStruckShare(atShouter, atSomebodyElse);
     return `${turn.padStart(TURN_WIDTH)}  ${formatInteger(atShouter).padStart(10)}  ` +
         `${formatInteger(atSomebodyElse).padStart(9)}  ${formatStruckShare(share)}`;
 }

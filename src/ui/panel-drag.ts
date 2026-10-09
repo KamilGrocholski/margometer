@@ -342,7 +342,7 @@ export function composeCardAcross(
     if (anchor.position.left - cardWidthMaximum - gap >= 0) {
         return { edge: CARD_EDGE.right, offsetPixels: viewport.width - anchor.position.left + gap };
     }
-    const right = composeWindowRight(anchor);
+    const right = calculateWindowRight(anchor);
     // The clamp is the screen and it is spent on the bound, because what the card draws at is not
     // known here. A card narrower than the bound near the right edge therefore stands a little
     // further left than it had to — on the screen, which is what this line is for.
@@ -352,7 +352,7 @@ export function composeCardAcross(
     };
 }
 
-function composeWindowRight(place: CardWindowPlace): number {
+function calculateWindowRight(place: CardWindowPlace): number {
     return place.position.left + place.widthPixels;
 }
 

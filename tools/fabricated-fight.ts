@@ -434,7 +434,7 @@ export function requireFabricationShape(
                 ` ${CALLS_MAXIMUM} a recording is read within`,
         );
     }
-    const scale = composeHealthCeiling(level) / composeHealthCeiling(LEVEL_DEFAULT);
+    const scale = calculateHealthCeiling(level) / calculateHealthCeiling(LEVEL_DEFAULT);
     assert(scale > 0, "a fight is composed at a scale above nothing");
     return { perSide, rounds, level, scale, ending, doesCloseOnShouts };
 }
@@ -447,7 +447,7 @@ function isShapeFigureWithin(figure: number, minimum: number, maximum: number): 
 }
 
 /** What the first of a side stands on, which is what every other figure is scaled against. */
-function composeHealthCeiling(level: number): number {
+function calculateHealthCeiling(level: number): number {
     assert(level > 0, "a level a pool is composed from is above nothing");
     const ceiling = HEALTH_PER_LEVEL * level + HEALTH_BASE;
     assert(ceiling > 0, "and a pool that came out of it holds something");
@@ -625,8 +625,8 @@ function createFabricatedCombatant(
     assert(place < shape.perSide, "and never past the number a side holds");
     const isReaderSide = side === READER_SIDE;
     const named = isReaderSide ? place + 1 : shape.perSide + place + 1;
-    const step = composeScaled(shape, HEALTH_STEP);
-    const healthMaximum = composeHealthCeiling(shape.level) + place * step +
+    const step = calculateScaled(shape, HEALTH_STEP);
+    const healthMaximum = calculateHealthCeiling(shape.level) + place * step +
         (isReaderSide ? 0 : step);
     const profession = PROFESSIONS[place % PROFESSIONS.length];
     assertExists(profession, "every place on a side fights as one of the professions");
@@ -647,7 +647,7 @@ function createFabricatedCombatant(
  * Every figure of health or damage the script invents passes through here. At `LEVEL_DEFAULT` the
  * scale is `1` and the figure is what it was written as.
  */
-function composeScaled(shape: FabricationShape, figure: number): number {
+function calculateScaled(shape: FabricationShape, figure: number): number {
     assert(figure > 0, "a figure that is scaled is above nothing");
     assert(shape.scale > 0, "and is scaled by something above nothing");
     const scaled = Math.max(1, Math.round(figure * shape.scale));
@@ -1027,18 +1027,18 @@ function addPlainBlow(turn: FabricatedTurn, messages: string[]): void {
 function addCriticalBlow(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
         encodeValueless("+crit"),
-        encodeFigure("+actdmg", composeSmall(turn, 4)),
-        encodeFigure("-blok", composeSmallHealth(turn, 210)),
+        encodeFigure("+actdmg", calculateSmall(turn, 4)),
+        encodeFigure("-blok", calculateSmallHealth(turn, 210)),
     ]);
 }
 
 function addOffhandBlow(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
         encodeValueless("+of_crit"),
-        encodeFigure("+resdmg", composeSmallHealth(turn, 31)),
-        encodeFigure("+resdmgf", composeSmallHealth(turn, 29)),
-        encodeFigure("+resdmgc", composeSmallHealth(turn, 23)),
-        encodeFigure("+resdmgl", composeSmallHealth(turn, 19)),
+        encodeFigure("+resdmg", calculateSmallHealth(turn, 31)),
+        encodeFigure("+resdmgf", calculateSmallHealth(turn, 29)),
+        encodeFigure("+resdmgc", calculateSmallHealth(turn, 23)),
+        encodeFigure("+resdmgl", calculateSmallHealth(turn, 19)),
     ]);
 }
 
@@ -1054,30 +1054,30 @@ function addCriticalPierce(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
         encodeValueless("+crit"),
         encodeValueless("+pierce"),
-        encodeFigure("+critpierce", composeScaled(turn.shape, ARMOUR_DAMAGE_PIERCED)),
+        encodeFigure("+critpierce", calculateScaled(turn.shape, ARMOUR_DAMAGE_PIERCED)),
     ]);
 }
 
 function addAbsorbedBlow(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
-        encodeFigure("-absorb", composeSmallHealth(turn, 140)),
-        encodeFigure("-absorbm", composeSmallHealth(turn, 95)),
-        encodeFigure("+abdest_per", composeSmall(turn, 12)),
-        encodeFigure("+abmdest_per", composeSmall(turn, 9)),
+        encodeFigure("-absorb", calculateSmallHealth(turn, 140)),
+        encodeFigure("-absorbm", calculateSmallHealth(turn, 95)),
+        encodeFigure("+abdest_per", calculateSmall(turn, 12)),
+        encodeFigure("+abmdest_per", calculateSmall(turn, 9)),
     ]);
 }
 
 function addArmourBreakingBlow(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
         encodeValueless("+acdmg_destroyed"),
-        encodeFigure("-dmga", composeSmallHealth(turn, 60)),
+        encodeFigure("-dmga", calculateSmallHealth(turn, 60)),
     ]);
 }
 
 function addThirdAttack(turn: FabricatedTurn, messages: string[]): void {
     addBlow(turn, messages, [
-        encodeFigure("+thirdatt", composeSmallHealth(turn, 260)),
-        encodeFigure("-thirdatt", composeSmallHealth(turn, 190)),
+        encodeFigure("+thirdatt", calculateSmallHealth(turn, 260)),
+        encodeFigure("-thirdatt", calculateSmallHealth(turn, 190)),
     ]);
 }
 
@@ -1123,7 +1123,7 @@ function addWoundingBlow(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "wound", turn.round);
     addBlow(turn, messages, [
         encodeValueless("+wound"),
-        encodeFigure(WOUND_ANNOUNCEMENT_KEY, composeSmallHealth(turn, 120)),
+        encodeFigure(WOUND_ANNOUNCEMENT_KEY, calculateSmallHealth(turn, 120)),
     ]);
 }
 
@@ -1164,8 +1164,8 @@ function addPoisonTick(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.round >= 0, "and on a round the fight has reached");
     setStatusBit(turn.target, "poisoned", turn.round);
     setStatusBit(turn.target, "fire", turn.round);
-    const poison = removeHealth(turn.target, composeSmallHealth(turn, 140));
-    const stated = `${formatInteger(poison)},${formatInteger(composeSmall(turn, 14))}`;
+    const poison = removeHealth(turn.target, calculateSmallHealth(turn, 140));
+    const stated = `${formatInteger(poison)},${formatInteger(calculateSmall(turn, 14))}`;
     if (poison > 0) {
         messages.push(encodeHealthChange(turn.target, [encodeValued("poison", stated)]));
     }
@@ -1176,7 +1176,7 @@ function addLightTick(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
     addHealthTaken(turn, messages, turn.target, "light", 88);
-    const anguish = removeHealth(turn.ally, composeSmallHealth(turn, 74));
+    const anguish = removeHealth(turn.ally, calculateSmallHealth(turn, 74));
     if (anguish > 0) {
         messages.push(encodeHealthChange(turn.ally, [
             encodeFigure("anguish", anguish),
@@ -1188,11 +1188,11 @@ function addLightTick(turn: FabricatedTurn, messages: string[]): void {
 function addHealSelf(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     assert(turn.actor.health <= turn.actor.healthMaximum, "and nobody stands above full");
-    const restored = addHealth(turn.actor, composeSmallHealth(turn, 430));
+    const restored = addHealth(turn.actor, calculateSmallHealth(turn, 430));
     if (restored === 0) return;
     messages.push(encodeHealthChange(turn.actor, [
         encodeFigure("heal", restored),
-        encodeFigure("afterheal", composeSmallHealth(turn, 18)),
+        encodeFigure("afterheal", calculateSmallHealth(turn, 18)),
     ]));
 }
 
@@ -1204,7 +1204,7 @@ function addHealAlly(turn: FabricatedTurn, messages: string[]): void {
         addBlow(turn, messages, []);
         return;
     }
-    const given = addHealth(hurt, composeSmallHealth(turn, 640));
+    const given = addHealth(hurt, calculateSmallHealth(turn, 640));
     messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(hurt), [
         ...encodeAnnouncement(getPlainSkill(turn)),
         encodeFigure("heal_target", given),
@@ -1214,7 +1214,7 @@ function addHealAlly(turn: FabricatedTurn, messages: string[]): void {
 function addHolyTouch(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     assert(turn.actor.health <= turn.actor.healthMaximum, "and nobody stands above full");
-    const given = addHealth(turn.actor, composeSmallHealth(turn, 380));
+    const given = addHealth(turn.actor, calculateSmallHealth(turn, 380));
     if (given === 0) return;
     messages.push(encodeHealthChange(turn.actor, [
         encodeValueless(HOLYTOUCH_DECLARATION_KEY),
@@ -1237,7 +1237,7 @@ function addLastHeal(turn: FabricatedTurn, messages: string[]): void {
         addBlow(turn, messages, []);
         return;
     }
-    const given = addHealth(hurt, composeSmallHealth(turn, 300));
+    const given = addHealth(hurt, calculateSmallHealth(turn, 300));
     const stated = `${formatInteger(given)},${encodeNamedText(hurt)}`;
     addBlow(turn, messages, [encodeValued(LASTHEAL_KEY, stated)]);
 }
@@ -1246,7 +1246,7 @@ function addNamedDamage(turn: FabricatedTurn, messages: string[]): void {
     assertStrictEquals(turn.ally.side, turn.actor.side, "an ally stands on the actor's own side");
     assert(turn.ally.healthMaximum > 0, "and has a maximum to be moved against");
     const elementKeys = getElement(turn);
-    const dealt = removeHealth(turn.ally, composeSmallHealth(turn, 340));
+    const dealt = removeHealth(turn.ally, calculateSmallHealth(turn, 340));
     const stated = `${formatInteger(dealt)},${elementKeys.member},${encodeNamedText(turn.ally)}`;
     addBlow(turn, messages, [encodeValued("+oth_dmg", stated)]);
 }
@@ -1259,8 +1259,8 @@ function addNamedDamage(turn: FabricatedTurn, messages: string[]): void {
 function addBlowFromNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.target.healthMaximum > 0, "a blow lands where there is a maximum");
     const elementKeys = getElement(turn);
-    const raw = composeFigure(turn, FIGURE_RAW_BASE);
-    const applied = removeHealth(turn.target, raw - composeReduction(turn));
+    const raw = calculateFigure(turn, FIGURE_RAW_BASE);
+    const applied = removeHealth(turn.target, raw - calculateReduction(turn));
     messages.push(encodeMessage(null, encodeSide(turn.target), [
         encodeFigure(elementKeys.raw, raw),
         encodeFigure(elementKeys.applied, applied),
@@ -1274,8 +1274,8 @@ function addBlowFromNobody(turn: FabricatedTurn, messages: string[]): void {
 function addBlowAtNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
     const elementKeys = getElement(turn);
-    const raw = composeFigure(turn, FIGURE_RAW_BASE);
-    const applied = raw - composeReduction(turn);
+    const raw = calculateFigure(turn, FIGURE_RAW_BASE);
+    const applied = raw - calculateReduction(turn);
     assert(applied >= 0, "no blow lands below nothing");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeFigure(elementKeys.raw, raw),
@@ -1290,8 +1290,8 @@ function addBlowAtNobody(turn: FabricatedTurn, messages: string[]): void {
  */
 function addLossToNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.round >= 0, "a tick lands on a round the fight has reached");
-    const lost = composeSmallHealth(turn, 260);
-    const stated = `${formatInteger(lost)},${formatInteger(composeSmall(turn, 11))}`;
+    const lost = calculateSmallHealth(turn, 260);
+    const stated = `${formatInteger(lost)},${formatInteger(calculateSmall(turn, 11))}`;
     messages.push(encodeMessage(null, null, [encodeValued("poison", stated)]));
 }
 
@@ -1302,7 +1302,7 @@ function addLossToNobody(turn: FabricatedTurn, messages: string[]): void {
  */
 function addHealToNobody(turn: FabricatedTurn, messages: string[]): void {
     assert(turn.round >= 0, "a movement lands on a round the fight has reached");
-    const restored = composeSmallHealth(turn, 315);
+    const restored = calculateSmallHealth(turn, 315);
     assert(restored >= 0, "health that came back never came back below nothing");
     messages.push(encodeMessage(null, null, [encodeFigure("heal", restored)]));
 }
@@ -1317,14 +1317,14 @@ function addSideHeal(turn: FabricatedTurn, messages: string[]): void {
         turn.side.every((combatant) => combatant.side === turn.actor.side),
         "and only their own",
     );
-    const share = composeSmall(turn, 22);
+    const share = calculateSmall(turn, 22);
     for (const standing of turn.side) {
         addHealth(standing, Math.round(standing.healthMaximum * share / WHOLE_PERCENT));
     }
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
         encodeValued("healall_per", formatInteger(share)),
-        encodeFigure(HEALING_REDUCER_KEY, composeSmall(turn, 27)),
+        encodeFigure(HEALING_REDUCER_KEY, calculateSmall(turn, 27)),
     ]));
 }
 
@@ -1336,10 +1336,10 @@ function addAuraCast(turn: FabricatedTurn, messages: string[]): void {
     );
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
-        encodeFigure("aura-ac_per", composeSmall(turn, 15)),
-        encodeFigure("aura-resall", composeSmall(turn, 20)),
-        encodeFigure(HASTE_AURA_KEY, composeSmall(turn, 11)),
-        encodeFigure("aura-adddmg2_per-meele", composeSmall(turn, 8)),
+        encodeFigure("aura-ac_per", calculateSmall(turn, 15)),
+        encodeFigure("aura-resall", calculateSmall(turn, 20)),
+        encodeFigure(HASTE_AURA_KEY, calculateSmall(turn, 11)),
+        encodeFigure("aura-adddmg2_per-meele", calculateSmall(turn, 8)),
         encodeValueless("sunshield_per"),
     ]));
 }
@@ -1366,8 +1366,8 @@ function addShout(turn: FabricatedTurn, messages: string[]): void {
             PROVOCATION_KEY,
             turn.opposing.map((combatant) => combatant.name).join(NAME_SEPARATOR),
         ),
-        encodeFigure(SLOW_ALL_KEY, composeSmall(turn, 25)),
-        encodeFigure("alllowdmg", composeSmall(turn, 16)),
+        encodeFigure(SLOW_ALL_KEY, calculateSmall(turn, 25)),
+        encodeFigure("alllowdmg", calculateSmall(turn, 16)),
     ]));
 }
 
@@ -1379,13 +1379,13 @@ function addAlliesCast(turn: FabricatedTurn, messages: string[]): void {
     );
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
-        encodeFigure("critval-allies", composeSmall(turn, 12)),
-        encodeFigure("critmval-allies", composeSmall(turn, 10)),
+        encodeFigure("critval-allies", calculateSmall(turn, 12)),
+        encodeFigure("critmval-allies", calculateSmall(turn, 10)),
         encodeValueless("removeslow-allies"),
         encodeValueless("removestun-allies"),
         encodeValueless("removedot-allies"),
-        encodeFigure("heal_per-allies", composeSmall(turn, 18)),
-        encodeFigure("hp_per-allies", composeSmall(turn, 9)),
+        encodeFigure("heal_per-allies", calculateSmall(turn, 18)),
+        encodeFigure("hp_per-allies", calculateSmall(turn, 9)),
     ]));
 }
 
@@ -1397,11 +1397,11 @@ function addEnemiesCast(turn: FabricatedTurn, messages: string[]): void {
     );
     messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         ...encodeAnnouncement(getAuraSkill(turn)),
-        encodeFigure("poison_lowdmg_per-enemies", composeSmall(turn, 27)),
-        encodeFigure("active_decblock_per-enemies", composeSmall(turn, 19)),
-        encodeFigure("-poison_lowdmg_per", composeSmall(turn, 14)),
-        encodeFigure("heal_per-enemies", composeSmall(turn, 15)),
-        encodeFigure("hp_per-enemies", composeSmall(turn, 7)),
+        encodeFigure("poison_lowdmg_per-enemies", calculateSmall(turn, 27)),
+        encodeFigure("active_decblock_per-enemies", calculateSmall(turn, 19)),
+        encodeFigure("-poison_lowdmg_per", calculateSmall(turn, 14)),
+        encodeFigure("heal_per-enemies", calculateSmall(turn, 15)),
+        encodeFigure("hp_per-enemies", calculateSmall(turn, 7)),
     ]));
 }
 
@@ -1409,12 +1409,12 @@ function addStance(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
-        encodeFigure("active_block_per", composeSmall(turn, 24)),
-        encodeFigure("active_decblock_per", composeSmall(turn, 18)),
-        encodeFigure("active_absorbdest_per", composeSmall(turn, 13)),
-        encodeFigure("resfire_per", composeSmall(turn, 13)),
-        encodeFigure("resfrost_per", composeSmall(turn, 13)),
-        encodeFigure("reslight_per", composeSmall(turn, 13)),
+        encodeFigure("active_block_per", calculateSmall(turn, 24)),
+        encodeFigure("active_decblock_per", calculateSmall(turn, 18)),
+        encodeFigure("active_absorbdest_per", calculateSmall(turn, 13)),
+        encodeFigure("resfire_per", calculateSmall(turn, 13)),
+        encodeFigure("resfrost_per", calculateSmall(turn, 13)),
+        encodeFigure("reslight_per", calculateSmall(turn, 13)),
     ]));
 }
 
@@ -1422,13 +1422,13 @@ function addResources(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
-        encodeFigure("mana", composeSmall(turn, 40)),
-        encodeFigure("energy", composeSmall(turn, 25)),
-        encodeFigure("en-regen", composeSmall(turn, 6)),
+        encodeFigure("mana", calculateSmall(turn, 40)),
+        encodeFigure("energy", calculateSmall(turn, 25)),
+        encodeFigure("en-regen", calculateSmall(turn, 6)),
         encodeValueless("en-regen-cast"),
-        encodeFigure("+engback", composeSmall(turn, 9)),
-        encodeFigure("-endest", composeSmall(turn, 7)),
-        encodeFigure("-manadest", composeSmall(turn, 9)),
+        encodeFigure("+engback", calculateSmall(turn, 9)),
+        encodeFigure("-endest", calculateSmall(turn, 7)),
+        encodeFigure("-manadest", calculateSmall(turn, 9)),
     ]));
 }
 
@@ -1436,13 +1436,13 @@ function addStandingStatuses(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
-        encodeFigure("+absorb", composeSmallHealth(turn, 320)),
-        encodeFigure("+absorbm", composeSmallHealth(turn, 240)),
-        encodeFigure("+taken_dmg", composeSmall(turn, 21)),
+        encodeFigure("+absorb", calculateSmallHealth(turn, 320)),
+        encodeFigure("+absorbm", calculateSmallHealth(turn, 240)),
+        encodeFigure("+taken_dmg", calculateSmall(turn, 21)),
         encodeValueless("+spell-taken_dmg-all"),
-        encodeFigure("+crush_physical", composeSmall(turn, 17)),
-        encodeFigure("+rage", composeSmall(turn, 26)),
-        encodeFigure("+critsa", composeSmall(turn, 11)),
+        encodeFigure("+crush_physical", calculateSmall(turn, 17)),
+        encodeFigure("+rage", calculateSmall(turn, 26)),
+        encodeFigure("+critsa", calculateSmall(turn, 11)),
     ]));
 }
 
@@ -1450,12 +1450,12 @@ function addLegendaryBonuses(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a declaration is made by somebody still standing");
     assert(turn.ordinal >= 0, "on a turn the fight has numbered");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
-        encodeFigure("-legbon_critred", composeSmall(turn, 13)),
-        encodeFigure("+legbon_puncture", composeSmall(turn, 19)),
-        encodeFigure("-legbon_facade", composeSmall(turn, 15)),
-        encodeFigure("+critslow_per", composeSmall(turn, 23)),
-        encodeFigure("+critpoison_per", composeSmall(turn, 20)),
-        encodeFigure("combo-max", composeSmall(turn, 3)),
+        encodeFigure("-legbon_critred", calculateSmall(turn, 13)),
+        encodeFigure("+legbon_puncture", calculateSmall(turn, 19)),
+        encodeFigure("-legbon_facade", calculateSmall(turn, 15)),
+        encodeFigure("+critslow_per", calculateSmall(turn, 23)),
+        encodeFigure("+critpoison_per", calculateSmall(turn, 20)),
+        encodeFigure("combo-max", calculateSmall(turn, 3)),
     ]));
 }
 
@@ -1476,7 +1476,7 @@ function addStep(turn: FabricatedTurn, messages: string[]): void {
 
 function addPrepare(turn: FabricatedTurn, messages: string[]): void {
     assert(isStanding(turn.actor), "a skill is made ready by somebody standing");
-    const percent = formatInteger(clampNumber(composeSmall(turn, 70), 0, WHOLE_PERCENT));
+    const percent = formatInteger(clampNumber(calculateSmall(turn, 70), 0, WHOLE_PERCENT));
     assert(CHARGED_SKILL.length > 0, "and is made ready under a name");
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         encodeValued(PREPARE_KEY, `${CHARGED_SKILL}(${percent}%)`),
@@ -1506,12 +1506,12 @@ function addBlow(turn: FabricatedTurn, messages: string[], extra: MessageParamet
         "and states every key beside it by name",
     );
     const elementKeys = getElement(turn);
-    const raw = composeFigure(turn, FIGURE_RAW_BASE);
-    const applied = removeHealth(turn.target, raw - composeReduction(turn));
+    const raw = calculateFigure(turn, FIGURE_RAW_BASE);
+    const applied = removeHealth(turn.target, raw - calculateReduction(turn));
     assert(applied <= raw, "no more gets through a blow than the blow threw");
     messages.push(encodeMessage(encodeSide(turn.actor), encodeSide(turn.target), [
         encodeFigure(elementKeys.raw, raw),
-        encodeFigure("+acdmg", composeScaled(turn.shape, ARMOUR_DAMAGE)),
+        encodeFigure("+acdmg", calculateScaled(turn.shape, ARMOUR_DAMAGE)),
         encodeFigure(elementKeys.applied, applied),
         ...extra,
     ]));
@@ -1567,22 +1567,22 @@ function setStatusBit(combatant: FabricatedCombatant, status: FrozenStatus, roun
     combatant.statusClearsAtRound = round + STATUS_ROUNDS;
 }
 
-function composeFigure(turn: FabricatedTurn, base: number): number {
+function calculateFigure(turn: FabricatedTurn, base: number): number {
     assert(base > 0, "a figure is composed from a base above nothing");
     const figure = base + turn.round * FIGURE_PER_ROUND +
         turn.ordinal % FIGURE_PLACES * FIGURE_PER_PLACE;
     assert(Number.isSafeInteger(figure), "and comes out a whole number");
-    return composeScaled(turn.shape, figure);
+    return calculateScaled(turn.shape, figure);
 }
 
-function composeReduction(turn: FabricatedTurn): number {
+function calculateReduction(turn: FabricatedTurn): number {
     const reduction = REDUCTION_BASE + turn.ordinal % FIGURE_PLACES * REDUCTION_PER_PLACE;
     assert(reduction > 0, "a reduction is above nothing");
     assert(reduction < FIGURE_RAW_BASE, "and never takes the whole of the blow");
-    return composeScaled(turn.shape, reduction);
+    return calculateScaled(turn.shape, reduction);
 }
 
-function composeSmall(turn: FabricatedTurn, base: number): number {
+function calculateSmall(turn: FabricatedTurn, base: number): number {
     assert(base > 0, "a small figure is composed from a base above nothing");
     const figure = base + turn.ordinal % SMALL_PLACES;
     assert(figure > 0, "and comes out above nothing");
@@ -1590,9 +1590,9 @@ function composeSmall(turn: FabricatedTurn, base: number): number {
 }
 
 /** The same, where what came out is a quantity of health rather than a percentage or a count. */
-function composeSmallHealth(turn: FabricatedTurn, base: number): number {
+function calculateSmallHealth(turn: FabricatedTurn, base: number): number {
     assert(base > 0, "a small quantity of health is composed from a base above nothing");
-    return composeScaled(turn.shape, composeSmall(turn, base));
+    return calculateScaled(turn.shape, calculateSmall(turn, base));
 }
 
 function getElement(turn: FabricatedTurn): FabricatedElement {
@@ -1639,7 +1639,7 @@ function addHealthTaken(
     figure: number,
 ): void {
     assert(figure > 0, "a figure taken is composed from a base above nothing");
-    const moved = removeHealth(combatant, composeScaled(turn.shape, figure));
+    const moved = removeHealth(combatant, calculateScaled(turn.shape, figure));
     const stated = encodeMovedHealth(combatant, key, moved);
     if (stated !== null) messages.push(stated);
 }
@@ -1653,7 +1653,7 @@ function addHealthGiven(
     figure: number,
 ): void {
     assert(figure > 0, "a figure given is composed from a base above nothing");
-    const moved = addHealth(combatant, composeScaled(turn.shape, figure));
+    const moved = addHealth(combatant, calculateScaled(turn.shape, figure));
     const stated = encodeMovedHealth(combatant, key, moved);
     if (stated !== null) messages.push(stated);
 }

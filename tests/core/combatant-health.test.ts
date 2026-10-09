@@ -7,8 +7,8 @@
 
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import {
-    composeHealthFromPercent,
-    composeHealthTolerance,
+    calculateHealthFromPercent,
+    calculateHealthTolerance,
     getHealthPercentsFromEvent,
     indexFightEntryHealth,
     indexSideHeals,
@@ -21,24 +21,28 @@ import { readRecordedFights } from "#/tests/recorded-fights.ts";
 const PERCENT_PLACES = 100;
 
 Deno.test("zero is a reading, and a maximum nobody stated is not", () => {
-    assertStrictEquals(composeHealthFromPercent(0, 745), 0, "nothing left is a measurement");
-    assertStrictEquals(composeHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
-    assertStrictEquals(composeHealthFromPercent(50, 745), 373, "a half is rounded, not truncated");
+    assertStrictEquals(calculateHealthFromPercent(0, 745), 0, "nothing left is a measurement");
+    assertStrictEquals(calculateHealthFromPercent(100, 745), 745, "a full pool reads back exactly");
     assertStrictEquals(
-        composeHealthFromPercent(50, null),
+        calculateHealthFromPercent(50, 745),
+        373,
+        "a half is rounded, not truncated",
+    );
+    assertStrictEquals(
+        calculateHealthFromPercent(50, null),
         null,
         "no maximum, no reading, and never zero",
     );
-    assertStrictEquals(composeHealthTolerance(0), 1, "a pool of nothing still rounds");
-    assertStrictEquals(composeHealthTolerance(745), 1, "a small pool is read to the point");
+    assertStrictEquals(calculateHealthTolerance(0), 1, "a pool of nothing still rounds");
+    assertStrictEquals(calculateHealthTolerance(745), 1, "a small pool is read to the point");
 });
 
 Deno.test("a wider pool is read less exactly, and says so", () => {
     assert(
-        composeHealthTolerance(325584) > composeHealthTolerance(745),
+        calculateHealthTolerance(325584) > calculateHealthTolerance(745),
         "the band a percentage stands for is a share of the pool",
     );
-    assertStrictEquals(composeHealthTolerance(325584), 17, "the widest pool in `captures/`");
+    assertStrictEquals(calculateHealthTolerance(325584), 17, "the widest pool in `captures/`");
 });
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {
@@ -62,10 +66,10 @@ Deno.test("a stated percentage reads back to the health the client holds", () =>
     for (const fight of readRecordedFights()) {
         const path = fight.path;
         for (const reading of fight.healthReadings) {
-            const health = composeHealthFromPercent(reading.healthPercent, reading.healthMaximum);
+            const health = calculateHealthFromPercent(reading.healthPercent, reading.healthMaximum);
             assertExists(health, `${path}: a stated maximum reads`);
             const distance = Math.abs(health - reading.health);
-            const tolerance = composeHealthTolerance(reading.healthMaximum);
+            const tolerance = calculateHealthTolerance(reading.healthMaximum);
             assert(distance <= tolerance, `${path}: ${distance} past a bound of ${tolerance}`);
             if (distance === 0) exact += 1;
             else approximate += 1;

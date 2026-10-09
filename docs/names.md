@@ -195,7 +195,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getKeptFightStates` — `src/runtime/shelf-keeper.ts`, `tests/runtime/panel-frame.test.ts`
 - `getKeyForNamedPart` — `src/ui/panel-element.ts`
 - `getKeysShared` — `tests/ui/level-drawn.test.ts`
-- `getLargestFigure` — `src/ui/panel-content.ts`
 - `getLeadingStatuses` — `src/ui/panel-words.ts`
 - `getLetterForShelfOutcome` — `src/ui/panel-words.ts`
 - `getLineAt` — `tests/source-tree.ts`
@@ -273,7 +272,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getSideRelationCharged` — `src/ui/panel-content.ts`
 - `getSideRelationListed` — `src/ui/panel-content.ts`
 - `getSkillOwnerId` — `src/core/fight-statistics.ts`
-- `getSkillRowOrder` — `src/ui/panel-content.ts`
 - `getStandingOnSide` — `tools/fabricated-fight.ts`
 - `getStandingTurnNow` — `src/ui/panel-helper.ts`
 - `getStandingTurnState` — `src/ui/panel-helper.ts`
@@ -388,7 +386,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupCalleeName` — `tests/repository/purity.test.ts`
 - `lookupCallerDeclaration` — `tests/source-tree.ts`
 - `lookupCallerName` — `tests/repository/event-entries.test.ts`
-- `lookupCardColumnSplit` — `src/ui/panel-element.ts`
 - `lookupCastsOverBearer` — `src/core/carried-figure.ts`
 - `lookupCatchPlaces` — `tests/repository/broad-catches.test.ts`
 - `lookupChangelogSection` — `tools/changelog.ts`
@@ -1062,7 +1059,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallySkillUses` — `src/ui/panel-content.ts`
 - `tallySourceRows` — `tools/aura-standing.ts`
 - `tallyStruck` — `tests/tools/shout-holding.test.ts`
-- `tallyStruckShare` — `tools/shout-holding.ts`
 - `tallyTakenByKind` — `tests/core/fight-statistics.test.ts`
 - `tallyTotals` — `src/core/fight-statistics.ts`
 - `tallyTurnDelta` — `tools/turn-count.ts`
@@ -1083,7 +1079,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `countHeld` — `tests/ui/helper-window.test.ts`, `tests/ui/panel-helper.test.ts`
 - `countLegendaryBonuses` — `src/core/legendary-standing.ts`
 - `countListRows` — `tests/runtime/margometer-runtime.test.ts`
-- `countMessagesLost` — `src/core/fight-session.ts`
 - `countOccurrences` — `tools/help-article.ts`
 - `countPairingsClearing` — `tests/ui/panel-look.test.ts`
 - `countParametersRead` — `src/core/fight-decoder.ts`
@@ -1106,24 +1101,40 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `calculateBarFill` — `src/ui/panel-content.ts`
 - `calculateBarHeight` — `src/ui/panel-look.ts`
+- `calculateBlowLargest` — `src/core/fight-statistics.ts`
 - `calculateBlowsForAnnouncement` — `src/core/fight-decoder.ts`
+- `calculateCardColumnSplit` — `src/ui/panel-element.ts`
 - `calculateCardHeight` — `src/ui/panel-look.ts`
 - `calculateCardHeightAvailable` — `src/ui/panel-look.ts`
 - `calculateCardLineCost` — `src/ui/panel-element.ts`
 - `calculateCardLinesForCharacters` — `src/ui/panel-element.ts`
 - `calculateCardWidthAvailable` — `src/ui/panel-look.ts`
 - `calculateCardWidthForColumns` — `src/ui/panel-look.ts`
+- `calculateCaseOrder` — `tools/drill-report.ts`
 - `calculateContrastRatio` — `src/ui/panel-look.ts`
 - `calculateControlHeightPixels` — `src/ui/panel-look.ts`
 - `calculateControlWidthPixels` — `src/ui/panel-look.ts`
 - `calculateCountedTotal` — `src/ui/panel-content.ts`
+- `calculateFigure` — `tools/fabricated-fight.ts`
+- `calculateHealthCeiling` — `tools/fabricated-fight.ts`
+- `calculateHealthFromPercent` — `src/core/combatant-health.ts`
 - `calculateHealthPercent` — `tools/fabricated-fight.ts`
+- `calculateHealthTolerance` — `src/core/combatant-health.ts`
 - `calculateKeyTallyOrder` — `tools/turn-reading.ts`
+- `calculateLargestFigure` — `src/ui/panel-content.ts`
 - `calculateLuminance` — `src/ui/panel-look.ts`
+- `calculateMessagesLost` — `src/core/fight-session.ts`
 - `calculatePlaceForClosing` — `src/ui/panel-content.ts`
 - `calculateRankedOrder` — `src/ui/ranked-order.ts`
+- `calculateReduction` — `tools/fabricated-fight.ts`
 - `calculateRowOrderByFigureThenId` — `src/ui/panel-content.ts`
+- `calculateScaled` — `tools/fabricated-fight.ts`
+- `calculateSkillRowOrder` — `src/ui/panel-content.ts`
+- `calculateSmall` — `tools/fabricated-fight.ts`
+- `calculateSmallHealth` — `tools/fabricated-fight.ts`
+- `calculateStruckShare` — `tools/shout-holding.ts`
 - `calculateTurnVerdict` — `tools/turn-count.ts`
+- `calculateWindowRight` — `src/ui/panel-drag.ts`
 
 ### `index` — strong
 
@@ -1630,7 +1641,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeBlow` — `tests/core/aura-standing.test.ts`, `tests/core/carried-status.test.ts`,
   `tests/core/turn-clock.test.ts`
 - `composeBlowBy` — `tests/core/carried-figure.test.ts`
-- `composeBlowLargest` — `src/core/fight-statistics.ts`
 - `composeBlowsOfKinds` — `tests/core/fight-statistics.test.ts`
 - `composeBodyWithout` — `tests/ui/panel-look.test.ts`
 - `composeCachedMargonemClient` — `tests/tools/margonem-readings.test.ts`
@@ -1701,7 +1711,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeFightLinks` — `tools/preview-server.ts`
 - `composeFightMessages` — `tools/turn-reading.ts`
 - `composeFightView` — `src/core/fight-session.ts`
-- `composeFigure` — `tools/fabricated-fight.ts`
 - `composeFileSubject` — `src/runtime/fight-handover.ts`
 - `composeFloorVersions` — `tests/repository/browser-support.test.ts`
 - `composeFoldsJoined` — `src/ui/panel-content.ts`
@@ -1735,9 +1744,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeHashOfShown` — `tests/tools/preview-state.test.ts`
 - `composeHeadcount` — `src/ui/panel-content.ts`
 - `composeHeal` — `tests/core/legendary-standing.test.ts`
-- `composeHealthCeiling` — `tools/fabricated-fight.ts`
-- `composeHealthFromPercent` — `src/core/combatant-health.ts`
-- `composeHealthTolerance` — `src/core/combatant-health.ts`
 - `composeHeight` — `tests/tools/card-height.test.ts`
 - `composeHeld` — `tests/ports/margonem-engine-battle.test.ts`
 - `composeHelperOpeningPosition` — `src/ui/panel-drag.ts`
@@ -1845,7 +1851,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeRebuildingBattle` — `tests/rebuilding-battle.ts`
 - `composeRecordingBattle` — `tests/runtime/margometer-runtime.test.ts`
 - `composeRecordingInEnglish` — `tools/capture-intake.ts`
-- `composeReduction` — `tools/fabricated-fight.ts`
 - `composeRefusingStorage` — `tests/ports/browser-store.test.ts`
 - `composeRefusingStore` — `tests/runtime/settings.test.ts`
 - `composeRegionRules` — `src/ui/panel-look.ts`
@@ -1865,7 +1870,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeRuntimeTables` — `src/userscript-entry.ts`
 - `composeRuntimeWorld` — `tests/runtime-world.ts`
 - `composeSample` — `tests/source-tree.ts`
-- `composeScaled` — `tools/fabricated-fight.ts`
 - `composeScrolledPanel` — `tests/ui/panel-element.test.ts`
 - `composeSection` — `tests/ui/share-column.test.ts`
 - `composeSectionsForScreen` — `tests/ui/share-column.test.ts`
@@ -1896,8 +1900,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeSkillRows` — `src/ui/panel-content.ts`
 - `composeSkillRowsReceived` — `src/ui/panel-content.ts`
 - `composeSkillRowsStated` — `src/ui/panel-content.ts`
-- `composeSmall` — `tools/fabricated-fight.ts`
-- `composeSmallHealth` — `tools/fabricated-fight.ts`
 - `composeSmallShelf` — `tests/runtime/margometer-runtime.test.ts`
 - `composeSourceRows` — `src/ui/panel-content.ts`
 - `composeSplitStyle` — `tools/preview-page.ts`
@@ -1949,7 +1951,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeWidestFight` — `tests/ui/full-cast-bound.test.ts`
 - `composeWidthsBySelector` — `tests/tools/preview-site.test.ts`
 - `composeWindowDragging` — `tools/preview-site.ts`
-- `composeWindowRight` — `src/ui/panel-drag.ts`
 - `composeWindowsCornered` — `tools/preview-site.ts`
 - `composeWindowsSeeded` — `tools/panel-shots.ts`
 
@@ -2234,7 +2235,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `compare` — not in N2's table
 
-- `compareCases` — `tools/drill-report.ts`
 - `compareReportSections` — `tools/develop-reports.ts`
 - `compareSectionMaps` — `tools/develop-reports.ts`
 - `compareText` — `tests/repository/name-register.test.ts`

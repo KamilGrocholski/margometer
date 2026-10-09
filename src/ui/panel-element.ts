@@ -3945,7 +3945,7 @@ export function composeCardLayout(
     let laidOut = whole;
     for (let step = 0; step < CARD_GROUPS_MAXIMUM; step += 1) {
         const trimmed = composeCardTrimmed(card, kept);
-        const split = isTwoColumnsWithin ? lookupCardColumnSplit(trimmed, typeStep) : null;
+        const split = isTwoColumnsWithin ? calculateCardColumnSplit(trimmed, typeStep) : null;
         laidOut = { card: trimmed, secondColumnFrom: split };
         if (isCardLayoutWithin(laidOut, height, typeStep)) return laidOut;
         const shorter = composeGroupsWithout(kept);
@@ -3971,7 +3971,7 @@ function isCardWidthWithin(room: number | null, step: TypeStep): boolean {
  * Where a second column opens: the group that leaves the two columns closest in height, the first
  * column always holding the fight's own figures. Null where fewer than two groups stand in columns.
  */
-function lookupCardColumnSplit(card: CardContent, step: TypeStep): number | null {
+function calculateCardColumnSplit(card: CardContent, step: TypeStep): number | null {
     const columned = countCardGroupsColumned(card.groups);
     if (columned < 2) return null;
     const floors = CHARACTERS_PER_LINE_BY_STEP[step];

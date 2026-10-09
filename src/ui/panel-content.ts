@@ -844,7 +844,7 @@ export function presentUnnamedLevel(
     const total = tallyPinnedFigure(statistics, pinnedCase, parts, sideListed);
     if (total <= 0) return null;
     const neither = getNeitherEndForPinned(statistics, pinnedCase, sideListed);
-    const largest = getLargestFigure([
+    const largest = calculateLargestFigure([
         ...parts.map((halfNamedPart) => halfNamedPart.figure),
         neither,
     ]);
@@ -1061,7 +1061,7 @@ function getNeitherEndForPinned(
     return statistics.damageByNeitherEnd;
 }
 
-function getLargestFigure(figures: readonly number[]): number {
+function calculateLargestFigure(figures: readonly number[]): number {
     let largest = 0;
     for (const figure of figures) {
         if (figure > largest) largest = figure;
@@ -1301,7 +1301,7 @@ function composeElementCut(
     if (rest > 0) figures.push(rest);
     if (unnamed > 0) figures.push(unnamed);
     const shares = formatSharesApportioned(figures, total);
-    const largest = getLargestFigure(figures);
+    const largest = calculateLargestFigure(figures);
     const closing = stated.length + (rest > 0 ? 1 : 0);
     return {
         rows: stated.map((elementRow, rowIndex) => ({
@@ -1432,7 +1432,7 @@ function composeHalfNamedForKind(
     if (total <= 0) return null;
     const figures = [...carriers.map((carrier) => carrier.figure), neither];
     const shares = formatSharesApportioned(figures, total);
-    const largest = getLargestFigure(figures);
+    const largest = calculateLargestFigure(figures);
     return {
         opened: HALF_NAMED_OPENED.element,
         case: pinnedCase,
@@ -1557,7 +1557,7 @@ export function presentScreen(
     ];
     if (outside > 0) shared.push(outside);
     const shares = formatSharesApportioned(shared, whole);
-    const largest = getLargestFigure([
+    const largest = calculateLargestFigure([
         ...shared,
         ...pinned.map((pinnedFigure) => pinnedFigure.figure),
     ]);
@@ -2161,7 +2161,7 @@ function composeOpponentCut(
     const figures = stated.map((unsharedRow) => unsharedRow.figure);
     if (unnamed > 0) figures.push(unnamed);
     const shares = formatSharesApportioned(figures, total);
-    const largest = getLargestFigure(figures);
+    const largest = calculateLargestFigure(figures);
     const keptKinds = totals.unnamedOpened?.total === unnamed ? totals.unnamedOpened.kinds : null;
     return {
         rows: stated.map((row, rowIndex) => ({
@@ -2294,7 +2294,7 @@ function composePairParts(
     const statedFigures = stated.map((pairPart) => pairPart.figure);
     const figures = closingFigure === 0 ? statedFigures : [...statedFigures, closingFigureClamped];
     const shares = formatSharesApportioned(figures, total);
-    const largest = getLargestFigure(figures);
+    const largest = calculateLargestFigure(figures);
     const rows: PairPartRow[] = stated.map((pairPart, partIndex) => ({
         part: pairPart.part,
         figure: pairPart.figure,
@@ -2472,7 +2472,7 @@ function composeSkillCut(
 ): SkillCut {
     const folded = composeSkillRows(statistics, figures, metric, combatantId);
     const stated = folded.rows;
-    stated.sort(getSkillRowOrder);
+    stated.sort(calculateSkillRowOrder);
     // What the bound would not give a row to counts as held, because the game **did** name it:
     // left out of this sum it would land in `closingFigure`, which says nothing announced the blow.
     const partsTotal = stated.reduce((sum, skillRow) => sum + skillRow.figure, folded.rest);
@@ -2504,7 +2504,7 @@ function composeSkillCut(
     if (hasRest) figuresOnScreen.push(folded.rest);
     if (hasClosing) figuresOnScreen.push(closingFigureClamped);
     const shares = formatSharesApportioned(figuresOnScreen, total);
-    const largest = getLargestFigure(figuresOnScreen);
+    const largest = calculateLargestFigure(figuresOnScreen);
     return {
         rows: stated.map((skillRow, rowIndex) => ({
             ...skillRow,
@@ -2721,7 +2721,7 @@ function tallyGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest:
 }
 
 /** Largest first, and a tie broken by the text a part is named with — `ranked-order.ts` owns it. */
-function getSkillRowOrder(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): number {
+function calculateSkillRowOrder(leftSkill: UnsharedSkill, rightSkill: UnsharedSkill): number {
     return calculateRankedOrder(
         leftSkill.figure,
         rightSkill.figure,

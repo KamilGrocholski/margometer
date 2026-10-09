@@ -35,7 +35,7 @@ const HALF_PLACE = 0.5;
  * How far a health read from a two-place percentage can be off. The guards measuring the corpus
  * against it read the band from here, so `HEALTH_PERCENT_PLACES` is spelled once.
  */
-export function composeHealthTolerance(healthMaximum: number): number {
+export function calculateHealthTolerance(healthMaximum: number): number {
     assert(Number.isFinite(healthMaximum), "a maximum to measure against is a number");
     assert(healthMaximum >= 0, "a maximum is never below nothing");
     const places = DECIMAL_BASE ** HEALTH_PERCENT_PLACES;
@@ -44,7 +44,7 @@ export function composeHealthTolerance(healthMaximum: number): number {
 }
 
 /** Null where nothing stated a maximum. Zero is a reading, and never stands in for one. */
-export function composeHealthFromPercent(
+export function calculateHealthFromPercent(
     percent: number,
     healthMaximum: number | null,
 ): number | null {
@@ -99,7 +99,7 @@ export function indexFightEntryHealth(
         for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
             if (entryHealthByCombatantId.has(combatantId)) continue;
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
-            const health = composeHealthFromPercent(percent, maximum);
+            const health = calculateHealthFromPercent(percent, maximum);
             if (health === null) continue;
             assert(maximum !== null, "a health read off a percentage was read against a pool");
             assert(health <= maximum, "nobody enters above their own pool");
@@ -144,7 +144,7 @@ export function indexSideHeals(
         }
         for (const [combatantId, percent] of getHealthPercentsFromEvent(event)) {
             const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
-            const health = composeHealthFromPercent(percent, maximum);
+            const health = calculateHealthFromPercent(percent, maximum);
             if (health !== null) healthByCombatantId.set(combatantId, health);
         }
     }

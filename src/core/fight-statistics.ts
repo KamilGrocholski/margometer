@@ -412,7 +412,7 @@ export function tallyFightStatistics(
             else {
                 const dealer = addCombatantFigures(tallying.byCombatantId, event.actorId);
                 addDamageDealtApplied(dealer, amount);
-                dealer.damageDealtBlowLargest = composeBlowLargest(
+                dealer.damageDealtBlowLargest = calculateBlowLargest(
                     dealer.damageDealtBlowLargest,
                     amount,
                 );
@@ -585,7 +585,7 @@ function addNamedDamageTaken(
     amount: number,
 ): void {
     addDamageTakenApplied(target, amount);
-    target.damageTakenBlowLargest = composeBlowLargest(
+    target.damageTakenBlowLargest = calculateBlowLargest(
         target.damageTakenBlowLargest,
         amount,
     );
@@ -784,7 +784,7 @@ function addBlowDealt(dealer: TallyingFigures, event: AttackEvent, blow: BlowFig
             event.destroyed.length <= MESSAGE_PARTS_MAXIMUM,
             "and destroys no more than one message is read to state",
         );
-        dealer.damageDealtBlowLargest = composeBlowLargest(
+        dealer.damageDealtBlowLargest = calculateBlowLargest(
             dealer.damageDealtBlowLargest,
             blow.amount,
         );
@@ -834,7 +834,7 @@ function addBlowTaken(target: TallyingFigures, event: AttackEvent, blow: BlowFig
     // Add the sum a counter states and the cut a card draws, together.
     {
         assert(blow.amount >= 0, "a blow lands no less than nothing");
-        target.damageTakenBlowLargest = composeBlowLargest(
+        target.damageTakenBlowLargest = calculateBlowLargest(
             target.damageTakenBlowLargest,
             blow.amount,
         );
@@ -1115,7 +1115,7 @@ function addDamageFiguresToOtherEndCut(
 }
 
 /** Two blows of five thousand and one of nine total the same and are not the same fight. */
-function composeBlowLargest(largestSoFar: number, amount: number): number {
+function calculateBlowLargest(largestSoFar: number, amount: number): number {
     assert(largestSoFar >= 0, "the hardest blow so far landed no less than nothing");
     assert(amount >= 0, "and neither did the one being weighed against it");
     return Math.max(largestSoFar, amount);

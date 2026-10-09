@@ -12,9 +12,9 @@ import { ENVELOPE_KEYS, HEALTH_FIELDS, WARRIOR_FIELDS } from "#/src/ports/payloa
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import {
     BASELINE_TURN,
+    calculateStruckShare,
     type HoldingRow,
     tallyHoldingReading,
-    tallyStruckShare,
 } from "#/tools/shout-holding.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
@@ -65,7 +65,7 @@ Deno.test("the share each row states is the share of the two counts beside it", 
     for (const [rowIndex, row] of rows.entries()) {
         assertStrictEquals(
             shares[rowIndex],
-            tallyStruckShare(row.atShouter, row.atSomebodyElse),
+            calculateStruckShare(row.atShouter, row.atSomebodyElse),
             `turn ${row.turnsElapsed}: the share is the two counts beside it`,
         );
     }
@@ -97,7 +97,10 @@ Deno.test("the baseline the register states is the one the recordings produce", 
         {
             atShouter: MEASURED.baseline.atShouter,
             atSomebodyElse: MEASURED.baseline.atSomebodyElse,
-            share: tallyStruckShare(MEASURED.baseline.atShouter, MEASURED.baseline.atSomebodyElse),
+            share: calculateStruckShare(
+                MEASURED.baseline.atShouter,
+                MEASURED.baseline.atSomebodyElse,
+            ),
         },
         "the baseline row against what the tool reads off captures/",
     );
@@ -120,11 +123,11 @@ Deno.test("a shout is total for the turns the table dates it, and falls after", 
     assert(inside.length > 0, "the corpus reaches the turns the table dates");
     assert(after.length > 0, "and goes past them");
     const held = tallyStruck(inside);
-    const baseline = tallyStruckShare(
+    const baseline = calculateStruckShare(
         MEASURED.baseline.atShouter,
         MEASURED.baseline.atSomebodyElse,
     );
-    const heldShare = tallyStruckShare(held.atShouter, held.atSomebodyElse);
+    const heldShare = calculateStruckShare(held.atShouter, held.atSomebodyElse);
     assertExists(baseline, "blows were struck before the shout");
     assertExists(heldShare, "and inside the stated turns");
     assert(
@@ -132,7 +135,7 @@ Deno.test("a shout is total for the turns the table dates it, and falls after", 
         "inside the stated turns they strike the shouter more than they did before the shout",
     );
     const tallyRowShare = (row: HoldingRow) =>
-        tallyStruckShare(row.atShouter, row.atSomebodyElse) ?? Number.NaN;
+        calculateStruckShare(row.atShouter, row.atSomebodyElse) ?? Number.NaN;
     const lowestInside = Math.min(...inside.map(tallyRowShare));
     const highestAfter = Math.max(...after.map(tallyRowShare));
     assert(
@@ -201,9 +204,13 @@ function composeShoutedFight(messages: readonly string[]): RecordedFight {
 }
 
 Deno.test("a share over no blows is none, and one blow is all or nothing", () => {
-    assertStrictEquals(tallyStruckShare(0, 0), null, "no blows struck is no share, not a nought");
-    assertStrictEquals(tallyStruckShare(1, 0), 100, "one blow at the shouter is all of them");
-    assertStrictEquals(tallyStruckShare(0, 1), 0, "and one elsewhere is none");
+    assertStrictEquals(
+        calculateStruckShare(0, 0),
+        null,
+        "no blows struck is no share, not a nought",
+    );
+    assertStrictEquals(calculateStruckShare(1, 0), 100, "one blow at the shouter is all of them");
+    assertStrictEquals(calculateStruckShare(0, 1), 0, "and one elsewhere is none");
 });
 
 Deno.test("the reader takes the row it must and leaves the row it must not", () => {
