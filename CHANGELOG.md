@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.23.0] — 2026-10-09
 
 - **Zmiana** — Dopiski panelu w dymku postaci są zapisane tak jak wiersze gry nad nimi, na przykład
   „Dotyk anioła: 1/3” i „Spowolnienie: 14%”, a prowokacja mówi, ile tur jeszcze trzyma, na przykład
