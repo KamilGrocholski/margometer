@@ -402,6 +402,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupDisagreements` — `tests/repository/design-tokens.test.ts`
 - `lookupEnclosingFunction` — `tests/source-tree.ts`
 - `lookupEndOfRun` — `libs/text-walk.ts`
+- `lookupEndOfSharedRun` — `tests/libs/text-walk.test.ts`
 - `lookupEndedState` — `src/core/charged-skill.ts`
 - `lookupErrorClasses` — `tests/repository/throws.test.ts`
 - `lookupEventBreaches` — `tests/repository/event-entries.test.ts`
@@ -731,7 +732,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `readRuleName` — `tests/repository/documents.test.ts`
 - `readRuleNameText` — `tests/repository/documents.test.ts`
 - `readRules` — `tests/style-sheet.ts`
-- `readRun` — `tests/libs/text-walk.test.ts`
 - `readRunBlows` — `tests/core/granted-blow-rule.test.ts`
 - `readRunsFromPayload` — `tests/core/granted-blow-rule.test.ts`
 - `readRunsFromRecordings` — `tests/core/granted-blow-rule.test.ts`
@@ -3565,6 +3565,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `JsonUnreadable` — `libs/json-text.ts`
 - `JsonUnwritable` — `libs/json-text.ts`
 - `LiteralTooLong` — `libs/text-walk.ts`
+- `LiteralUnclosed` — `libs/text-walk.ts`
 
 ### `src/core/`
 
@@ -5447,6 +5448,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isEscaped` — `libs/text-walk.ts`
 - `isHexadecimal` — `libs/html-text.ts`
 - `isValueNext` — `libs/html-text.ts`
+- `joined` — `libs/html-text.ts`
 - `kept` — `libs/html-text.ts`
 - `key` — `libs/unknown-value.ts`
 - `look` — `libs/html-text.ts`, `libs/text-walk.ts`

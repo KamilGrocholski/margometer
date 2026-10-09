@@ -2,8 +2,7 @@
  * Numbers read out of text and written back into it.
  *
  * `Number("")` answers 0 and `Number("12abc")` answers NaN, so nothing here reaches `Number` before
- * its text has been walked. A reading has one reason to fail and answers `null` (E6); a writer
- * asserts, because by then the number is the caller's own (E8).
+ * its text has been walked. A reader answers `null` (E6) and a writer asserts (E8).
  */
 
 import { assert } from "@std/assert/assert";

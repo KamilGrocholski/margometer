@@ -7,7 +7,7 @@
 
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { LiteralTooLong, lookupQuotedLiteral } from "#/libs/text-walk.ts";
+import { LiteralTooLong, LiteralUnclosed, lookupQuotedLiteral } from "#/libs/text-walk.ts";
 import { FrozenFilesError } from "./margometer-tool-error.ts";
 
 /** The texts a freeze would write, the date they carry, and the two dates it chose between. */
@@ -66,6 +66,11 @@ export function lookupHeldDate(text: string, dateField: string): string | null {
     const literal = lookupQuotedLiteral(text, openerAt + opener.length);
     if (literal instanceof LiteralTooLong) {
         throw new FrozenFilesError(`the date in \`${dateField}\` runs past the characters read`, {
+            cause: literal,
+        });
+    }
+    if (literal instanceof LiteralUnclosed) {
+        throw new FrozenFilesError(`the date in \`${dateField}\` is never closed`, {
             cause: literal,
         });
     }

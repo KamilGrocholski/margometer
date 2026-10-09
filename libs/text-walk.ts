@@ -23,6 +23,11 @@ export class LiteralTooLong extends Error {
     }
 }
 
+/** A literal opened and never closed: the text ends inside it, which a whole source never does. */
+export class LiteralUnclosed extends Error {
+    override readonly name = "LiteralUnclosed";
+}
+
 /**
  * Any of the three quotings JavaScript has, because which one a build uses is the bundler's taste
  * and not the source's meaning. A literal closes on the quote that opened it, and every use sits
@@ -93,8 +98,8 @@ export function lookupEndOfRun(
 }
 
 /**
- * Empty text is no run, and neither is text past the bound on one: no number that long is read
- * exactly, so a reader of it answers no number rather than walking it.
+ * Empty text is no run, and neither is text past the bound on one, which keeps the walk bounded: a
+ * reader of it answers no number, zeros in front or not.
  */
 export function isDigitRun(text: string): boolean {
     if (text.length === 0) return false;
@@ -105,11 +110,11 @@ export function isDigitRun(text: string): boolean {
     return end === text.length;
 }
 
-/** Null where no literal opens at `open` or none closes before the text ends. */
+/** Null where no literal opens at `open`; a failure where one opens and is never closed. */
 export function lookupQuotedLiteral(
     text: string,
     open: number,
-): QuotedLiteral | null | LiteralTooLong {
+): QuotedLiteral | null | LiteralTooLong | LiteralUnclosed {
     assert(Number.isSafeInteger(open), "a literal is looked for at a whole position");
     assert(open >= 0, "never before the text");
     const opening = text.charAt(open);
@@ -119,7 +124,7 @@ export function lookupQuotedLiteral(
     let isEscaped = false;
     for (let look = 0; look < LITERAL_CHARACTERS_MAXIMUM; look += 1) {
         const character = text.charAt(index);
-        if (character === "") return null;
+        if (character === "") return new LiteralUnclosed();
         // An escape takes the character after it whole, a quote of the literal's own kind included.
         if (isEscaped) isEscaped = false;
         else if (character === ESCAPE) isEscaped = true;

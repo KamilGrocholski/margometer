@@ -33,6 +33,15 @@ Deno.test("an entry that is not a registration is passed over, not read as a bit
     assertEquals(requireStatusBits(bundle), ["wound"], "only a name closing on the arguments");
 });
 
+Deno.test("a bundle that ends inside a status's name is refused, not read without it", () => {
+    assertThrows(
+        () => requireStatusBits('x("wound",null,"buff");y(`cut,null,"buff")'),
+        StatusBitTableError,
+        "never closed",
+        "a bundle cut short would otherwise freeze a table missing the bit",
+    );
+});
+
 Deno.test("a bundle registering nothing is refused rather than frozen as an empty table", () => {
     // An empty reading looks exactly like a game that dropped the feature.
     assertThrows(() => requireStatusBits("var a=1;"), StatusBitTableError, "no status");

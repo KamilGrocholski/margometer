@@ -72,6 +72,7 @@ Deno.test("a numeric reference reads as the character it names, and one naming n
         "a decimal reference names its character",
     );
     assertStrictEquals(decodeHtmlText("&#x221A;2"), "\u221a2", "and so does a hexadecimal one");
+    assertStrictEquals(decodeHtmlText("&#Xe9;"), "\u00e9", "under a capital mark, in small digits");
     assertStrictEquals(
         decodeHtmlText("a&amp;#160;b"),
         "a&#160;b",
@@ -129,6 +130,12 @@ Deno.test("a `<` a browser opens no tag at is text, and one it does is not", () 
     assertStrictEquals(decodeHtmlText("a<!-- b -->c"), "a c", "a comment on its mark");
     assertStrictEquals(decodeHtmlText("a<?b?>c"), "a c", "and an instruction on its question mark");
     assertStrictEquals(decodeHtmlText("a<Zb>c"), "a c", "a tag opens on a letter of either case");
+    assertStrictEquals(decodeHtmlText("a<A>c"), "a c", "from the first capital");
+    assertStrictEquals(decodeHtmlText("a<@>c"), "a<@>c", "and not the sign before it");
+    assertStrictEquals(decodeHtmlText("a<a>c"), "a c", "from the first small letter");
+    assertStrictEquals(decodeHtmlText("a<`>c"), "a<`>c", "and not the sign before it");
+    assertStrictEquals(decodeHtmlText("a<z>c"), "a c", "to the last small letter");
+    assertStrictEquals(decodeHtmlText("a<{>c"), "a<{>c", "and not the sign after it");
 });
 
 Deno.test("a `>` inside a comment or a quoted value closes nothing", () => {
@@ -159,6 +166,21 @@ Deno.test("a `>` inside a comment or a quoted value closes nothing", () => {
 Deno.test("an unclosed comment is kept as text, and a tag inside a word parts it", () => {
     assertStrictEquals(decodeHtmlText("a<!-- b"), "a<!-- b", "where a browser hides the rest");
     assertStrictEquals(decodeHtmlText("Bl<b>o</b>k"), "Bl o k", "where a browser joins the word");
+    assertStrictEquals(
+        decodeHtmlText("a<!-- b --!>c"),
+        "a<!-- b --!>c",
+        "where a browser closes it",
+    );
+    assertStrictEquals(
+        decodeHtmlText('a<i b=c="1>2">d'),
+        "a d",
+        'where a browser reads the `=` into the value, and shows `2">d`',
+    );
+    assertStrictEquals(
+        decodeHtmlText("\u00a0a\u00a0b\u00a0"),
+        "\u00a0a\u00a0b\u00a0",
+        "and where it shows a no-break space written as itself",
+    );
 });
 
 Deno.test("a page is read up to the bound on its length, and a page past it is a broken call", () => {
@@ -185,6 +207,7 @@ Deno.test("whitespace is walked under the bound on a page, never under the one o
 
 Deno.test("whitespace is one space between words and none around them", () => {
     assertStrictEquals(decodeHtmlText("  <b>a</b>\n\t <i>b</i>  "), "a b");
+    assertStrictEquals(decodeHtmlText("a\r\nb\fc"), "a b c", "a carriage return and a feed too");
     assertStrictEquals(decodeHtmlText(""), "", "nothing is nothing");
     assertStrictEquals(decodeHtmlText("a<>b"), "a<>b", "and `<>` is not a tag");
 });

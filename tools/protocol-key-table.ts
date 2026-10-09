@@ -17,6 +17,7 @@ import {
     isWhitespaceAt,
     JAVASCRIPT_QUOTES,
     LiteralTooLong,
+    LiteralUnclosed,
     lookupEndOfRun,
     lookupQuotedLiteral,
     type QuotedLiteral,
@@ -309,6 +310,9 @@ function requireQuotedLiteral(source: string, open: number): QuotedLiteral | nul
             `a literal at ${open} runs past the ${literal.maximum} characters read`,
             { cause: literal },
         );
+    }
+    if (literal instanceof LiteralUnclosed) {
+        throw new ProtocolKeyTableError(`a literal at ${open} is never closed`, { cause: literal });
     }
     return literal;
 }

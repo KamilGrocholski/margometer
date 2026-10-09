@@ -1,6 +1,6 @@
 /**
- * Reading a value nobody typed, one field at a time (`docs/design.md` §3). The keys are somebody
- * else's and the fields are ours: a failure names our field, never their key (N13).
+ * Reading a value nobody typed, one field at a time (`docs/design.md` §3), keyed by our field's
+ * name and failing under it (N13).
  *
  * An absent field is `null`, which is a fact. A field of the wrong type is a failure. Only own
  * properties are read, so `constructor` or `toString` off the prototype is never an answer.

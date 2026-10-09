@@ -13,6 +13,7 @@ import { formatInteger } from "#/libs/number-text.ts";
 import {
     isWhitespaceAt,
     LiteralTooLong,
+    LiteralUnclosed,
     lookupEndOfRun,
     lookupQuotedLiteral,
     type QuotedLiteral,
@@ -168,6 +169,9 @@ function requireQuotedLiteral(bundle: string, open: number): QuotedLiteral | nul
             `a literal at ${open} runs past the ${literal.maximum} characters read`,
             { cause: literal },
         );
+    }
+    if (literal instanceof LiteralUnclosed) {
+        throw new StatusBitTableError(`a literal at ${open} is never closed`, { cause: literal });
     }
     return literal;
 }

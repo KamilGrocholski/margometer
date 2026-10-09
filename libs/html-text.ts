@@ -129,6 +129,7 @@ function isSameAsciiTextAt(text: string, from: number, expected: string): boolea
     assert(Number.isSafeInteger(from), "a comparison starts at a whole position");
     assert(from >= 0, "never before the text");
     for (let index = 0; index < expected.length; index += 1) {
+        assert(!isAsciiUpperCase(expected.charAt(index)), "a name is compared in lower case");
         const character = text.charAt(from + index);
         if (character === "") return false;
         const folded = isAsciiUpperCase(character)
@@ -236,12 +237,13 @@ function isTagOpeningAt(html: string, index: number): boolean {
 }
 
 /**
- * ⚠️ Where a browser shows U+FFFD for a reference naming no character, reads one with no `;`, or
- * reads `&#128;`–`&#159;` through windows-1252, this keeps what was written; so it does an unclosed
- * comment, which a browser hides to the end of the page, and the body of an unclosed `<script>` or
- * `<style>`, which a browser runs to the end as code. Every tag reads as a space, one inside a word
- * included, where a browser joins the word across an inline one. The no-break space reads as a
- * space, as `&nbsp;` does.
+ * ⚠️ Where a browser shows U+FFFD for a reference naming no character, reads one with no `;` other
+ * than `&nbsp`, or reads `&#128;`–`&#159;` through windows-1252, this keeps what was written; so it
+ * does an unclosed comment, which a browser hides to the end of the page, one closed by `--!>`, and
+ * the body of an unclosed `<script>` or `<style>`, which a browser runs to the end as code. A `=`
+ * after an unquoted value opens a quoted one, where a browser reads it into the value. Every tag
+ * reads as a space, one inside a word included, where a browser joins the word across an inline
+ * one. A no-break space written as a reference reads as a space; one written as itself stays.
  */
 function decodeCharacterReferences(text: string): string {
     assert(text.length <= HTML_CHARACTERS_MAXIMUM, "text stays inside the length it is walked to");
@@ -336,7 +338,10 @@ function lookupNamedReference(text: string, open: number): CharacterReference | 
     return null;
 }
 
-/** ⚠️ It trims as well: a run at either end leaves no space, not one. */
+/**
+ * ⚠️ It trims as well: a run at either end leaves no space, not one. Not by `trim`, which takes a
+ * no-break space too (C17): a run at the start adds nothing, and one at the end adds one space.
+ */
 function composeCollapsedWhitespace(text: string): string {
     assert(text.length <= HTML_CHARACTERS_MAXIMUM, "text stays inside the length it is walked to");
     let collapsed = "";
@@ -348,5 +353,6 @@ function composeCollapsedWhitespace(text: string): string {
         from = index + 1;
     }
     assert(from <= text.length, "the last run ends inside the text");
-    return `${collapsed}${text.slice(from)}`.trim();
+    const joined = `${collapsed}${text.slice(from)}`;
+    return joined.endsWith(" ") ? joined.slice(0, -1) : joined;
 }

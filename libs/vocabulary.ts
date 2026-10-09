@@ -1,7 +1,4 @@
-/**
- * A closed set of our own strings is an object, with its type and its list derived from it
- * (`AGENTS.md` N18, ADR 0001); only a string arriving from outside is asked about here.
- */
+/** The type a vocabulary object derives, and the check a string from outside takes (N18). */
 
 import { assert } from "@std/assert/assert";
 

@@ -15,6 +15,7 @@ import {
     isWhitespaceAt,
     LITERAL_CHARACTERS_MAXIMUM,
     LiteralTooLong,
+    LiteralUnclosed,
     lookupEndOfRun,
     lookupQuotedLiteral,
     RUN_CHARACTERS_MAXIMUM,
@@ -32,14 +33,18 @@ Deno.test("a digit is told from its neighbours in the character table", () => {
 });
 
 Deno.test("a run ends where its first non-member stands, and is empty where none match", () => {
-    assertStrictEquals(readRun("12a", 0, isDigitAt), 2, "a run stops at a letter");
-    assertStrictEquals(readRun("a12", 0, isDigitAt), 0, "and one that never starts is empty");
-    assertStrictEquals(readRun("a12", 1, isDigitAt), 3, "a run may run to the end");
-    assertStrictEquals(readRun("", 0, isDigitAt), 0, "empty text holds no run");
+    assertStrictEquals(lookupEndOfSharedRun("12a", 0, isDigitAt), 2, "a run stops at a letter");
+    assertStrictEquals(
+        lookupEndOfSharedRun("a12", 0, isDigitAt),
+        0,
+        "and one that never starts is empty",
+    );
+    assertStrictEquals(lookupEndOfSharedRun("a12", 1, isDigitAt), 3, "a run may run to the end");
+    assertStrictEquals(lookupEndOfSharedRun("", 0, isDigitAt), 0, "empty text holds no run");
 });
 
 /** A run walked under the bound every caller of the library shares. */
-function readRun(
+function lookupEndOfSharedRun(
     text: string,
     from: number,
     isMember: (text: string, index: number) => boolean,
@@ -50,11 +55,15 @@ function readRun(
 Deno.test("a run is walked up to the shared bound on its length, and one reaching it is none", () => {
     const longest = " ".repeat(RUN_CHARACTERS_MAXIMUM - 1);
     assertStrictEquals(
-        readRun(`${longest}a`, 0, isWhitespaceAt),
+        lookupEndOfSharedRun(`${longest}a`, 0, isWhitespaceAt),
         RUN_CHARACTERS_MAXIMUM - 1,
         "a run one short of the bound is read",
     );
-    assertStrictEquals(readRun(`${longest} a`, 0, isWhitespaceAt), null, "and one reaching it");
+    assertStrictEquals(
+        lookupEndOfSharedRun(`${longest} a`, 0, isWhitespaceAt),
+        null,
+        "and one reaching it",
+    );
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM - 1)), true, "under the bound");
     assertStrictEquals(isDigitRun("1".repeat(RUN_CHARACTERS_MAXIMUM)), false, "and none at it");
 });
@@ -96,19 +105,19 @@ Deno.test("digits and nothing else are a run, and empty text is not one", () => 
     assertStrictEquals(isDigitRun("1 "), false, "and a space ends one before the text does");
 });
 
-Deno.test("a quoted literal is read in any of the three quotings, and an open one is none", () => {
+Deno.test("a quoted literal is read in any of the three quotings, and an open one is said", () => {
     assertEquals(lookupQuotedLiteral(`x "ab" y`, 2), { text: "ab", end: 6 });
     assertEquals(lookupQuotedLiteral("'a'", 0), { text: "a", end: 3 });
     assertEquals(lookupQuotedLiteral("`a`", 0), { text: "a", end: 3 });
     assertEquals(lookupQuotedLiteral(`""`, 0), { text: "", end: 2 }, "an empty literal is one");
-    assertStrictEquals(lookupQuotedLiteral(`"ab`, 0), null, "a literal never closed is none");
+    assertInstanceOf(lookupQuotedLiteral(`"ab`, 0), LiteralUnclosed, "one never closed is said so");
     assertStrictEquals(lookupQuotedLiteral("ab", 0), null, "and no quote opens none");
     assertStrictEquals(lookupQuotedLiteral("", 0), null);
 });
 
 Deno.test("a literal closes on the quote that opened it, and an escape takes what follows", () => {
     assertEquals(lookupQuotedLiteral(`"a'b"`, 0), { text: "a'b", end: 5 }, "another quote is text");
-    assertStrictEquals(lookupQuotedLiteral(`"a'`, 0), null, "and closes nothing");
+    assertInstanceOf(lookupQuotedLiteral(`"a'`, 0), LiteralUnclosed, "and closes nothing");
     assertEquals(
         lookupQuotedLiteral(String.raw`"a\"b"`, 0),
         { text: String.raw`a\"b`, end: 6 },
@@ -119,7 +128,11 @@ Deno.test("a literal closes on the quote that opened it, and an escape takes wha
         { text: String.raw`a\\`, end: 5 },
         "and an escaped escape leaves the quote after it closing",
     );
-    assertStrictEquals(lookupQuotedLiteral(`"a${ESCAPE}`, 0), null, "an escape at the end too");
+    assertInstanceOf(
+        lookupQuotedLiteral(`"a${ESCAPE}`, 0),
+        LiteralUnclosed,
+        "an escape at the end too",
+    );
 });
 
 /** Text a literal is looked for in comes from outside, so one past the bound is an answer. */
