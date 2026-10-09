@@ -52,6 +52,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   przegranej.
 - **Zmiana** — Zapisana walka, której liczby mogą być zaniżone, ma na liście znak ⚠ przed miejscem,
   a dymek po najechaniu mówi dlaczego.
+- **Zmiana** — Miejsce w rankingu, udział w nawiasie, znacznik tury i numer wersji na pasku okna są
+  jaśniejsze, a znak ostrzeżenia i znak „i” przy wierszu stoją na własnym tle, więc każdy z nich da
+  się przeczytać na pasku dowolnego koloru.
 - **Poprawka** — Zapisana walka, której nie da się już odczytać, nie znika z listy bez śladu:
   zostaje na niej ze znakiem ✖, można ją odpiąć, a dymek mówi, że nie da się jej otworzyć ani
   zapisać do pliku.
@@ -87,6 +90,16 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   przeciągania i najechania, a nie tylko kliknięcia.
 - **Poprawka** — Przyspieszenie rzucone na początku walki pokazuje się w dymku także postaci, które
   nie wykonały jeszcze żadnej tury.
+- **Poprawka** — Gdy przeglądarka nie pozwoli dodatkowi czekać na grę, panel pojawia się od razu i
+  mówi, że nie widzi gry, zamiast nie pojawić się wcale.
+- **Poprawka** — Gdy gra przyśle w walce coś, czego panel jeszcze nie zna, „Tury wykonane” nie
+  doliczają przez to postaci dodatkowej tury.
+- **Poprawka** — Oglądana zapisana walka zostaje na ekranie, gdy bieżącej walki nie da się odczytać;
+  brakuje wtedy tylko jej wiersza na liście, a panel mówi o usterce.
+- **Poprawka** — Gdy wiersze przeciwników po otwarciu postaci dają razem więcej niż liczba nad nimi,
+  panel mówi, że liczby się nie zgadzają, zamiast pokazać ponad sto procent bez słowa.
+- **Poprawka** — Gdy ładowany cios trwa dłużej, niż mieści się kropek, albo dymek wiersza ma więcej
+  linii, niż panel może pokazać, panel mówi, że czegoś nie pokazał, zamiast obciąć to po cichu.
 
 ## [0.22.1] — 2026-10-05
 
