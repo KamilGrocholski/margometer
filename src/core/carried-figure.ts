@@ -54,7 +54,7 @@ const SOURCES_COUNTED = 2;
  */
 const HALVED_FOR_THE_CASTER = [HASTE_AURA_KEY];
 
-/** The client's own spelling, `swow_down` included (N4, N13). */
+/** The client's own spelling, `swow_down` included (`frozen/status-bits.ts`; N4, N13). */
 export const SLOW_BIT_NAME = "swow_down";
 export const HASTE_BIT_NAME = "speed_up";
 

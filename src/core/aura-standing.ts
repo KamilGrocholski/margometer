@@ -410,6 +410,7 @@ export function indexAuraTurnsBySkillId(
 export function indexShoutsBySkillId(
     skills: readonly { id: number; turns: number; coverageMinimum: number }[],
 ): Map<number, ShoutStated> {
+    assert(skills.length <= SKILLS_DATED_MAXIMUM, "the table dates a bounded few shouts");
     const shoutsBySkillId = new Map<number, ShoutStated>();
     for (const skill of skills) {
         assert(skill.turns > 0, "a shout in the table holds for a stated number of turns");

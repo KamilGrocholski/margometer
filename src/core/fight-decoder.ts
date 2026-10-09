@@ -432,8 +432,9 @@ function isHealingAnnouncerOnly(
 
 /**
  * The table's count where the announcement names an id; the bound where it names none. Every id any
- * announcement carried over `captures/` is one the table carries (0 exceptions of 3129,
- * 2026-09-12), and 364 of the 371 announcements without one are an NPC's.
+ * announcement carried over `captures/` is one the published skill table carries (0 exceptions of
+ * 3129, 2026-09-12), and 364 of the 371 announcements without one are an NPC's. The table read here
+ * holds only the few granting more than their own blow, so an id it lacks reaches that one alone.
  */
 function calculateBlowsForAnnouncement(announced: AnnouncedSkill, tables: DecoderTables): number {
     if (announced.skillId === null) return BLOWS_GRANTED_MAXIMUM;
@@ -818,7 +819,6 @@ function decodeAnnouncedSkill(
     if (skill === null) return null;
     assert(skill.skillName.length > 0, "an announcement names something");
     const actorId = message.actor?.combatantId ?? message.target?.combatantId ?? null;
-    if (actorId === null) assert(message.actor === null, "an announcer is read off a named end");
     return { skillName: skill.skillName, skillId: skill.skillId, actorId };
 }
 

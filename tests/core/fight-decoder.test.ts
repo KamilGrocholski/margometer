@@ -1115,6 +1115,14 @@ Deno.test("a value the game's own text can spell goes unread, and never into an 
         ["tspell"],
         "an announcement naming nothing",
     );
+    const longest = "x".repeat(NAME_LENGTH_MAXIMUM);
+    const atBound = decode([`1=50.00;0;tspell=${longest}`])[0];
+    assertExists(atBound, "a message at the bound decodes to an event");
+    assert(
+        atBound.kind === BATTLE_EVENT.skillUsed,
+        "while one naming as much as the bound holds is read",
+    );
+    assertStrictEquals(atBound.skillName, longest, "by the whole of its name");
     const wide = `1=50.00;0;tspell=${"x".repeat(NAME_LENGTH_MAXIMUM + 1)}`;
     assertEquals(
         getOnlyUnread(decode([wide])),

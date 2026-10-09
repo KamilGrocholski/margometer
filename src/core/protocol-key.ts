@@ -110,7 +110,8 @@ export const KEY_REACH = { castersSide: "casters-side", otherSide: "other-side" 
 export type KeyReach = VocabularyWord<typeof KEY_REACH>;
 
 /**
- * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. Only
+ * The client's default branch reads characters 1 to 3 of a key (`docs/protocol-keys.md`, `?dmg*`,
+ * which names the build): `+` is raw, the rest applied. Only
  * `-` is read as applied here: no recording in `captures/` states a marker under any other sign,
  * 2026-09-25, and a key nobody has met stays unread rather than guessed at. The same marker opens
  * every element a figure stated by name lands in.
@@ -339,7 +340,8 @@ const DECLARATION_KEYS = [
 
 /**
  * Read **only** while they carry no value. The client composes `+legbon_holytouch` with a hole for
- * a figure, so one arriving with a value goes back to unread. A hole is not what membership means:
+ * a figure (`docs/protocol-keys.md`, `+legbon_holytouch`), so one arriving with a value goes back
+ * to unread. A hole is not what membership means:
  * `sunshield_per` is composed with none at all.
  */
 const VALUELESS_DECLARATION_KEYS = [

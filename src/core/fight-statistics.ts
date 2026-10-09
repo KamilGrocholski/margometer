@@ -450,10 +450,10 @@ export function tallyFightStatistics(
                 Number.isSafeInteger(event.amount),
                 "a movement totalled is a whole number",
             );
-            const lost = -event.amount;
             if (event.combatantId === null) {
                 if (event.amount >= 0) addRestoredToNobody(tallying, event.amount);
                 else {
+                    const lost = -event.amount;
                     tallying.damageTakenByNobody += lost;
                     tallying.damageDealtByNobody += lost;
                     tallying.damageByNeitherEnd += lost;
