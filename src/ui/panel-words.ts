@@ -755,7 +755,7 @@ export const HELPER_WORDS = {
      * turns a combatant took and carries the caveat that the game publishes none of them.
      */
     turnsLeft: "Zostało",
-    /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
+    /** The game's own name for it, the client's label on `DHSqC3Uh` (ADR 0038, **L2**). */
     chargedSkill: "Cios specjalny",
 } as const;
 
@@ -892,9 +892,9 @@ export const FIGHT_CARD_WORDS = {
 const LIVE_FIGHT_WORDS = { time: "teraz", outcome: "trwa" } as const;
 const TWO_DIGITS = 2;
 /** The month a person counts first, which is the offset a lookup by month subtracts. */
-const FIRST_MONTH = 1;
+const MONTH_FIRST = 1;
 /** The calendar's own edges. A month outside its own is caught by finding no word for it. */
-const FIRST_DAY = 1;
+const DAY_MINIMUM = 1;
 const DAY_MAXIMUM = 31;
 const HOUR_MAXIMUM = 23;
 const MINUTE_MAXIMUM = 59;
@@ -959,9 +959,9 @@ const DEFECT_WORDS: Record<PanelDefectKind, string> = {
 };
 
 /**
- * What the panel draws where a share is owed and rounds to nothing. Exported because two
- * guards read a drawn share back into points and both spelled this string themselves, so a
- * floor changed here would have left them measuring a string the panel no longer draws.
+ * What the panel draws where a share is owed and rounds to nothing. Exported because two guards
+ * read a drawn share back into points, and a second spelling of the floor there would go on
+ * measuring a string the panel no longer draws.
  */
 export const SHARE_FLOOR = "<1%";
 /** More shares than the widest section draws rows — `tests/ui/share-bound.test.ts` holds it so. */
@@ -1110,19 +1110,20 @@ export function formatCardSubtitle(
     level: number | null,
     sideRelation: SideRelation,
 ): string | null {
-    if (level !== null) {
-        if (!Number.isSafeInteger(level)) level = null;
-    }
-    if (level !== null) {
-        if (level <= 0) level = null;
-    }
     const said: string[] = [];
     if (profession !== null) said.push(getWordsForProfession(profession));
-    if (level !== null) said.push(`(${formatWholeUngrouped(level)})`);
+    if (isLevelStated(level)) said.push(`(${formatWholeUngrouped(level)})`);
     const stated = said.join(" ");
     const side = SIDE_PART_WORDS[sideRelation];
     if (side === null) return stated.length === 0 ? null : stated;
     return stated.length === 0 ? side : `${stated} · ${side}`;
+}
+
+/** A level the game states is a whole number above nothing; anything else is not shown. */
+function isLevelStated(level: number | null): level is number {
+    if (level === null) return false;
+    if (!Number.isSafeInteger(level)) return false;
+    return level > 0;
 }
 
 export function getWordsForHealthSource(source: string): string {
@@ -1416,9 +1417,9 @@ export function formatShelfTime(moment: FightMoment | null, isLive: boolean): st
     if (moment === null) return "";
     if (moment.hour > HOUR_MAXIMUM) return "";
     if (moment.minute > MINUTE_MAXIMUM) return "";
-    if (moment.day < FIRST_DAY) return "";
+    if (moment.day < DAY_MINIMUM) return "";
     if (moment.day > DAY_MAXIMUM) return "";
-    const month = MONTH_WORDS[moment.month - FIRST_MONTH];
+    const month = MONTH_WORDS[moment.month - MONTH_FIRST];
     if (month === undefined) return "";
     const day = formatTwoDigits(moment.day);
     if (day === "") return "";
@@ -1440,9 +1441,9 @@ function formatTwoDigits(momentPart: number): string {
  * borrowed word would be it. The header says the same with `vs`, where there is room for a word.
  */
 export function formatShelfSize(counts: readonly number[]): string {
-    counts = counts.filter((count) => count > 0);
-    if (counts.length === 0) return "";
-    return counts.map((count) => formatFigure(count)).join("×");
+    const countsStated = counts.filter((count) => count > 0);
+    if (countsStated.length === 0) return "";
+    return countsStated.map((count) => formatFigure(count)).join("×");
 }
 
 export function getWordsForShelfOutcome(outcome: OutcomeResult | null, isLive: boolean): string {

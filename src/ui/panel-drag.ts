@@ -405,13 +405,13 @@ export function initPanelDrag(
     const writeHostStyle = () => {
         // Write the style the window stands in now.
         // A position that writes no style leaves the host on the sheet's own corner, which is a
-        // place — and the window is still there to be grabbed (**E12**).
+        // place — and the window is still there to be grabbed (**E12**). One that wore a style
+        // gives it back, and a write the page refused is tried again at the next frame.
         const applied = readPanelDragSize(state, placement, options);
         const style = composeHostStyle(state.position, applied, options.window);
-        if (style === null) return;
         if (style === state.written) return;
+        host.setAttribute(STYLE_ATTRIBUTE, style ?? "");
         state.written = style;
-        host.setAttribute(STYLE_ATTRIBUTE, style);
     };
     // Open the window at the reader's place, or the middle of the screen.
     {
@@ -438,12 +438,10 @@ export function initPanelDrag(
         if (opened instanceof Error) {
             addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
             state.position = null;
-            state.written = null;
             // A size the reader gave stands on the sheet's corner too, where the page takes it.
             const sized = errors.attempt(writeHostStyle);
             if (sized instanceof Error) {
                 addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, sized));
-                state.written = null;
             }
         }
     }
@@ -682,15 +680,15 @@ function readCoordinate(coordinate: unknown): number | null {
  * is refused, and one refusal inside the drag's own guard would clear the grab and move nothing.
  */
 function writePointerCapture(
-    bar: PanelElement,
+    grabbed: PanelElement,
     isHeld: boolean,
     pointerId: number | undefined,
     options: PanelDragOptions,
 ): void {
     if (pointerId === undefined) return;
     const captured = errors.attempt(() => {
-        if (isHeld) bar.setPointerCapture?.(pointerId);
-        else bar.releasePointerCapture?.(pointerId);
+        if (isHeld) grabbed.setPointerCapture?.(pointerId);
+        else grabbed.releasePointerCapture?.(pointerId);
     });
     if (!(captured instanceof Error)) return;
     addViewFailureGuarded(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, captured));

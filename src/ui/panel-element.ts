@@ -10,7 +10,7 @@
 import { formatDecimal } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import type { OutcomeResult } from "#/src/core/battle-event.ts";
+import { OUTCOME_RESULT, type OutcomeResult } from "#/src/core/battle-event.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     PANEL_WINDOW,
@@ -819,7 +819,7 @@ const EDGE_RELEASED = "auto";
 /** Past every card there is: the figures, the counters, both runs, both legendary groups, notes. */
 const CARD_GROUPS_MAXIMUM = 16;
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
-const LISTS_KEPT_MAXIMUM = 32;
+export const LISTS_KEPT_MAXIMUM = 32;
 /** What a note's tone adds to its class, a space before it where it adds anything. */
 const CARD_NOTE_TONE_CLASS: Record<CardNoteTone, string> = {
     [CARD_NOTE_TONE.plain]: "",
@@ -831,10 +831,10 @@ const CARD_NOTE_TONE_CLASS: Record<CardNoteTone, string> = {
 const CARD_ENDING_SEPARATOR = " · ";
 /** The ink of the side that took a fight. A draw and an escape name no side, so they add none. */
 const OUTCOME_INK_CLASS: Record<OutcomeResult, string> = {
-    won: ` ${CLASS.outcomeWon}`,
-    lost: ` ${CLASS.outcomeLost}`,
-    drawn: "",
-    fled: "",
+    [OUTCOME_RESULT.won]: ` ${CLASS.outcomeWon}`,
+    [OUTCOME_RESULT.lost]: ` ${CLASS.outcomeLost}`,
+    [OUTCOME_RESULT.drawn]: "",
+    [OUTCOME_RESULT.fled]: "",
 };
 
 export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView {
@@ -3081,10 +3081,10 @@ function countRowsForPairLevel(pair: PairLevelContent, floor: number): number {
 }
 
 /**
- * One key per part and per section, so a card is never the one a row beside it registered. Every
- * caller names its own section here rather than spelling a key of its own: a second spelling
- * lands on somebody else's key silently — the register refuses a duplicate, and the row wears the
- * card of whichever section was drawn first.
+ * One key per part and per section, so a card is never the one a row beside it registered: a
+ * second spelling lands on somebody else's key silently — the register refuses a duplicate, and the
+ * row wears the card of whichever section was drawn first. The rows a cut draws of its own — its
+ * kinds, its rest, its closing row — are keyed where they are drawn, under no section's name.
  */
 function getKeyForNamedPart(where: CardKeyPlace, openedPart: OpenedPart): string {
     if (openedPart.kind === OPENED_PART.skill) return `${where}-skill:${openedPart.name}`;
@@ -4506,18 +4506,18 @@ function presentCardProcSubParts(
     parts: readonly CutPart[],
     translate: TranslateLabel | null,
 ): Map<string, Array<{ label: string; figure: number }>> {
-    const byWords = new Map<string, Map<string, number>>();
+    const figureBySubWordByLabel = new Map<string, Map<string, number>>();
     for (const cutPart of parts.slice(0, CUT_PARTS_MAXIMUM)) {
         const words = getSubWordsForBlowKey(cutPart.key);
         if (words.length === 0) continue;
         const label = getWordsForBlowKey(cutPart.key, translate);
         if (label.length === 0) continue;
-        const figureBySubWord = byWords.get(label) ?? new Map<string, number>();
+        const figureBySubWord = figureBySubWordByLabel.get(label) ?? new Map<string, number>();
         figureBySubWord.set(words, (figureBySubWord.get(words) ?? 0) + cutPart.figure);
-        byWords.set(label, figureBySubWord);
+        figureBySubWordByLabel.set(label, figureBySubWord);
     }
     const folded = new Map<string, Array<{ label: string; figure: number }>>();
-    for (const [label, figureBySubWord] of byWords) {
+    for (const [label, figureBySubWord] of figureBySubWordByLabel) {
         const run = [...figureBySubWord].map(([words, figure]) => ({ label: words, figure }));
         run.sort((leftPart, rightPart) =>
             calculateRankedOrder(
@@ -4678,6 +4678,8 @@ export function createScrollMemo(): ScrollMemo {
             if (name.length === 0) return;
             if (!Number.isFinite(top)) return;
             if (top < 0) return;
+            // A place set again is the newest, which a map keeps where it was first put.
+            topByName.delete(name);
             topByName.set(name, top);
             if (topByName.size <= LISTS_KEPT_MAXIMUM) return;
             const oldest = topByName.keys().next();

@@ -151,6 +151,13 @@ const OUR_VOCABULARY = [
     "undrawn",
     "combatant",
     "protocol",
+    // The same words as a Polish sentence would carry them, matched by stem so every case is.
+    "dekoder",
+    "protok",
+    "ładun",
+    "pakiet",
+    "parser",
+    "klucz gry",
 ];
 /**
  * Keys the game chose. A reader is told what happened, never what it arrived under.
@@ -353,7 +360,7 @@ const CHARGED_STATES = Object.values(CHARGED_SKILL_STATE);
 const HELPER_ABSENCES = Object.values(HELPER_ABSENCE);
 
 /** The calendar the shelf's dates are counted over, which is nobody's constant to share. */
-const FIRST_MONTH = 1;
+const MONTH_FIRST = 1;
 const MONTHS_IN_YEAR = 12;
 
 /** A fighter with nothing standing on them, so a test says only what it is about. */
@@ -571,7 +578,7 @@ function getSaidFromChoices(): Said[] {
     add("formatShelfTime", ENDING.bare, [formatShelfTime(null, true)]);
     // Every month, because the twelve are spelled into the same template and a walk over the
     // tables reaches none of them either.
-    for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
+    for (let month = MONTH_FIRST; month <= MONTHS_IN_YEAR; month += 1) {
         const moment = { day: 1, month, hour: 0, minute: 0 };
         add("formatShelfTime", ENDING.bare, [formatShelfTime(moment, false)]);
     }
@@ -959,13 +966,34 @@ Deno.test("a fighter carrying nothing composes no row at all", () => {
 });
 
 Deno.test("no sentence carries our vocabulary", () => {
+    assertEquals(
+        getVocabularyFaults(getSentences()),
+        [],
+        "the reader is told what cannot be known, never why we could not",
+    );
+});
+
+function getVocabularyFaults(sentences: readonly string[]): string[] {
     const wrong: string[] = [];
-    for (const sentence of getSentences()) {
+    for (const sentence of sentences) {
         for (const word of OUR_VOCABULARY) {
             if (sentence.toLowerCase().includes(word)) wrong.push(`${sentence} says ${word}`);
         }
     }
-    assertEquals(wrong, [], "the reader is told what cannot be known, never why we could not");
+    return wrong;
+}
+
+Deno.test("the vocabulary reader flags our word in Polish, and passes a sentence without it", () => {
+    assertEquals(
+        getVocabularyFaults(["Dekoder nie zna tego klucza."]),
+        ["Dekoder nie zna tego klucza. says dekoder"],
+        "a sentence naming our reader is flagged",
+    );
+    assertEquals(
+        getVocabularyFaults(["Nie wiadomo, kto zadał ten cios."]),
+        [],
+        "and one saying what cannot be known passes",
+    );
 });
 
 Deno.test("no sentence carries a key of the game's", () => {
@@ -1291,6 +1319,16 @@ Deno.test("every noun states its three forms, and they are not one form thrice",
         assert(noun.many.length > 0, `${name} states the third`);
         assert(new Set([noun.one, noun.few, noun.many]).size > 1, `${name} spells one word thrice`);
     }
+});
+
+Deno.test("a card says a level from one up, and none that is no level at all", () => {
+    const subtitle = (level: number | null) => formatCardSubtitle("w", level, SIDE_RELATION.nobody);
+    const bare = subtitle(null);
+    assertStrictEquals(subtitle(0), bare, "nought is no level");
+    assertStrictEquals(subtitle(-1), bare, "nor is one below it");
+    assertStrictEquals(subtitle(Number.NaN), bare, "nor one that is not a number");
+    assertStrictEquals(subtitle(1.5), bare, "nor a part of one");
+    assertStrictEquals(subtitle(1), `${bare} (1)`, "the first level is said");
 });
 
 Deno.test("a place is said with as much of it as was known, and nothing where none was", () => {
@@ -1758,7 +1796,7 @@ Deno.test("a pool's part the blow does not place is said as one kind or another"
  */
 Deno.test("every month a kept fight can fall in spells its own word", () => {
     const spelled: string[] = [];
-    for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
+    for (let month = MONTH_FIRST; month <= MONTHS_IN_YEAR; month += 1) {
         spelled.push(formatShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
     assertEquals(
@@ -1787,7 +1825,7 @@ Deno.test("every month a kept fight can fall in spells its own word", () => {
  */
 Deno.test("a moment on either edge of the calendar is still a moment", () => {
     assertStrictEquals(
-        formatShelfTime({ day: 1, month: FIRST_MONTH, hour: 0, minute: 0 }, false),
+        formatShelfTime({ day: 1, month: MONTH_FIRST, hour: 0, minute: 0 }, false),
         "01 sty 00:00",
         "the first minute of the year reads back, because zero is a reading",
     );
@@ -1803,7 +1841,7 @@ Deno.test("a moment on either edge of the calendar is still a moment", () => {
  * number it could not name — the refusal `00:00` has always had, extended to the half in front.
  */
 Deno.test("a day nobody can name leaves the row saying nothing", () => {
-    const beforeTheYear = { day: 1, month: FIRST_MONTH - 1, hour: 21, minute: 5 };
+    const beforeTheYear = { day: 1, month: MONTH_FIRST - 1, hour: 21, minute: 5 };
     assertStrictEquals(formatShelfTime(beforeTheYear, false), "", "no month, so no date");
     const afterTheYear = { day: 1, month: MONTHS_IN_YEAR + 1, hour: 21, minute: 5 };
     assertStrictEquals(formatShelfTime(afterTheYear, false), "", "on both sides of the twelve");

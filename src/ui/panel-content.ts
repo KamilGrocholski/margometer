@@ -770,9 +770,9 @@ export const NOTHING_SUSPECT: FightSuspicions = {
 };
 
 /** The list below is the bound, not anything a fight can do. */
-const WARNINGS_MAXIMUM = 6;
+const SUSPICIONS_MAXIMUM = 6;
 /** And a row carries the three of the six that can be charged to one person. */
-const ROW_WARNINGS_MAXIMUM = 3;
+const ROW_SUSPICIONS_MAXIMUM = 3;
 
 export function getEndForPinned(pinnedCase: PinnedCase): PanelUnnamedEnd {
     return PINNED_SHAPES[pinnedCase].end;
@@ -812,7 +812,7 @@ export function formatRowSuspicions(detail: RowDetail, metric: PanelMetric): str
     if (getNounForMetric(metric) === PANEL_NOUN.healing) {
         said.push(formatUnplacedHealRowSuspicion(detail.sideHealsUnsized));
     }
-    return said.filter((sentence) => sentence.length > 0).slice(0, ROW_WARNINGS_MAXIMUM);
+    return said.filter((sentence) => sentence.length > 0).slice(0, ROW_SUSPICIONS_MAXIMUM);
 }
 
 /**
@@ -1812,7 +1812,7 @@ function formatScreenSuspicions(
             formatRowsReachedByGap(statistics, roster, (figures) => figures.sideHealsUnsized),
         ));
     }
-    return said.filter((sentence) => sentence.length > 0).slice(0, WARNINGS_MAXIMUM);
+    return said.filter((sentence) => sentence.length > 0).slice(0, SUSPICIONS_MAXIMUM);
 }
 
 /**
@@ -2369,7 +2369,7 @@ function composePairPartFigures(
  *
  * It turns on the **direction** rather than on the quantity: mine where I gave it, theirs where I
  * received it. Written as a test for damage it would read as a fact about damage and be a fact
- * about giving, which is what kept healing off this rung.
+ * about giving, and healing would never reach this rung.
  */
 function getPairGivingEnd(
     statistics: FightStatistics,

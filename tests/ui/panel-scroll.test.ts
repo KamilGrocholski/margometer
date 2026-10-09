@@ -9,6 +9,7 @@ import { assertEquals, assertStrictEquals } from "@std/assert";
 import { CLASS } from "#/src/ui/panel-look.ts";
 import {
     createScrollMemo,
+    LISTS_KEPT_MAXIMUM,
     readTopOfList,
     renderListRows,
     writeTopOfList,
@@ -45,6 +46,18 @@ Deno.test("the oldest place goes when the maximum is reached", () => {
         NAMES_TRIED,
         "and the one kept last is there",
     );
+});
+
+Deno.test("a place gone back to is kept as the newest, never the oldest", () => {
+    const kept = createScrollMemo();
+    kept.setTop("first", SOMEWHERE_DOWN);
+    for (let index = 0; index < LISTS_KEPT_MAXIMUM - 1; index += 1) {
+        kept.setTop(`place ${index}`, index + 1);
+    }
+    kept.setTop("first", SOMEWHERE_DOWN);
+    kept.setTop("one past the maximum", 1);
+    assertStrictEquals(kept.getTop("first"), SOMEWHERE_DOWN, "a place in use stays");
+    assertStrictEquals(kept.getTop("place 0"), 0, "and the one left longest ago goes");
 });
 
 Deno.test("a position is read off a list and off nothing else", () => {

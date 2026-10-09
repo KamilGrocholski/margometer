@@ -10,6 +10,7 @@ import {
     assertExists,
     assertInstanceOf,
     assertStrictEquals,
+    assertStringIncludes,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
 import { CARD_LINES_MAXIMUM, DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
@@ -437,6 +438,24 @@ Deno.test("a sized window whose place the page refuses keeps its size on the cor
     assert(style.includes("320px"), "the size the reader gave stands");
     assert(!style.includes("left"), "on the sheet's corner");
     assertStrictEquals(failures.length, 1, "and the refused place is named once");
+});
+
+Deno.test("a sized window with no place gives its size back to a frame without it", () => {
+    const panel = initTestView(composeFakeDocument(), {
+        meterPlacement: {
+            position: null,
+            size: { width: 320, height: 350 },
+            readViewport: () => null,
+        },
+    });
+    const host = panel.element as FakeElement;
+    assertStringIncludes(host.attributes.get("style") ?? "", "320px", "the size stands at first");
+    panel.render(composeShownScreen(readFight()));
+    assertStrictEquals(
+        (host.attributes.get("style") ?? "").includes("320px"),
+        false,
+        "and a frame with no size given gives it back",
+    );
 });
 
 Deno.test("every row the runtime's ledger can hold is drawn, a region's beside its kind's", () => {
