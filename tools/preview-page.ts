@@ -10,7 +10,8 @@
 import { assert, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
-import { PLACE, SHAPE, SPACE_PIXELS, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import { HELPER_GAP_PIXELS } from "#/src/ui/panel-drag.ts";
+import { PLACE, SHAPE, SURFACE, TEXT, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { formatColour, SIGNAL } from "#/src/ui/panel-palette.ts";
 import {
     composePanelPage,
@@ -113,7 +114,7 @@ export const PREVIEW_SPLIT_SELECTOR = ".preview-split";
 export const PREVIEW_SAID_SELECTOR = ".preview-said";
 /** What the two windows take across: inset, panel, the gap between, and the window beside it. */
 export const WINDOWS_ACROSS_PIXELS = PLACE.insetPixels +
-    TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels + SPACE_PIXELS.small +
+    TYPE_TOKENS[TYPE_STEP_DEFAULT].meterWidthPixels + HELPER_GAP_PIXELS +
     TYPE_TOKENS[TYPE_STEP_DEFAULT].helperWidthPixels;
 /** What the pair stands off the seam by, level with the padding the half beside it carries. */
 export const SEAM_GUTTER_PIXELS = 32;

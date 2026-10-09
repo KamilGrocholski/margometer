@@ -64,6 +64,25 @@ Deno.test("a subject named by a letter at either end of either case is a name", 
     }
 });
 
+Deno.test("a subject whose name ends in a digit is a name, and a digit alone is none", () => {
+    for (const name of ["q1", "j0", "$9", "a10"]) {
+        const bundle = `e.manageBattleEffects(t);switch(${name}[0]){case"blok":b()}`;
+        assertEquals(requireProtocolKeys(bundle), ["blok"], `a subject named ${name}`);
+    }
+    const shaped = NEWER_BUNDLE.split("q[0]").join("q1[0]");
+    assertEquals(
+        requireComputedKeyFamily(shaped),
+        requireComputedKeyFamily(NEWER_BUNDLE),
+        "and the family's shape reads through it",
+    );
+    assertThrows(
+        () => requireProtocolKeys('e.manageBattleEffects(t);x=1[0]);switch(1[0]){case"blok":b()}'),
+        ProtocolKeyTableError,
+        undefined,
+        "a subject of digits alone is no name",
+    );
+});
+
 Deno.test("a word ending in case, or a key closing on something else, is not a label", () => {
     const bundle = 'e.manageBattleEffects(t);switch(q[0]){case"blok":b();showcase"x":c();' +
         'case"open"+"y":d();case "spaced" :f()}';

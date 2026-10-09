@@ -116,7 +116,14 @@ function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[]
                 assertExists(messagesRead, "the reading holds every call the recording does");
                 cost.messages[index] = messagesRead.length;
             }
-            assertStrictEquals(window.lines.length, 0, "a recording timed left no failure behind");
+            // A recording the add-on breaks on is timed on a path a player never walks.
+            if (window.lines.length > 0) {
+                throw new PayloadCostError(
+                    `${formatRecordingName(fight.path)} left the console a failure: ${
+                        window.lines[0]
+                    }`,
+                );
+            }
             // Time the tally a frame runs, at the call where the fight is longest.
             const started = performance.now();
             void tallyFightState(reading.view);

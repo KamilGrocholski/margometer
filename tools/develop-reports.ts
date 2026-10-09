@@ -8,7 +8,7 @@
  *     deno task fight:develop
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { emptyDirSync } from "@std/fs";
 import { formatInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
@@ -55,10 +55,7 @@ const HEADING_CLOSE = " ===";
 /** Past the corpus by an order of magnitude: 35 recordings and 4571 lines, 2026-09-25. */
 export const SECTIONS_MAXIMUM = 1_000;
 export const LINES_MAXIMUM = 200_000;
-/**
- * The cells a comparison of two sections may fill: the longest section either report prints runs
- * to a few hundred lines, so a pair past this is a report gone wrong rather than a fight.
- */
+/** The cells a comparison of two sections may fill; a pair past this is a report gone wrong. */
 export const COMPARED_CELLS_MAXIMUM = 4_000_000;
 /** Where `develop`'s tree is taken out to; `.cache/` is git's to ignore. */
 const CACHE_DIRECTORY = ".cache";
@@ -164,9 +161,10 @@ function compareSectionMaps(
         const rewriteLines = rewrite.get(name) ?? null;
         const changes = composeLineChanges(developLines ?? [], rewriteLines ?? []);
         // A side that printed nothing under the name differs, even from another nothing.
-        let isAlike = changes.length === 0;
+        let isAlike: boolean;
         if (developLines === null) isAlike = false;
-        if (rewriteLines === null) isAlike = false;
+        else if (rewriteLines === null) isAlike = false;
+        else isAlike = changes.length === 0;
         if (isAlike) comparison.agreedNames.push(name);
         else comparison.differences.push({ name, developLines, rewriteLines, changes });
     }
@@ -204,8 +202,8 @@ function composeLineChanges(
     for (let developIndex = developCount - 1; developIndex >= 0; developIndex -= 1) {
         const row = commonAfter[developIndex];
         const below = commonAfter[developIndex + 1];
-        assert(row !== undefined, "a row stands for every place on develop's side");
-        assert(below !== undefined, "and one past its last line");
+        assertExists(row, "a row stands for every place on develop's side");
+        assertExists(below, "and one past its last line");
         for (let rewriteIndex = rewriteCount - 1; rewriteIndex >= 0; rewriteIndex -= 1) {
             row[rewriteIndex] = developLines[developIndex] === rewriteLines[rewriteIndex]
                 ? (below[rewriteIndex + 1] ?? 0) + 1
@@ -244,8 +242,8 @@ function composeLineChanges(
             rewriteIndex += 1;
         }
     }
-    assert(developIndex === developCount, "every line of develop's was walked");
-    assert(rewriteIndex === rewriteCount, "and every line of this branch's");
+    assertStrictEquals(developIndex, developCount, "every line of develop's was walked");
+    assertStrictEquals(rewriteIndex, rewriteCount, "and every line of this branch's");
     return changes;
 }
 
@@ -264,8 +262,18 @@ export function compareWholeReports(
 /** The lines of a text, the blank ones a printer ends on left out. */
 function splitReportLines(text: string): string[] {
     const lines = parseReportLines(text);
-    while (lines.at(-1) === "") lines.pop();
+    removeTrailingBlankLines(lines);
     return lines;
+}
+
+/** Bounded by the lines a report is read to, which `parseReportLines` refuses past. */
+function removeTrailingBlankLines(lines: string[]): void {
+    assert(lines.length <= LINES_MAXIMUM, "lines are trimmed inside the bound they were read to");
+    for (let removed = 0; removed < LINES_MAXIMUM; removed += 1) {
+        if (lines.at(-1) !== "") break;
+        lines.pop();
+    }
+    assert(lines.at(-1) !== "", "every blank line a printer ended on is gone");
 }
 
 /** A report's lines, refused past the bound: a printer running away is not a report. */
@@ -295,9 +303,7 @@ export function indexReportSections(text: string): Map<string, string[]> {
             sections.set(name, openSection);
         } else if (openSection !== null) openSection.push(line);
     }
-    for (const section of sections.values()) {
-        while (section.at(-1) === "") section.pop();
-    }
+    for (const section of sections.values()) removeTrailingBlankLines(section);
     if (sections.size > SECTIONS_MAXIMUM) {
         throw new DevelopReportError(
             `a report of ${sections.size} sections, past the ${SECTIONS_MAXIMUM} read`,
@@ -340,7 +346,11 @@ function formatDifferenceLines(difference: ReportDifference): string[] {
     for (const change of difference.changes) {
         lines.push(`  ${change.kind === LINE_CHANGE.removed ? "-" : "+"} ${change.line}`);
     }
-    assert(lines.length === difference.changes.length + 1, "every change is a line of its own");
+    assertStrictEquals(
+        lines.length,
+        difference.changes.length + 1,
+        "every change is a line of its own",
+    );
     return lines;
 }
 

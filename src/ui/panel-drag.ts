@@ -162,6 +162,8 @@ const ROWS_BY_WINDOW_MINIMUM: { readonly [Window in PanelWindow]: number } = {
     [PANEL_WINDOW.meter]: 6,
     [PANEL_WINDOW.helper]: 3,
 };
+/** Between the panel and the window opened beside it; the pages framing both read it too. */
+export const HELPER_GAP_PIXELS = SPACE_PIXELS.small;
 
 /**
  * **Every position downstream of this is whole, finite and safe to write into a style.** A null
@@ -579,7 +581,7 @@ function composeHelperOpeningPosition(
 ): PanelPosition | null {
     const meter = composeDefaultPosition(viewport, tokens.meterWidthPixels);
     if (meter === null) return null;
-    const gap = SPACE_PIXELS.small;
+    const gap = HELPER_GAP_PIXELS;
     const beside = meter.left - tokens.helperWidthPixels - gap;
     if (beside >= 0) return clampPosition({ left: beside, top: meter.top }, viewport);
     // No room on the left, so the other side — the same answer the card gives (`develop ADR 0090`).

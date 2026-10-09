@@ -37,7 +37,7 @@ export interface CardHeight {
 }
 
 interface CardArguments {
-    isTallest: boolean;
+    shouldListTallest: boolean;
     paths: string[];
 }
 
@@ -181,7 +181,7 @@ export function parseCardArguments(stated: readonly string[]): CardArguments {
     if (paths === null) {
         throw new CardHeightError("a recording is named by a path and never by a number");
     }
-    return { isTallest: parsed.tallest, paths };
+    return { shouldListTallest: parsed.tallest, paths };
 }
 
 if (import.meta.main) {
@@ -190,7 +190,7 @@ if (import.meta.main) {
     const heights = tallyCardHeights(replayRecordedMaterial(material));
     console.log(`material ${material.material}`);
     for (const line of formatHeightReport(heights)) console.log(line);
-    if (asked.isTallest) {
+    if (asked.shouldListTallest) {
         for (const line of formatTallestReport(heights)) console.log(line);
     }
 }

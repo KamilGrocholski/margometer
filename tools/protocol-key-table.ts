@@ -73,7 +73,10 @@ const SWITCH_SUBJECT_TAIL = "[0])";
 const SEGMENT_INDEX = "[0]";
 const CASE_KEYWORD = "case";
 const LABEL_TERMINATOR = ":";
-/** A minified local. Digits are absent because the client never starts a name with one. */
+/**
+ * A minified local: a letter, `$` or `_`, then any of them or a digit. A walk back from a name's end
+ * meets its digits first, so they are names' characters too, and a name's start is held apart.
+ */
 const NAME_CHARACTERS = "$_";
 const BLOCK_OPEN = "{";
 const BLOCK_CLOSE = "}";
@@ -227,14 +230,23 @@ export function requireProtocolKeys(bundle: string): string[] {
  * before the block, because the development channel serves the client unminified.
  */
 function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
+    assert(Number.isSafeInteger(from), "a switch is looked for from a whole position");
     let tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
     for (let look = 0; look <= LOOKS_MAXIMUM; look += 1) {
         if (tailAt === -1) return null;
         let start = tailAt;
-        while (start > from) {
+        for (let back = 0; back < RUN_CHARACTERS_MAXIMUM; back += 1) {
+            if (start <= from) break;
             if (!isNameCharacterAt(bundle, start - 1)) break;
             start -= 1;
         }
+        if (tailAt - start >= RUN_CHARACTERS_MAXIMUM) {
+            throw new ProtocolKeyTableError(
+                `a name at ${tailAt} runs back past the ${RUN_CHARACTERS_MAXIMUM} characters read`,
+            );
+        }
+        // A name starts on no digit, so the digits a walk back ended on belong before it.
+        start = requireEndOfRun(bundle, start, isDigitAt);
         const block = requireEndOfRun(bundle, tailAt + SWITCH_SUBJECT_TAIL.length, isWhitespaceAt);
         if (start < tailAt) {
             if (bundle.charAt(block) === BLOCK_OPEN) return start;
@@ -266,6 +278,7 @@ function isNameCharacterAt(source: string, index: number): boolean {
     if (character === "") return false;
     if (isCharacterWithin(character, "a", "z")) return true;
     if (isCharacterWithin(character, "A", "Z")) return true;
+    if (isCharacterWithin(character, "0", "9")) return true;
     return NAME_CHARACTERS.includes(character);
 }
 

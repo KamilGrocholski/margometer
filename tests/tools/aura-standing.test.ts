@@ -241,7 +241,14 @@ Deno.test("the skills, keys and shouts a register holds are refused past their b
     const skills = tallyAuraRows(STEPPED).length;
     assertStrictEquals(tallyAuraRows(STEPPED, skills).length, skills, "every skill, at the bound");
     assertThrows(() => tallyAuraRows(STEPPED, skills - 1), RecordingReadError, "more skills");
-    assert(tallySourceRows(STEPPED).length > 0, "the corpus stands keys at a moment");
+    // A row is a key two sources stood at once, so the register holds at least as many keys.
+    const reported = tallySourceRows(STEPPED).length;
+    assert(reported > 1, "the corpus stands keys at a moment");
+    assertThrows(
+        () => tallySourceRows(STEPPED, reported - 1),
+        RecordingReadError,
+        "recordings stand more keys",
+    );
     assertThrows(() => tallySourceRows(STEPPED, 0), RecordingReadError, "a moment holds");
     assert(tallyProvocationRows(STEPPED).length > 0, "and shouts");
     assertThrows(() => tallyProvocationRows(STEPPED, 0), RecordingReadError, "shout more skills");

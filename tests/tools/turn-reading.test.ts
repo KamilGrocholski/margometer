@@ -321,6 +321,20 @@ function formatOpenerKey(openerTally: OpenerTally): string {
  * key and no other, and that key opens no turn of its own. Both halves, because a key that both
  * opened and lost turns would make the two columns mean the same thing.
  */
+/** The keys come from the recordings, so a register past its bound is refused, not cut short. */
+Deno.test("the keys a tally holds are refused past their bound, and read at it", () => {
+    const walks = getWalks();
+    const keys = new Set(walks.flatMap((walk) => walk.readings.flatMap((reading) => reading.keys)));
+    assert(composeKeyTally(walks, keys.size).length > 0, "every key, at the bound");
+    assertThrows(() => composeKeyTally(walks, keys.size - 1), TurnReadingError, "more keys");
+});
+
+Deno.test("recordings no turn opened in are refused rather than reported as nothing", () => {
+    const silent: FightMessages[] = [{ name: "silent.json", readings: [] }];
+    assertThrows(() => composeKeyTally(silent), TurnReadingError, "opened no turn");
+    assertThrows(() => composeOpenerTally(silent), TurnReadingError, "opened no turn");
+});
+
 Deno.test("a turn nobody spent is read off one key, and that key opens none", () => {
     const tally = composeKeyTally(getWalks());
     const losing = tally.filter((keyTally) => keyTally.lost > 0);

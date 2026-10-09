@@ -7,6 +7,7 @@ import {
     assert,
     assertEquals,
     assertExists,
+    assertInstanceOf,
     assertStrictEquals,
     assertStringIncludes,
     assertThrows,
@@ -148,7 +149,7 @@ Deno.test("a call the envelope refuses is refused when stepped, carrying the ref
     assertExists(fight, "the file itself reads");
     const refusal = assertThrows(() => replayRecordedSteps(fight), RecordingReadError);
     assertStringIncludes(refusal.message, "the envelope refused call 0", "naming the call");
-    assert(refusal.cause instanceof Error, "and what the envelope answered travels as its cause");
+    assertInstanceOf(refusal.cause, Error, "and what the envelope answered travels as its cause");
     assertStringIncludes(refusal.message, refusal.cause.name, "named where a console shows it");
 });
 

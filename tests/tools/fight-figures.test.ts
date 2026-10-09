@@ -3,7 +3,13 @@
  * prints is `deno task fight:develop`'s to show; these hold what the text says on its own.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { formatCutText, formatFigureReport, formatMaterialFigures } from "#/tools/fight-figures.ts";
 import { readRecordedMaterial } from "#/tools/recorded-material.ts";
@@ -21,10 +27,22 @@ Deno.test("a recording's report is headed by it and says what the reading could 
     assertStrictEquals(lines[0], "", "a report opens on a blank line, as develop's does");
     assertStrictEquals(lines[1], "=== 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none ===");
     assertStrictEquals(lines[2], "  payloads 4   reader's side 1   over");
-    assert(lines.includes("  —— side 1 (1) ——"), "the reader's side is stated with its count");
-    assert(lines.includes("  —— side 2 (3) ——"), "and so is the other");
-    assert(lines.includes("    unread, key unknown          0"), "a count of none is printed");
-    assert(lines.includes("    messages lost                0"), "and so is what never arrived");
+    assertArrayIncludes(
+        lines,
+        ["  —— side 1 (1) ——"],
+        "the reader's side is stated with its count",
+    );
+    assertArrayIncludes(lines, ["  —— side 2 (3) ——"], "and so is the other");
+    assertArrayIncludes(
+        lines,
+        ["    unread, key unknown          0"],
+        "a count of none is printed",
+    );
+    assertArrayIncludes(
+        lines,
+        ["    messages lost                0"],
+        "and so is what never arrived",
+    );
     assertEquals(lines.slice(-3), [
         "  —— how it ended ——",
         "    won:  Gracz 1",

@@ -93,7 +93,6 @@ Deno.test("a lighting no single clock explains is on the material", () => {
     assert(apartAgreeing > 0, "the corpus holds a lighting that went out at several moments");
     for (const row of measured) {
         assert(row.apartAgreeing <= row.agreeing, `${row.bitName}: apart and agreeing is agreeing`);
-        assert(row.apart <= row.together + row.apart, `${row.bitName}: apart is part of shared`);
     }
 });
 
@@ -117,7 +116,7 @@ Deno.test("every clause the document cites is counted, and cited by the keys it 
         assert(counted > 0, `${row.clause}: and the help says it at least once`);
         for (const key of row.keys) {
             const said = lookupHelpLine(register, key);
-            assert(said !== null, `${key}: the key register carries an entry claiming the help`);
+            assertExists(said, `${key}: the key register carries an entry claiming the help`);
             assert(said.includes(row.clause), `${key}: and its claim cites ${row.clause}`);
         }
     }

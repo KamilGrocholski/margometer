@@ -41,6 +41,7 @@ import {
     type ReplayedStep,
     replayRecordedSteps,
 } from "./recorded-material.ts";
+import { KEYS_MAXIMUM } from "./protocol-key-shape.ts";
 import { composeTurnBoundaries, TURN_OUTCOME, type TurnBoundary } from "./turn-count.ts";
 
 type EventKind = BattleEvent["kind"];
@@ -339,9 +340,16 @@ export function composeDisputeRegister(walks: readonly FightMessages[]): Dispute
     return disputed;
 }
 
-/** Every key a turn was ever read off, and how often it was and was not. */
-export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
+/**
+ * Every key a turn was ever read off, and how often it was and was not. The keys come from the
+ * recordings, so a register past the bound on them, or one no turn opened in, is refused.
+ */
+export function composeKeyTally(
+    walks: readonly FightMessages[],
+    keysMaximum = KEYS_MAXIMUM,
+): KeyTally[] {
     assert(walks.length > 0, "a tally is measured over something");
+    assert(keysMaximum <= KEYS_MAXIMUM, "a tally is bounded no further than its own bound");
     const byKey = new Map<string, KeyTally>();
     for (const walk of walks) {
         for (const reading of walk.readings) {
@@ -352,6 +360,11 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
                 if (reading.lostId !== null) tally.lost += 1;
                 byKey.set(key, tally);
             }
+            if (byKey.size > keysMaximum) {
+                throw new TurnReadingError(
+                    `the recordings carry more keys than the ${keysMaximum}`,
+                );
+            }
             for (const key of reading.adding) {
                 const tally = byKey.get(key);
                 assert(tally !== undefined, "a key that adds a turn is a key the message carried");
@@ -360,6 +373,7 @@ export function composeKeyTally(walks: readonly FightMessages[]): KeyTally[] {
         }
     }
     const tallies = [...byKey.values()].filter((tally) => tally.opened + tally.lost > 0);
+    if (tallies.length === 0) throw new TurnReadingError("the recordings opened no turn");
     tallies.sort(calculateKeyTallyOrder);
     for (const tally of tallies) {
         assert(tally.opened <= tally.messages, "a key opens no more than it came");
@@ -388,9 +402,11 @@ function calculateKeyTallyOrder(tally: KeyTally, otherTally: KeyTally): number {
 export function composeOpenerTally(walks: readonly FightMessages[]): OpenerTally[] {
     assert(walks.length > 0, "a tally is measured over something");
     const turns = new Map<string, number>();
+    let opened = 0;
     for (const walk of walks) {
         for (const reading of walk.readings) {
             if (reading.openerId === null) continue;
+            opened += 1;
             const kind = reading.openerKind;
             assert(kind !== null, "a turn that opened was opened by an event of some kind");
             const opener = reading.openerKey === null ? kind : `${kind}/${reading.openerKey}`;
@@ -398,8 +414,11 @@ export function composeOpenerTally(walks: readonly FightMessages[]): OpenerTally
         }
     }
     const tallies = [...turns].map(([opener, count]) => ({ opener, turns: count }));
+    let counted = 0;
+    for (const tally of tallies) counted += tally.turns;
+    assertStrictEquals(counted, opened, "the openers partition the turns: each is counted once");
     tallies.sort((tally, otherTally) => otherTally.turns - tally.turns);
-    assert(tallies.length > 0, "the recordings opened a turn on something");
+    if (tallies.length === 0) throw new TurnReadingError("the recordings opened no turn");
     return tallies;
 }
 

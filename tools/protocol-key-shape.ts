@@ -349,7 +349,6 @@ function parseShapeLinePlacement(key: string, claim: string): KeyPlacement {
             }`,
         );
     }
-    assert(claim.length > 0, "a placement read is one of the phrases");
     return claim;
 }
 
@@ -361,7 +360,6 @@ function parseShapeLineValue(key: string, claim: string): KeyValue {
             }`,
         );
     }
-    assert(claim.length > 0, "a value kind read is one of the phrases");
     return claim;
 }
 

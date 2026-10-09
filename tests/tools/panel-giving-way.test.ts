@@ -6,7 +6,13 @@
  * the marker is held out of everything the bundle carries.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { PANEL_MARK } from "#/src/ui/panel-intent.ts";
 import { PANEL_REGION } from "#/src/ui/panel-words.ts";
 import { readBundleFiles } from "#/tests/source-tree.ts";
@@ -35,7 +41,7 @@ Deno.test("both guards this edits are still the panel's, and each stands once", 
 Deno.test("a region asked for reaches both guards, and one asked for with it arrives too", () => {
     const source = Deno.readTextFileSync(PANEL_FILE);
     const given = composeGivingWaySource(source, [PANEL_REGION.list]);
-    assert(given !== source, "the source came back changed");
+    assertNotStrictEquals(given, source, "the source came back changed");
     // The list the added lines test against, and never a name that merely occurs in the panel:
     // `list` is a word the source spells for its own reasons.
     assertStrictEquals(given.split(`["list"].includes(region)`).length - 1, 1, "every region's");

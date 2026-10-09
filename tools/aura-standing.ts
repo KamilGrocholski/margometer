@@ -12,8 +12,13 @@
 import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { formatInteger } from "#/libs/number-text.ts";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
-import { AURA_REACH, type AuraReach, replayAuraStandings } from "#/src/core/aura-standing.ts";
-import { isSideWideKey, NAME_SEPARATOR, PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
+import {
+    AURA_REACH,
+    type AuraReach,
+    parseShoutNames,
+    replayAuraStandings,
+} from "#/src/core/aura-standing.ts";
+import { isSideWideKey } from "#/src/core/protocol-key.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import {
     readRecordedMaterial,
@@ -283,10 +288,12 @@ export function tallySourceRows(
                     if (sources > row.sourcesAtOnce) row.sourcesAtOnce = sources;
                     tallies.set(key, row);
                 }
-                assert(
-                    tallies.size <= SKILLS_MAXIMUM,
-                    "the register stays inside its stated bound",
-                );
+                // The keys come from the recordings, which may stand more than one moment does.
+                if (tallies.size > keysMaximum) {
+                    throw new RecordingReadError(
+                        `the recordings stand more keys than the ${keysMaximum} registered`,
+                    );
+                }
             }
         }
     }
@@ -372,15 +379,11 @@ function indexNamedBySkillId(
     for (const event of events) {
         if (event.kind !== BATTLE_EVENT.skillUsed) continue;
         if (event.skillId === null) continue;
-        for (const declared of event.declared) {
-            if (declared.effect !== PROVOCATION_KEY) continue;
-            if (declared.text === null) continue;
-            const named = declared.text.split(NAME_SEPARATOR).filter((name) =>
-                name.length > 0
-            ).length;
-            if (named > (namedBySkillId.get(event.skillId) ?? 0)) {
-                namedBySkillId.set(event.skillId, named);
-            }
+        // Read the names as the panel reads them, so the register counts what the panel holds.
+        const named = parseShoutNames(event.declared).length;
+        if (named === 0) continue;
+        if (named > (namedBySkillId.get(event.skillId) ?? 0)) {
+            namedBySkillId.set(event.skillId, named);
         }
     }
     if (namedBySkillId.size > skillsMaximum) {

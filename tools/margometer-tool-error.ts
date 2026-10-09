@@ -57,7 +57,10 @@ export class DeclaredVersionError extends MargoMeterToolError {
     }
 }
 
-/** A recording asked for that is not there, or that states no fight the add-on would read. */
+/**
+ * A recording asked for that is not there, that states no fight the add-on would read, or that
+ * holds more, or less, than the register a tool walks it for can state.
+ */
 export class RecordingReadError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.recordingRead, reason, options);

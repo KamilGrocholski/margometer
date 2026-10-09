@@ -265,20 +265,6 @@ function composeTurnsAtCast(
     return turnsAtCastByCombatantId;
 }
 
-/** The characters a shout named, off the value the announcement carried. */
-function parseShoutNames(declared: readonly DeclaredEffect[]): string[] {
-    const shoutNames: string[] = [];
-    for (const declaredEffect of declared) {
-        if (declaredEffect.effect !== PROVOCATION_KEY) continue;
-        if (declaredEffect.text === null) continue;
-        for (const name of declaredEffect.text.split(NAME_SEPARATOR)) {
-            if (name.length > 0) shoutNames.push(name);
-        }
-    }
-    assert(shoutNames.length <= COMBATANTS_MAXIMUM, "a shout names no more than a fight holds");
-    return shoutNames;
-}
-
 /** What the announcement stated each of its keys at. Read here and totalled nowhere. */
 function indexAmountByKey(declared: readonly DeclaredEffect[]): Map<string, number> {
     const amountByKey = new Map<string, number>();
@@ -371,6 +357,20 @@ function composeProvocationStandings(walk: AuraWalk): ProvocationStanding[] {
         "no more are held than were shouted at",
     );
     return provocationStandings;
+}
+
+/** The characters a shout named, off the value the announcement carried. */
+export function parseShoutNames(declared: readonly DeclaredEffect[]): string[] {
+    const shoutNames: string[] = [];
+    for (const declaredEffect of declared) {
+        if (declaredEffect.effect !== PROVOCATION_KEY) continue;
+        if (declaredEffect.text === null) continue;
+        for (const name of declaredEffect.text.split(NAME_SEPARATOR)) {
+            if (name.length > 0) shoutNames.push(name);
+        }
+    }
+    assert(shoutNames.length <= COMBATANTS_MAXIMUM, "a shout names no more than a fight holds");
+    return shoutNames;
 }
 
 /**

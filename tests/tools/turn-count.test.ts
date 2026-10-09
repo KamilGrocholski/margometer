@@ -430,9 +430,17 @@ Deno.test("the card's turn labels are the ones this register argues for", () => 
 });
 
 Deno.test("a recording is named by a path, and a bare number is refused", () => {
-    assertEquals(parseTurnArguments(["--cases"]), { isCases: true, paths: [] }, "the flag alone");
+    assertEquals(
+        parseTurnArguments(["--cases"]),
+        { shouldListCases: true, paths: [] },
+        "the flag alone",
+    );
     const paths = [BOAR, UNNARRATED];
-    assertEquals(parseTurnArguments(paths), { isCases: false, paths }, "and the paths as named");
+    assertEquals(
+        parseTurnArguments(paths),
+        { shouldListCases: false, paths },
+        "and the paths as named",
+    );
     assertThrows(() => parseTurnArguments(["12"]), TurnCountError, "never by a number");
     const naming = (count: number) => Array.from({ length: count }, () => BOAR);
     assertStrictEquals(

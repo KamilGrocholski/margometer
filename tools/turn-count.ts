@@ -110,7 +110,7 @@ interface TurnDelta {
 }
 
 interface TurnArguments {
-    isCases: boolean;
+    shouldListCases: boolean;
     paths: string[];
 }
 
@@ -552,14 +552,14 @@ export function parseTurnArguments(stated: readonly string[]): TurnArguments {
     if (paths === null) {
         throw new TurnCountError("a recording is named by a path and never by a number");
     }
-    return { isCases: parsed.cases, paths };
+    return { shouldListCases: parsed.cases, paths };
 }
 
 if (import.meta.main) {
     const asked = parseTurnArguments(Deno.args);
     const recorded = readRecordedMaterial(asked.paths);
     const lines = [`material ${recorded.material}`];
-    if (asked.isCases) lines.push(...formatCaseReport(composeTurnGrades(recorded.fights)));
+    if (asked.shouldListCases) lines.push(...formatCaseReport(composeTurnGrades(recorded.fights)));
     else if (asked.paths.length > 0) lines.push(...recorded.fights.flatMap(formatTurnWalk));
     else lines.push(...formatGradeRegister(composeTurnGrades(recorded.fights)));
     console.log(lines.join("\n"));

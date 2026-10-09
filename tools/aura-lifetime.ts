@@ -118,7 +118,7 @@ function replayStatusRuns(steps: readonly ReplayedStep[], runsMaximum: number): 
     for (const [stepIndex, step] of steps.entries()) {
         const carried = new Map<string, StandingRun>();
         for (const status of step.reading.view.carriedStatuses) {
-            if (status.bit >= FROZEN_STATUS_BITS.bits.length) continue;
+            if (FROZEN_STATUS_BITS.bits[status.bit] === undefined) continue;
             const key = `${formatInteger(status.combatantId)}/${formatInteger(status.bit)}`;
             const before = standing.get(key);
             let litAt: number | null;
@@ -188,7 +188,6 @@ function composeLightingRow(name: string, gathered: readonly StatusRun[]): Light
     const ownTurnsEach = gathered.map((run) => run.ownTurns).sort((turns, otherTurns) =>
         turns - otherTurns
     );
-    assert(endings.size <= gathered.length, "and never on more endings than bearers");
     assert(gathered.every((run) => run.bit === firstRun.bit), "one lighting is one status");
     return {
         fight: name,
@@ -251,7 +250,7 @@ function tallyBitRowsCommonTurns(rows: readonly LightingRow[]): { length: number
     ) {
         if (runs > mode.runs) mode = { length, runs };
     }
-    assert(mode.runs >= 0, "a mode over nothing counts nothing");
+    if (runsByLength.size > 0) assert(mode.runs > 0, "a status that ran has a length most came to");
     return mode;
 }
 

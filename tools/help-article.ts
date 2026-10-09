@@ -8,7 +8,7 @@
  *     deno task margonem:help status | fetch | search <phrase> … | freeze [phrase …]
  */
 
-import { assert } from "@std/assert";
+import { assert, assertExists } from "@std/assert";
 import { decodeHtmlText, HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
@@ -190,7 +190,10 @@ export function requireCachedHelpArticle(manifest: unknown, article: string): Ca
         throw new HelpArticleError(`cache manifest for ${article}: textLength is not a number`);
     }
     for (const [field, held] of [["url", url], ["fetchedAt", fetchedAt], ["textPath", textPath]]) {
-        if (typeof held !== "string" || held.length === 0) {
+        if (typeof held !== "string") {
+            throw new HelpArticleError(`cache manifest for ${article}: ${field} is not text`);
+        }
+        if (held.length === 0) {
             throw new HelpArticleError(`cache manifest for ${article}: ${field} is not stated`);
         }
     }
@@ -271,7 +274,7 @@ export function formatDumpAge(fetchedAt: string, now: number): string {
 
 /** The article fetched, read as text and kept under `.cache/` beside the date it was fetched. */
 export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
-    assert(parseInteger(article) !== null, "an article is asked for by its number");
+    assertExists(parseInteger(article), "an article is asked for by its number");
     const url = `${HELP_HOST}/index/view,${article}`;
     const text = requireHelpArticleText(url, await readMargonemAnswerText(url));
     const directory = `${CACHE_ROOT}${article}/`;
@@ -342,6 +345,7 @@ function writeHelpSearchReport(article: string, phrases: readonly string[]): num
 if (import.meta.main) {
     const [command, ...phrases] = Deno.args;
     const article = MECHANICS_ARTICLE;
+    if (phrases.includes("")) throw new HelpArticleError("a phrase searched for says something");
     if (command === "status") {
         const cached = readCachedHelpArticle(article);
         const said = cached === null

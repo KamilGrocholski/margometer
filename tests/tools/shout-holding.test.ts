@@ -203,6 +203,22 @@ function composeShoutedFight(messages: readonly string[]): RecordedFight {
     return readRecordedFight("shouted.json", { [FILE_FIELD.calls]: [call] });
 }
 
+Deno.test("a recording nobody shouted in is refused, and one shout is read", () => {
+    const unshouted = composeShoutedFight([HELD_STRIKES_SHOUTER]);
+    assertThrows(
+        () => tallyHoldingReading(replayRecordedMaterial({ material: "x", fights: [unshouted] })),
+        RecordingReadError,
+        "no shout",
+    );
+    const shouted = composeShoutedFight([SHOUT_AT_HELD, HELD_STRIKES_SHOUTER]);
+    assertStrictEquals(
+        tallyHoldingReading(replayRecordedMaterial({ material: "x", fights: [shouted] }))
+            .baseline.episodes,
+        1,
+        "while a recording of one shout holds one episode",
+    );
+});
+
 Deno.test("a share over no blows is none, and one blow is all or nothing", () => {
     assertStrictEquals(
         calculateStruckShare(0, 0),

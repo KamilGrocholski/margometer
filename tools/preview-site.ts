@@ -10,9 +10,9 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
-import { CLASS, PLACE, SPACE_PIXELS } from "#/src/ui/panel-look.ts";
+import { CLASS, PLACE } from "#/src/ui/panel-look.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
-import { GRIP_ATTRIBUTE } from "#/src/ui/panel-drag.ts";
+import { GRIP_ATTRIBUTE, HELPER_GAP_PIXELS } from "#/src/ui/panel-drag.ts";
 import {
     HOST_SELECTOR,
     MARGONEM_CLIENT_SCRIPT_NAME,
@@ -108,7 +108,9 @@ export async function composePreviewSiteFiles(version: string): Promise<PreviewS
             text: "// Nothing reads this file; its name carries a build id.\n",
         },
     ];
-    assertStrictEquals(files.length, 3, "one page and the two scripts it names");
+    const names = new Set<string>();
+    for (const file of files) names.add(file.name);
+    assertStrictEquals(names.size, files.length, "each file is published under a name of its own");
     return files;
 }
 
@@ -280,7 +282,7 @@ var setStandingBeside = function () {
   var box = getStandingWindow().getBoundingClientRect();
   var panel = getPanelHost().getBoundingClientRect();
   setWindowDragged(${JSON.stringify(PANEL_WINDOW.helper)},
-    panel.left - ${SPACE_PIXELS.small} - box.width - box.left, panel.top - box.top);
+    panel.left - ${HELPER_GAP_PIXELS} - box.width - box.left, panel.top - box.top);
 };`;
 }
 

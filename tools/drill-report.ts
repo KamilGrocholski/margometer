@@ -114,7 +114,7 @@ interface PanelFight {
 }
 
 interface DrillArguments {
-    isCases: boolean;
+    shouldListCases: boolean;
     screen: string | null;
     paths: string[];
 }
@@ -485,10 +485,6 @@ function addCaseToTally(
     if (doesOpen) held.opens += 1;
     else held.shut += 1;
     tally.set(key, held);
-    assert(
-        held.opens + held.shut > 0,
-        "a case counted was counted at least once",
-    );
 }
 
 function presentHalfNamedForEveryone(
@@ -729,7 +725,7 @@ export function parseDrillArguments(stated: readonly string[]): DrillArguments {
     if (paths === null) {
         throw new DrillReportError("a recording is named by a path and never by a number");
     }
-    return { isCases: parsed.cases, screen: parsed.screen ?? null, paths };
+    return { shouldListCases: parsed.cases, screen: parsed.screen ?? null, paths };
 }
 
 /** The screen named on the command line, or every one of them. A name nobody draws is loud. */
@@ -746,7 +742,7 @@ if (import.meta.main) {
     const material = readRecordedMaterial(asked.paths);
     const replayed = replayRecordedMaterial(material);
     console.log(`material ${material.material}`);
-    if (asked.isCases) {
+    if (asked.shouldListCases) {
         for (const line of formatCaseReport(tallyDrillCases(replayed))) console.log(line);
     } else {
         const screens = requireScreens(asked.screen);

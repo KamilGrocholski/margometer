@@ -141,6 +141,10 @@ export function tallyHoldingReading(
             }
         }
     }
+    // A recording nobody shouted in is one a person may well name, and holds no register.
+    if (episodes === 0) {
+        throw new RecordingReadError("the recordings hold no shout anybody was held by");
+    }
     const rows = [...byTurn.keys()].sort((turns, otherTurns) => turns - otherTurns).map(
         (turnsElapsed) => {
             const tally = byTurn.get(turnsElapsed) ?? { atShouter: 0, atSomebodyElse: 0 };
@@ -172,7 +176,7 @@ function replayClocks(events: readonly BattleEvent[]): Map<number, number>[] {
 /** Every shout, resolved to the characters it named, with each one's own clock at the moment. */
 function replayEpisodes(
     view: FightView,
-    clocks: readonly Map<number, number>[],
+    clocks: readonly ReadonlyMap<number, number>[],
     episodesMaximum: number,
 ): Episode[] {
     const episodes: Episode[] = [];

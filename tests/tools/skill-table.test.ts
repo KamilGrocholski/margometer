@@ -179,11 +179,16 @@ Deno.test("a manifest naming a page that is gone is refused, naming what fetches
     }
 });
 
-Deno.test("a row whose id is not a number is passed over, not read as one", () => {
-    const skills = requireSkillsOfMargonemApi(
-        composeRow("id", "aura-sa_per=11@8") + composeRow("89", "aura-sa_per=11@8"),
+Deno.test("a row whose id is not a number is refused, not passed over", () => {
+    assertThrows(
+        () =>
+            requireSkillsOfMargonemApi(
+                composeRow("89", "aura-sa_per=11@8") + composeRow("id", "aura-sa_per=11@8"),
+            ),
+        SkillTableError,
+        "row 2 states no id",
+        "a skill passed over would be missing from every table frozen off the page",
     );
-    assertEquals(skills.map((skill) => skill.id), [89], "the heading row the page opens with");
 });
 
 /**

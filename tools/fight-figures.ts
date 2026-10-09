@@ -18,7 +18,6 @@ import {
     type FigureCut,
     type SkillFigures,
     SKILLS_MAXIMUM,
-    tallyUnreadMessages,
 } from "#/src/core/fight-statistics.ts";
 import { calculateRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
@@ -200,8 +199,7 @@ function formatBlowLines(figures: CombatantFigures): string[] {
  * these, and a report silent about one looks exactly like one that never learned to state it.
  */
 function formatReadingLines(statistics: FightStatistics, messagesLost: number): string[] {
-    assert(tallyUnreadMessages(statistics) >= 0, "a reading states what it could not read");
-    assert(messagesLost >= 0, "and what never reached it, even as none");
+    assert(messagesLost >= 0, "a reading states what never reached it, even as none");
     const counts: [string, number][] = [
         ["unread, key unknown", statistics.unreadMessagesUnknownKey],
         ["unread, no parameter", statistics.unreadMessagesNoParameter],
@@ -214,6 +212,9 @@ function formatReadingLines(statistics: FightStatistics, messagesLost: number): 
         ["named neither end", statistics.damageByNeitherEnd],
         ["messages lost", messagesLost],
     ];
+    for (const [caption, count] of counts) {
+        assert(Number.isSafeInteger(count), `${caption}: a count printed is a whole number`);
+    }
     return [
         "  —— what the reading could not do ——",
         ...counts.map(([caption, count]) =>
@@ -252,7 +253,7 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
             // Through the reader rather than `Number`: a key that is not an id reads as nothing
             // rather than as `NaN` asking the roster a question.
             const id = parseInteger(key);
-            const named = roster === null || id === null ? null : roster.byId.get(id);
+            const named = roster === null ? null : id === null ? null : roster.byId.get(id);
             return `${named?.name ?? key} ${formatInteger(amount)}`;
         });
     assertStrictEquals(written.length, cut.size, "every member of the cut is written down");

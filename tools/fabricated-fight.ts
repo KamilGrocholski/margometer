@@ -60,7 +60,7 @@ import {
     WARRIOR_SNAPSHOT_FIELDS,
 } from "#/src/ports/margonem-engine-warriors.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
-import { INTAKE_KEYS } from "./recorded-material.ts";
+import { INTAKE_KEYS, RECORDING_SUFFIX } from "./recorded-material.ts";
 import { readDevelopmentVersion } from "./build-userscript.ts";
 import { FabricatedFightError } from "./margometer-tool-error.ts";
 import { WITNESS_KEYS } from "./turn-count.ts";
@@ -235,7 +235,6 @@ const FABRICATED_AT = "2026-01-01T00:00:00.000Z";
 /** Version 3's envelope: no `report`, because no add-on tallied a fight nobody fought. */
 const FILE_FORMAT_VERSION = 3;
 const INDENT_SPACES = 2;
-const FILE_SUFFIX = ".json";
 const OUTPUT_FLAG = "out";
 const PER_SIDE_FLAG = "per-side";
 const ROUNDS_FLAG = "rounds";
@@ -910,10 +909,10 @@ function addTurnStatement(state: FabricationState, acting: FabricatedCombatant):
     const awaiting = state.awaiting;
     if (awaiting === null) return;
     assert(acting.id > 0, "a statement names the combatant whose turn is arriving");
+    assert(state.statementOrdinal > 0, "and is numbered from one, as the client numbers it");
     awaiting[WITNESS_KEYS.holder] = acting.id;
     awaiting[ENVELOPE_KEYS.turnStatement] = encodeTurnQueue(state, state.statementOrdinal, acting);
     state.statementOrdinal += 1;
-    assert(state.statementOrdinal > 1, "and is numbered once, never twice");
     state.awaiting = null;
 }
 
@@ -1737,7 +1736,7 @@ function writeFabricatedFight(path: string, text: string): void {
     if (!isFabricatedPath(path)) {
         throw new FabricatedFightError(`${path} is outside ${FABRICATED_DIRECTORY}/`);
     }
-    if (!path.endsWith(FILE_SUFFIX)) {
+    if (!path.endsWith(RECORDING_SUFFIX)) {
         throw new FabricatedFightError(`${path} is not named as the file a reader opens it as`);
     }
     const written = errors.attempt(() => {
@@ -1818,6 +1817,7 @@ if (import.meta.main) {
         parsed[CLOSING_SHOUTS_FLAG],
     );
     const asked = parsed[OUTPUT_FLAG];
+    if (asked === "") throw new FabricatedFightError(`--${OUTPUT_FLAG} names a path`);
     // A shape nobody named a path for would land on the default one and take the fight already
     // there with it, which is the one mistake a run of this tool can make that costs work.
     if (asked === undefined) {

@@ -6,6 +6,7 @@
 import {
     assert,
     assertEquals,
+    assertLess,
     assertRejects,
     assertStrictEquals,
     assertStringIncludes,
@@ -267,8 +268,9 @@ Deno.test("the file that would be installed carries the banner and no way out", 
     assertEquals(lookupOutboundCalls(built), [], "and nothing in it can leave the browser");
     assertEquals(lookupAmbientWaysOut(built), [], "not even through an object the page carries");
     assertStringIncludes(built, "startMargoMeter", "the entry is in there beneath it");
-    assert(
-        built.length < PUBLISHED_BYTES_MAXIMUM,
+    assertLess(
+        built.length,
+        PUBLISHED_BYTES_MAXIMUM,
         "inside what a host that forbids minifying takes",
     );
     const metadata = await Deno.readTextFile(`dist/${METADATA_NAME}`);

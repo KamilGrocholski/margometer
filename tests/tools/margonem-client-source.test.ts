@@ -7,7 +7,13 @@
  * files with nothing between them.
  */
 
-import { assert, assertRejects, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertInstanceOf,
+    assertRejects,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import {
     CACHE_ROOT,
     readCachedBundle,
@@ -161,8 +167,9 @@ Deno.test("an answer broken off after its status is a world that did not answer"
             () => readMargonemAnswerText("https://x.example"),
             MargonemUnreachableError,
         );
-        assert(
-            refusal.cause instanceof TypeError,
+        assertInstanceOf(
+            refusal.cause,
+            TypeError,
             "the runtime's own failure travels as its cause",
         );
     } finally {

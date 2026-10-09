@@ -90,6 +90,7 @@ if (import.meta.main) {
         console.log(parseDeclaredVersion(readReleaseFile(CONFIGURATION_FILE)));
     } else if (command === "notes") {
         if (version === undefined) throw new ChangelogError(USAGE);
+        if (version.length === 0) throw new ChangelogError(USAGE);
         console.log(composeReleaseNotes(readReleaseFile(CHANGELOG_FILE), version));
     } else {
         throw new ChangelogError(USAGE);

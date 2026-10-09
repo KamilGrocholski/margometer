@@ -14,6 +14,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { encodeJson, parseJson } from "#/libs/json-text.ts";
 import { parseInteger } from "#/libs/number-text.ts";
 import * as errors from "#/libs/errors.ts";
+import { isDigitAt } from "#/libs/text-walk.ts";
 import { isRecord, type UnknownRecord } from "#/libs/unknown-value.ts";
 import { CALLS_MAXIMUM } from "#/src/ports/fight-capture.ts";
 import { ENVELOPE_KEYS, WARRIOR_FIELDS } from "#/src/ports/payload-envelope.ts";
@@ -26,7 +27,7 @@ import {
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { isFabricatedEnvelope } from "./fabricated-fight.ts";
 import { CaptureIntakeError } from "./margometer-tool-error.ts";
-import { INTAKE_KEYS } from "./recorded-material.ts";
+import { INTAKE_KEYS, RECORDING_SUFFIX } from "./recorded-material.ts";
 
 export interface Pseudonymisation {
     recording: unknown;
@@ -94,7 +95,6 @@ const CALL_BEFORE_ENGLISH: Readonly<Record<string, string>> = {
 const INDENT_SPACES = 2;
 /** The largest recording in `captures/` holds 55,095 values, measured 2026-08-29. */
 export const VALUES_MAXIMUM = 4_194_304;
-/** A fight holds `COMBATANTS_MAXIMUM`, and each is named at most a handful of times. */
 export const NAMES_MAXIMUM = 4096;
 /**
  * What stands beside a name where the game writes one whole: over `captures/` on 2026-10-04 a
@@ -113,7 +113,6 @@ const DAY_SHAPE = "dddd-dd-dd";
 const SLUG_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
 const VERSION_CHARACTERS = `${SLUG_CHARACTERS}ABCDEFGHIJKLMNOPQRSTUVWXYZ`;
 const VERSION_PUNCTUATION = ".-";
-const RECORDING_SUFFIX = ".json";
 /**
  * What replaces a skill description. Visible on purpose: a blank would read as "the game sent
  * nothing here", and a recording that misstates what the server said is worse than a marked gap.
@@ -318,6 +317,7 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
                 changed += 1;
             }
         }
+        assert(index >= text.length, "a text is walked to its end, which is what the bound is for");
         const inside = pairs.find(([name]) => kept.includes(name));
         if (inside !== undefined) {
             throw new CaptureIntakeError(
@@ -328,7 +328,6 @@ export function composePseudonymisedRecording(recording: unknown): Pseudonymisat
         return substituted;
     };
     const mapped = composeMappedValue(recording, substituteNames);
-    assert(changed >= 0, "what was substituted is never fewer than nothing");
     return { recording: mapped, changed, substitutions };
 }
 
@@ -345,7 +344,7 @@ function indexCombatantRoll(recording: unknown): CombatantRoll {
                 if (!isRecord(stated)) continue;
                 const id = readIdentity(stated[WARRIOR_FIELDS.id]) ?? readIdentity(key);
                 if (id === null) continue;
-                setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
+                addRollName(roll, id, stated[WARRIOR_FIELDS.name]);
                 const nonPlayer = readIdentity(stated[INTAKE_KEYS.nonPlayer]);
                 if (nonPlayer === null) continue;
                 // One payload saying player and another monster is a file nobody can redact with
@@ -368,7 +367,7 @@ function indexCombatantRoll(recording: unknown): CombatantRoll {
                 for (const stated of side) {
                     if (!isRecord(stated)) continue;
                     const id = readIdentity(stated[WARRIOR_FIELDS.id]);
-                    if (id !== null) setRollName(roll, id, stated[WARRIOR_FIELDS.name]);
+                    if (id !== null) addRollName(roll, id, stated[WARRIOR_FIELDS.name]);
                 }
             }
         }
@@ -400,7 +399,7 @@ function readIdentity(candidate: unknown): number | null {
     return parseInteger(candidate);
 }
 
-function setRollName(roll: CombatantRoll, id: number, name: unknown): void {
+function addRollName(roll: CombatantRoll, id: number, name: unknown): void {
     assert(Number.isSafeInteger(id), "a name is put against an id");
     if (typeof name !== "string") return;
     if (name.length === 0) return;
@@ -695,7 +694,7 @@ function parseMomentDay(text: string): string | null {
         const character = day.charAt(position);
         if (wanted === "-") {
             if (character !== "-") return null;
-        } else if (character < "0" || character > "9") return null;
+        } else if (!isDigitAt(day, position)) return null;
     }
     assertStrictEquals(day.length, DAY_SHAPE.length, "a day is written to one length");
     return day;
@@ -746,10 +745,10 @@ export function isSlugText(text: string): boolean {
 
 if (import.meta.main) {
     const [source, flag, slug] = Deno.args;
-    if (source === undefined || flag !== "--name" || slug === undefined) {
-        throw new CaptureIntakeError(
-            "usage: deno task capture:intake <recording.json> --name <slug>",
-        );
-    }
+    const usage = "usage: deno task capture:intake <recording.json> --name <slug>";
+    if (source === undefined) throw new CaptureIntakeError(usage);
+    if (flag !== "--name") throw new CaptureIntakeError(usage);
+    if (slug === undefined) throw new CaptureIntakeError(usage);
+    if (source.length === 0) throw new CaptureIntakeError("a recording is named by its path");
     writeIntake(source, slug);
 }

@@ -272,7 +272,13 @@ export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
             );
         }
         const id = parseInteger((cells[IDENTITY_COLUMN] ?? "").trim());
-        if (id === null) continue;
+        // The page served 226 rows and 226 ids on 2026-10-06, no heading among them: a row that
+        // states none is a page that changed, and passing it over would freeze a table short of it.
+        if (id === null) {
+            throw new SkillTableError(
+                `row ${formatInteger(skills.length + 1)} states no id where the table serves one`,
+            );
+        }
         skills.push({ id, effects: parseCellEffects(cells[EFFECTS_COLUMN] ?? "") });
     }
     if (skills.length === 0) {

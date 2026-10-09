@@ -316,7 +316,7 @@ export function lookupStyleFetches(text: string): string[] {
         }
         urlAt = text.indexOf(STYLE_URL_OPEN, urlAt + STYLE_URL_OPEN.length);
     }
-    assert(urlAt === -1, "every reference was walked, which is what the bound is for");
+    assertStrictEquals(urlAt, -1, "every reference was walked, which is what the bound is for");
     return fetched;
 }
 

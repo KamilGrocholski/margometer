@@ -43,7 +43,6 @@ type Tally = readonly (readonly [string, number])[];
 /** Wide enough for every count the corpus produces, and for the ones a longer one will. */
 const COUNT_WIDTH = 7;
 const CAPTION_WIDTH = 18;
-/** A fight decodes to hundreds of events; a corpus of them to tens of thousands. */
 const TALLY_MAXIMUM = 1_000_000;
 const BATTLE_EVENTS = Object.values(BATTLE_EVENT);
 

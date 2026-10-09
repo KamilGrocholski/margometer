@@ -3,7 +3,13 @@
  * `deno task fight:develop`'s to show; these hold what the counts say about the material.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent, UNREAD_CAUSE } from "#/src/core/battle-event.ts";
 import { formatStatusReport, tallyDecodingStatus } from "#/tools/decoding-status.ts";
 import {
@@ -63,9 +69,9 @@ Deno.test("a recording stating no snapshot is named, and a material with none sa
     const whole = { material: SHORT, fights: [replayed.fight] };
     const lines = formatStatusReport(whole, [replayed]);
     assertStrictEquals(lines[0], `material          ${SHORT}`);
-    assert(lines.includes("no snapshot             0"), "a count of none is printed");
-    assert(lines.includes("  every recording states one"));
-    assert(lines.includes("  every key was read"));
+    assertArrayIncludes(lines, ["no snapshot             0"], "a count of none is printed");
+    assertArrayIncludes(lines, ["  every recording states one"]);
+    assertArrayIncludes(lines, ["  every key was read"]);
     const shelved = { ...replayed.fight, hasSnapshot: false };
     const named = formatStatusReport({ material: SHORT, fights: [shelved] }, [replayed]);
     assert(named.includes("no snapshot             1"), "one is counted");

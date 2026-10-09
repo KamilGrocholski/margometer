@@ -18,7 +18,7 @@ import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import { PANEL_MARK, type PanelMark } from "#/src/ui/panel-intent.ts";
 import { STORE_KEY } from "#/src/ports/browser-store.ts";
 import { TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
-import { CLASS, PLACE, SPACE_PIXELS, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
+import { CLASS, PLACE, TYPE_TOKENS } from "#/src/ui/panel-look.ts";
 import { composePanelPage, MARGONEM_ENGINE_PRESENCE } from "#/tests/e2e/margonem-page.ts";
 import {
     closePanelPage,
@@ -32,6 +32,7 @@ import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { CONFIGURATION_FILE, readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
 import { BUNDLE_SOURCE_PATHS } from "./preview-server.ts";
+import { WINDOWS_ACROSS_PIXELS } from "./preview-page.ts";
 import { LANDING_RECORDING, PREVIEW_SITE_WORDS, readSiteVersion } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
@@ -256,8 +257,7 @@ export function composeShotPage(calls: readonly unknown[], fedThrough: number): 
 function composeWindowsSeeded(): string {
     // The shots are taken at the size a reader who chose none reads.
     const drawn = TYPE_TOKENS[TYPE_STEP_DEFAULT];
-    const helperOffset = PLACE.insetPixels + drawn.meterWidthPixels + SPACE_PIXELS.small +
-        drawn.helperWidthPixels;
+    const helperOffset = WINDOWS_ACROSS_PIXELS;
     return `(function setWindowsSeeded() {
   try {
     var top = ${PLACE.insetPixels};
