@@ -7,7 +7,7 @@ them.
 numbered action — numbered from 1 upward, held by one character at a time, and taken automatically
 by the server where the player lets the clock run out (article 372 §2.1 and §2.2, read 2026-09-02).
 So a count of what each combatant did on their turn is a count of their turns, and **develop ADR
-0048** carries why that is now stated rather than avoided.
+0048** carries why it is stated so.
 
 **Read off the recordings, not written from memory.** `tests/tools/turn-count.test.ts` composes
 every verdict below through `tools/turn-count.ts` and refuses a row naming a recording that is not
@@ -175,9 +175,11 @@ against.
 
 **`in a lump` is not a failure of the reading.** It is a recording the game numbered once: a fast
 fight delivers its log in one payload and states its numbering once, so there is no second statement
-for a count to stand against. Both solo recordings and every `auto` recording sit there, and no
-grading change reaches them. The count is still drawn on those fights, because it comes from what
-the combatants did and not from the numbering, and nothing divides by it (`CONTEXT.md`, **Turn**).
+for a count to stand against. Every `auto` recording sits there, and so does every recording with
+one player on the reader's side but `2026-09-19-luvia-tropiciel-vs-mag`, which the game numbers
+`always` (`deno task fight:turns`, 2026-10-09); no grading change reaches them. The count is still
+drawn on those fights, because it comes from what the combatants did and not from the numbering, and
+nothing divides by it (`CONTEXT.md`, **Turn**).
 
 **No combatant enters a fight by stepping or preparing alone**, 2026-09-02: counting the two
 declarations adds turns to rows that exist and creates none, so the fights `tools/fight-figures.ts`

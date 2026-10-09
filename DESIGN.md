@@ -377,11 +377,12 @@ cell had to cut is drawn whole there. **develop ADR 0084** carries the measureme
 
 **The pin is inside the row and is not part of it.** It is the one control that outranks the row it
 sits in, and it does so structurally: a press lands on the innermost element, and the pin is left
-out of what carries the row's own mark. It is a box of the row's own height rather than a glyph,
-because ★ and ☆ are not one width on every platform, and a row that resized under the hand that had
-just pressed it is what a box fixes. A pin is drawn only where there is something to pin — a fight
-nothing has written down yet is not in the rotation, and a control that does nothing is worse than
-one that is not there.
+out of what carries the row's own mark. It is a box of the row's own height rather than a glyph: ★
+and ☆ measured one width in Firefox on 2026-08-26, no version recorded, and the row still walked
+sideways under the hand that had just pressed it (`src/ui/panel-look.ts`, at the pin's rule), and a
+box is what fixes that. A pin is drawn only where there is something to pin — a fight nothing has
+written down yet is not in the rotation, and a control that does nothing is worse than one that is
+not there.
 
 **The options cover the screens as the shelf does**, and never stand open beside it (ADR 0013). They
 are reached before any fight has come, because nothing in them is a fight's. Under the way back,
@@ -677,13 +678,15 @@ mark**, and the sentences are composed from the marks rather than worked out a s
 glyph pointing at nothing, or a sentence nothing points at, is not something this panel can draw.
 **develop ADR 0088**, and its ink is **develop ADR 0089**'s.
 
-**It rides a row of the list too**, where that row's own figure is the narrower one — the row
-closing a damage section, and nothing else. It is the same glyph, the same ink and the same
+**It rides a row of the list too**, where that row's own figure is the narrower one — two rows, and
+nothing else: the row closing a damage section, and a kind naming several elements, the part of a
+pool the blow did not place among them (ADR 0045). It is the same glyph, the same ink and the same
 sentence, read off one field, so a row cannot wear a mark its card does not explain. What earns it
 the exemption **develop ADR 0023** grants is measured rather than argued: over `captures/` on
-2026-09-15 it reaches **274 of the 7,903 rows** the panel draws over 1,312 levels, which is 3.5% of
-them, and the label it stands before is eleven characters the game never lengthens. A mark on every
-row was measured too, and refused — `tests/e2e/panel-marks.spec.ts` holds the cost that decided it.
+2026-09-15 the closing row reaches **274 of the 7,903 rows** the panel draws over 1,312 levels,
+which is 3.5% of them, and the label it stands before is eleven characters the game never lengthens.
+A mark on every row was measured too, and refused — `tests/e2e/panel-marks.spec.ts` holds the cost
+that decided it.
 
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.
@@ -709,8 +712,8 @@ reading (ADR 0046).
 - WCAG AA contrast on every text-over-colour pairing, held by a test that reads the shipped sheet:
   every ink it prints words in, over each ground it is drawn on. A rule filling a bar segment spells
   `color:` too, and those are held at the graphical floor instead — named, never exempted. The
-  thinnest pairing is the heading over the panel at 5.22, and the thinnest of the signal inks is
-  `defect` over `track` at 6.61 — measured 2026-09-15.
+  thinnest pairing and the thinnest of the signal inks are the test's to state, with the date they
+  were measured (`tests/ui/panel-look.test.ts`).
 - Colour is never the only signal — _The Colour Never Alone Rule_.
 - **Nothing the panel draws can be reached from a keyboard, and that is a finding.** Every control
   is a `div` or a `span` listening for a press or a hover; no element it puts in the page is

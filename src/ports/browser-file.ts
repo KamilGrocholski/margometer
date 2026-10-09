@@ -5,8 +5,9 @@
  *
  * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Firefox reads
  * the blob after the click returns, so clicking a detached node and revoking at once can abort the
- * download there: nothing throws, and no file arrives. That is the reading this was decided on, and
- * no engine but Chrome has been run here (`docs/browser-support.md`, "Not checked").
+ * download there: nothing throws, and no file arrives. `develop`'s `c78c805` states it, and its
+ * run in Firefox 140, headless on 2026-08-29, saved the file this way; no engine but Chrome has
+ * been run here (`docs/browser-support.md`, "Not checked").
  */
 
 import { assert } from "@std/assert/assert";

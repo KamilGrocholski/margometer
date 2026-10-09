@@ -34,6 +34,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Walka, której początku nie dało się odczytać, nie skleja się już w panelu z walką
+  przed nią, tylko zaczyna się od zera.
+- **Poprawka** — Lista, do której się wraca, pamięta miejsce, w którym ją zostawiono, także po
+  otwarciu po drodze wielu innych wierszy.
+- **Poprawka** — Okno, któremu strona nie pozwoliła ustawić położenia, wraca do domyślnego rozmiaru,
+  gdy przywróci się go w Opcjach.
+
 ## [0.23.0] — 2026-10-09
 
 - **Zmiana** — Dopiski panelu w dymku postaci są zapisane tak jak wiersze gry nad nimi, na przykład

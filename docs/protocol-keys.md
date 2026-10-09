@@ -167,9 +167,11 @@ comparison in that call wrong, and those two are the ones it cannot add.
 
 **The evidence is always a measurement on the captures**, never a citation: having established that
 the client only composes sentences, there is nothing in it left to cite. The measurement is the same
-one every time, and the guard re-runs it: admit the key to the witness and a comparison must
-disagree **on a message carrying that key**. A verdict that cannot be attributed to its own key is a
-cascade from a neighbour, and is not a verdict.
+one every time, and it is taken by hand when an entry is written: admit the key to the witness and a
+comparison must disagree **on a message carrying that key**. A verdict that cannot be attributed to
+its own key is a cascade from a neighbour, and is not a verdict. No test takes it one key at a time;
+`tests/core/health-witness.test.ts` holds only that what was read agrees with the health the
+protocol states, over every recording at once.
 
 **A key with no entry is let through**, and the witness is what pushes back: if it does report
 health, its comparisons stop matching. That is the design, not a shortcoming — the alternative is an
@@ -278,12 +280,13 @@ _Health:_ moves health
 
 _Cause:_ the message actor
 
-⚠️ **The middle member can be blank, and blank is the plain element.** A fifth of the occurrences
-write it as a single space. The client spends that member on one thing — `<b class=dmg"+D[1]+">`,
-production build `1785244275300` — and a class attribute of `"dmg "` is the class `dmg`, so the game
-makes no distinction there. Read literally it made `dmg` a second element beside `dmg`, splitting
-107 952 points of physical damage into two rows nothing on screen could tell apart (the corpus as it
-stood on 2026-08-13). Held by `tests/core/fight-decoder.test.ts`.
+⚠️ **The middle member can be blank, and blank is the plain element.** A quarter of the occurrences
+write it as a single space: 364 of 1430 over `captures/` on 2026-10-09. The client spends that
+member on one thing — `<b class=dmg"+D[1]+">`, production build `1785244275300` — and a class
+attribute of `"dmg "` is the class `dmg`, so the game makes no distinction there. Read literally it
+made `dmg` a second element beside `dmg`, splitting 107 952 points of physical damage into two rows
+nothing on screen could tell apart (the corpus as it stood on 2026-08-13). Held by
+`tests/core/fight-decoder.test.ts`.
 
 _Shape:_ 1430 occurrences; on a message reporting damage; text
 
@@ -397,9 +400,9 @@ may credit it to anyone — unknown is allowed here and a guessed name is not (`
 wound join (**develop ADR 0022**) fills a missing end from an announcement an earlier message of the
 same fight carried, which takes three things: a key announcing the effect, a figure on that key, and
 a documented rule making one application the owner of what is ticking. This key has neither the
-announcement nor the rule — see _Evidence:_ — and the missing announcement is re-earned every gate
-by `tests/core/anguish-rule.test.ts` (`git show v0.10.1:docs/specs/the-ends-a-figure-names.md`,
-which asks the same of every tick the client composes).
+announcement nor the rule — see _Evidence:_. What the gate re-earns is the reading that follows:
+`tests/repository/protocol-keys.test.ts` holds the _Cause:_ line below, nobody, against what the
+decoder charges the tick to.
 
 _Health:_ moves health
 
@@ -1384,8 +1387,8 @@ _attacked_ combatant's armour. Production build `1785244275300`: the branch inte
 into a log slot and assigns nothing. 41 occurrences across the two recordings held when it was read,
 `captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json` and
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. The shape rule for damage
-does not reach it — characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure
-before.
+does not reach it — characters 1 to 3 are `acd`, not `dmg` — so no damage figure is read off it;
+`src/core/protocol-key.ts` reads it among the keys reporting something destroyed.
 
 ### `+critpierce` — decoded
 
@@ -1670,8 +1673,9 @@ a second distinct value inside one caster's own reports.
 ### `combo-max` — decoded
 
 How many accumulated combination points the announced skill will spend. A **count, not a quantity**
-— the captures state 1, 2 and 3 — and like the share above it qualifies the skill rather than
-reporting anything that happened.
+— over `captures/` on 2026-10-09 the values are 1, 2 and 3, and 4 once, in
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — and like the share above it
+qualifies the skill rather than reporting anything that happened.
 
 _Shape:_ 488 occurrences; on a skill announcement; a whole number
 
@@ -1915,8 +1919,10 @@ _Help:_ names `critred`
 _Evidence:_ article view,372 at the engine name `critred` (read 2026-08-09) —
 `Krytyczna osłona ( critred )`, stated as reducing all of the opponent's weapon damage by a share
 when the character takes a critical hit, at the same moment as resistance reduces it, and only after
-a critical. The material agrees: every occurrence states 25, and every one rides a message carrying
-`+crit`. Production build `1786514810315` composes `msg_-legbon_critred %val%`.
+a critical. The material agrees that it follows a critical: over `captures/` on 2026-10-09 every
+occurrence rides a message carrying `+crit`, and every one states 25 but one, which states 38, in
+`captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`. Production build
+`1786514810315` composes `msg_-legbon_critred %val%`.
 
 ### `+legbon_puncture` — decoded
 
@@ -2626,7 +2632,7 @@ _Shape:_ 1 occurrences; alone in its message; a whole number
 _Help:_ names `honoru`
 
 _Evidence:_ article view,372 at the heading _Punkty Honoru_ (read 2026-08-12), which gives the
-points as a currency awarded to the winner of a player-versus- player duel and taken from the loser,
+points as a currency awarded to the winner of a player-versus-player duel and taken from the loser,
 with the conditions a fight has to meet to be fought for them and the order the figure is computed
 in. Production build `1786514810315` composes it as `msg_+ph %val%`. Its 1 occurrence is the last
 message of `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`, a duel
@@ -2954,7 +2960,8 @@ Read with the entry below, which states the pair: the evidence is that entry's.
 Neither belongs to the switch that reads battle messages. They come from a different switch in the
 same client module.
 
-_Evidence:_ they appeared in the first key list because it was gathered by grepping the whole
-module, which holds three switches. Bounding each switch by brace balance removed them, and they are
-absent from the production battle switch entirely (`frozen/protocol-keys.ts`, build `DHSqC3Uh`).
-Recorded so nobody spends a second afternoon on them.
+_Evidence:_ the client module holds three switches, and these two stand in one that is not the
+battle switch: a key list gathered by grepping the whole module takes them in, and one bounded to
+the battle switch by brace balance does not. They are absent from the production battle switch
+entirely (`frozen/protocol-keys.ts`, build `DHSqC3Uh`). Recorded so nobody spends a second afternoon
+on them.

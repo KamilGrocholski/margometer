@@ -227,8 +227,10 @@ rather than a gap in the material:
   key names whoever the health moved on, so a row on the receiving side has no second end to be cut
   by — the same reason `healthRestored`'s keys are leaves. The row **closing** a damage section is
   not in this class and opens (`develop ADR 0081`): it holds blows, and a blow always has two ends.
-- **Neither healing screen has a `closing` row**, at either level — `composeSkillCut` asserts as
-  much, and the pair's parts come to its figure exactly.
+- **Neither healing screen has a `closing` row**, at either level. It holds by construction and is
+  not asserted (**A11**): one condition in `src/core/fight-statistics.ts` sends a movement to a
+  skill's row or to the key cut, never to both and never to neither (`src/ui/panel-content.ts`,
+  `composeSkillCut`), and the pair's parts come to its figure exactly.
 - **A key on `healthRestored` opens nothing, and neither does a kind.** Both cuts are flat on the
   receiving side: a key names whoever received the health, so nothing is kept beside it saying who
   gave it. On `healthGiven` the same key opens, because the cut there is kept per receiver.

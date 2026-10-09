@@ -70,9 +70,9 @@ whole security model, and everything else is a consequence.
 - The panel lives in a Shadow DOM with `all: initial` on the host, cut off from the game's
   stylesheet.
 - **Every name a reader meets before the panel's contents carries the `MargoMeter-` prefix** — the
-  host element, the anchor a download rides on, the title bar, the body, the tooltip, and **every
-  CSS custom property**. Custom properties get no protection from the shadow root: `all: initial`
-  does not reset them, so one the game declares on `:root` inherits straight through the host.
+  host element, the anchor a download rides on, the title bar, the body, the card, and **every CSS
+  custom property**. Custom properties get no protection from the shadow root: `all: initial` does
+  not reset them, so one the game declares on `:root` inherits straight through the host.
 - Names _inside_ the panel are exempt on purpose — they sit behind the shadow root where the game's
   CSS cannot reach them.
 - The panel is handed its document; it never reaches for one. That is what keeps the surface we ask

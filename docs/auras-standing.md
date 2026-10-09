@@ -27,10 +27,10 @@ what tells a shout from a whole-team cast. The window draws none of it (`develop
 
 **The game's own statement answers `on whom`, and the tooltip is where it is drawn.** `w[].buffs`
 says what each combatant is carrying right now, so a fighter's own tooltip states a row per status
-they hold, counted in **their own** turns (`develop ADR 0107`). It names no caster, so it settles
-nothing about who a cast reached; that is refused, on three readings (`develop ADR 0104`). The
-window beside the panel draws none of this: what is true of one fighter is said on that fighter
-(`develop ADR 0108`).
+they hold, saying that it stands and never for how long (`develop ADR 0112`). It names no caster, so
+it settles nothing about who a cast reached; that is refused, on three readings
+(`develop ADR 0104`). The window beside the panel draws none of this: what is true of one fighter is
+said on that fighter (`develop ADR 0108`).
 
 ⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
 found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
@@ -65,9 +65,9 @@ cast has no bearer to count on that this reading may name (`develop ADR 0061`). 
 is read from the recordings, not from the panel.
 
 **What a fighter is carrying is drawn on that fighter**, in the game's own tooltip: a row per
-status, with the table's total beside it wherever one figure may be said of that bearer
-(`develop ADR 0107`). That is the one surface where a length and the person it is about are the same
-reading.
+status, with the share the announcements over that bearer's side come to beside it, wherever one
+figure may be said of that bearer (`src/core/carried-figure.ts`, `develop ADR 0112`). That is the
+one surface where a figure and the person it is about are the same reading.
 
 **Such a row states no length at all** (`develop ADR 0112`). The mask says a status stands and never
 since when, and what renews one can be announced nowhere — a weapon's poison is — so a count beside
@@ -233,8 +233,9 @@ instead.
 
 ## How much it comes to
 
-⚠️ **The window draws none of this yet.** It says what stands and for how long, and never a figure.
-What follows is what the game does, written down so the reading is not taken twice.
+⚠️ **One figure of this is drawn, and only in a fighter's tooltip**: the share beside a slow or a
+haste they carry, where `src/core/carried-figure.ts` may say one of that bearer. The window draws
+none of it. What follows is what the game does, written down so the reading is not taken twice.
 
 **Almost every key carries its figure on the wire.** Measured over `captures/` 2026-09-11: every key
 below states an amount on the announcement except `+spell-taken_dmg-all`, which states none on any

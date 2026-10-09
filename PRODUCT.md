@@ -47,7 +47,8 @@ like a correct one. Everything below follows from refusing that.
 - **Core** — implements a pillar. The ranking, the decoder, the unknown-and-suspect marking, the
   summary bar.
 - **Supporting** — makes a core workflow safer, clearer or easier. The drill levels, kept fights,
-  the options and the storage choice, type step and window sizes in them, the location line.
+  the options and the storage choice, type step and window sizes in them, the place on the fight's
+  line.
 - **Experimental** — requires a hypothesis, a measure and a review date. Nothing is here today.
 - **Deprecated** — carries an explicit removal path.
 
@@ -67,8 +68,8 @@ When two of these conflict, the earlier one wins:
 Panel performance is a constraint on the panel and not follow-up polish: under pressure it draws
 less, it never decodes less, and it never hides that it drew less. **Nothing mechanical holds it
 today** — `docs/releasing.md` has no step for it and `tools/` has no instrument that measures it, so
-it is a constraint a person keeps. Making it a gate again starts with a measurement, not with a
-sentence here.
+it is a constraint a person keeps. A gate for it starts with a measurement, not with a sentence
+here.
 
 ## Success measures
 

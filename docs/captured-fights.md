@@ -15,7 +15,7 @@ re-earns the world, the build, the calls the engine made and the messages they c
 those that stops being true fails the gate.
 
 The cast column is composed the same way: every warrior the payloads state, grouped by the side the
-recording player was on, counted by profession and by level range, and the census of shapes above is
+recording player was on, counted by profession and by level range, and the census of shapes below is
 re-earned from the same reading. The outcome and the largest health are the add-on's own reading of
 the recording: the names the game gives as winners and losers placed against the recording player's
 side, and the largest health maximum the payloads state for anybody opposite.
@@ -192,15 +192,17 @@ evidence.
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
   other auto recording it still has an opening snapshot, so the health witness judges it in full
-  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in two other
-  recordings each on 2026-10-04 — the Mamlambo fights of 2026-09-06 and 2026-09-14, against the same
-  monster — while `anguish` and `+legbon_anguish` arrived here first and are in both Draugr fights
-  of the same day (`docs/protocol-keys.md`).
+  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in three other
+  recordings each over `captures/` on 2026-10-09 — the Mamlambo fights of 2026-09-06 and 2026-09-14,
+  against the same monster, and the Umibozu fight of 2026-10-04 — while `anguish` and
+  `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
+  (`docs/protocol-keys.md`).
 
-- `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the second fight the game
-  settled by itself, in the same shape as the first: `auto` on every payload, all 462 messages in
-  the opening call, no snapshot before it, and the two calls after it carrying snapshots and nothing
-  else. It contributes nothing to the health witness for that reason.
+- `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the third fight the game settled
+  by itself, after `2026-08-24-tempest-tropiciel-vs-centaury-auto`, and in the same shape as the
+  first: `auto` on every payload, all 462 messages in the opening call, no snapshot before it, and
+  the two calls after it carrying snapshots and nothing else. It contributes nothing to the health
+  witness for that reason.
 
 - `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` — fought by hand and **the first
   recording whose opening call carries most of the fight anyway**: 506 of its 619 messages arrive in
@@ -277,10 +279,10 @@ evidence.
   (`docs/protocol-keys.md`).
 
 - `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json` — the **smallest party
-  in the material**, and the third fight the game settled by itself, in the shape the other two
-  have: `auto` on every payload, all 171 messages in the opening call, no snapshot before it, and
-  the two calls after it carrying snapshots and nothing else. It contributes nothing to the health
-  witness for that reason. It is also the first recording on build `ne0iTNdg`.
+  in the material**, and the fourth fight the game settled by itself, in the shape the first and the
+  third have: `auto` on every payload, all 171 messages in the opening call, no snapshot before it,
+  and the two calls after it carrying snapshots and nothing else. It contributes nothing to the
+  health witness for that reason. It is also the first recording on build `ne0iTNdg`.
 
   ⚠️ **It is the only recording carrying `surpass_bonus_total`**, and it is what that key needed:
   the corpus already held the same monster at the same level met by ten players, so the two together

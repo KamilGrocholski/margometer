@@ -20,8 +20,10 @@ What the old tree does that this design does not, measured on `develop` @ `fa1dc
 - **`src/userscript-entry.ts` is 1925 lines** and holds the boot, the session, the shelf, the
   settings, the export, the drawing and the defects at once.
 - **The panel redraws on every call to `updateData`** (`develop:src/userscript-entry.ts`), including
-  the calls the game keeps making after a fight is over. On the first recording, thinning dropped
-  565 of 569 calls for carrying nothing new (`develop:src/game/fight-capture.ts`).
+  the calls the game keeps making after a fight is over. On the first recording,
+  `captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, thinning dropped 565 of
+  569 calls for carrying nothing new (`develop:src/game/fight-capture.ts`): it keeps four and counts
+  the rest.
 - **Figures are recomputed from nothing on every draw**, not once per change.
 - **`compose` starts 310 of the 680 functions in `src/` and `libs/`**, and means four things there:
   building a stateful object, a computation, building DOM, and composing Polish text.
@@ -202,10 +204,11 @@ is the one layer holding a frozen reading and handing it on. `libs/` and `frozen
 
 A port is an interface over something this program does not control. A port has a real
 implementation over the page and a simulated one (§12), which is what earns it an interface
-(`AGENTS.md` I1). The engine and the dictionary are the exception: they are simulated one step
-lower, by a page of the test's own under the real adapter (`tests/runtime-world.ts`), because the
-adapter is what a recording has to pass through. What earns their interfaces is I2: each describes
-an object an `init…` builds, which holds what it wraps.
+(`AGENTS.md` I1). Five are the exception — the engine's battle, place, hero and tooltip, and the
+client's dictionary: they are simulated one step lower, by a page of the test's own under the real
+adapter (`tests/runtime-world.ts`), because the adapter is what a recording has to pass through.
+What earns their interfaces is I2: each describes an object an `init…` builds, which holds what it
+wraps.
 
 ```ts
 // Time and the frame
@@ -450,8 +453,8 @@ assertion that fires while preparing leaves the session untouched, because the w
 
 ```ts
 export const SESSION_PHASE = { waiting: "waiting", underway: "underway", over: "over" } as const;
-export type SessionPhase = (typeof SESSION_PHASE)[keyof typeof SESSION_PHASE];
-/** A record the four functions below read and write; nothing else writes to it. */
+export type SessionPhase = VocabularyWord<typeof SESSION_PHASE>;
+/** A record the five functions below read and write; nothing else writes to it. */
 export interface FightSession {
     readonly options: SessionOptions;
     state: SessionState | null; // null: no payload yet
@@ -511,7 +514,10 @@ export interface PayloadRecord {
     chargeStatements: readonly ChargedSkillStatement[];
 }
 
-/** `develop`'s `FightState`, same content. */
+/**
+ * `develop`'s `FightReading` (`develop:src/game/fight-underway.ts`), with `payloads` named
+ * `payloadsApplied`, `unread` and `eventsAtSeatingByCombatantId` added and `messagesByPayload` gone.
+ */
 export interface FightView {
     roster: CombatantRoster;
     events: readonly BattleEvent[];
@@ -1185,12 +1191,15 @@ What `tests/simulation.test.ts` holds, on every recording and every seed:
 - every failure met a fate;
 - a fault of the page's is met as the page's, and never as a broken invariant of ours.
 
-**The rewrite is proven against `develop`.** On every recording, the figures this branch draws equal
-the figures `develop` @ `fa1dcce` draws, except where a decision record names a departure: ADR 0012
-counts what an absorption pool took, and states which lines of the report that moves; ADR 0035 keeps
-out of `report.totals` the figures it never summed; ADR 0043 hands an announcement on over its
-announcer's own heal, which moves the blows behind no announcement in three recordings. Any other
-difference is a finding in one of the two, never a golden value to move (`AGENTS.md` W8).
+**The rewrite is proven against `develop`, by hand.** On every recording `develop` @ `fa1dcce` held,
+the figures this branch draws equal the figures `develop` draws, except where a decision record
+names a departure: ADR 0012 counts what an absorption pool took, and states which lines of the
+report that moves; ADR 0035 keeps out of `report.totals` the figures it never summed; ADR 0043 hands
+an announcement on over its announcer's own heal, which moves the blows behind no announcement in
+three recordings. Any other difference is a finding in one of the two, never a golden value to move
+(`AGENTS.md` W8). `deno task fight:develop` (`tools/develop-reports.ts`) makes the comparison and
+stays out of the gate, because it runs another branch's program; a recording admitted since that
+revision is named apart and compared with nothing.
 
 ## 13. Open
 

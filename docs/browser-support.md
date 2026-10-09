@@ -102,11 +102,11 @@ reason the tier column is not enough on its own:
 - **`scrollbar-width: none`** (on `.list` and on the helper's body). The platform scrollbar is
   drawn, and it takes its width out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr,
   both read on 2026-08-31. It is taken only while the list overflows, so a payload that fills the
-  list and one that does not walk the rows sideways between them, and `.pinned` and `.sides-region`
-  — which draw a bar of their own and never scroll — do not walk with them, so a bar means two
-  lengths for as long as the platform bar is up. That is the worst degradation on this page, and it
-  is bought deliberately: above the floor no region gives up anything and the rows are inset equally
-  on both sides. **develop ADR 0031.**
+  list and one that does not walk the rows sideways between them, and `.pinned-region` and
+  `.MargoMeter-sides` — which draw a bar of their own and never scroll — do not walk with them, so a
+  bar means two lengths for as long as the platform bar is up. That is the worst degradation on this
+  page, and it is bought deliberately: above the floor no region gives up anything and the rows are
+  inset equally on both sides. **develop ADR 0031.**
 
 ### Prefixed
 

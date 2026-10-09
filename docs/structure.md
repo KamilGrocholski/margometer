@@ -210,7 +210,7 @@ file comes or goes (ADR 0010).
 | `src/ui/panel-choice.ts`   | what a reader chooses about the panel, which the runtime keeps                       |
 | `src/ui/panel-document.ts` | the surface the panel asks of a browser's document, declared rather than assumed     |
 | `src/ui/panel-drag.ts`     | where a window sits, how a reader moves it by its bar and sizes it by its corner     |
-| `src/ui/panel-element.ts`  | the panel drawn into a document it is handed, and the cards its detail window shows  |
+| `src/ui/panel-element.ts`  | the panel drawn into a document it is handed, and the card its rows open             |
 | `src/ui/panel-intent.ts`   | what the reader asked for, read off the element they pressed                         |
 | `src/ui/panel-listener.ts` | the one listener handed to the browser, and the guard on it                          |
 | `src/ui/panel-look.ts`     | the panel's tokens, the classes its rules select, and the stylesheet built from both |
