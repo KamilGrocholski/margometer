@@ -941,9 +941,9 @@ kind leaving two regions undrawn is two lines, each naming its region (null wher
 
 The UI returns failures beside its values, and a `RenderReport`, and neither throws nor asserts. An
 exception out of the DOM is caught by `errors.attempt` inside its region. A listener reads an intent
-from the element's `data-*` attributes on the press, reads one again on the release, and calls
-`onIntent` where the two agree (ADR 0052), under `errors.attempt`: a throw there drops one gesture,
-reported to `onFailure`, and leaves the state untouched.
+from the element's `data-*` attributes on the press, and calls `onIntent` with it on the release
+where the hand held still or let go over a mark stating the same (ADR 0052), under `errors.attempt`:
+a throw there drops one gesture, reported to `onFailure`, and leaves the state untouched.
 
 Every union above with a `kind` gets its vocabulary object when it is built (`AGENTS.md` N19). The
 literals stand in the variants here only so the document reads. A failure is a class instead

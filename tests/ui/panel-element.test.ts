@@ -1553,7 +1553,7 @@ Deno.test("a release asks for what its press asked for, on whatever node a redra
     );
 });
 
-Deno.test("letting go anywhere but where the press stated asks for nothing", () => {
+Deno.test("with no place stated, letting go anywhere but where the press stated asks for nothing", () => {
     const document = composeFakeDocument();
     const pressed: PanelIntent[] = [];
     const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
@@ -1590,6 +1590,62 @@ Deno.test("letting go anywhere but where the press stated asks for nothing", () 
     pointAtElement(host, "pointerout", rowOther, 100, row);
     pressElement(host, "pointerup", row);
     assertEquals(pressed, [opening], "a hand wandering inside the panel and back still opens it");
+});
+
+Deno.test("a hand held still opens what it pressed, whatever the ranking moved under it", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const findRows = () => {
+        const rows = getElementsWithin(host).filter((drawn) => drawn.attributes.has("data-row"));
+        const row = rows[0];
+        assertExists(row, "the ranking has a row that opens");
+        const rowOther = rows.find((drawn) =>
+            drawn.attributes.get("data-row") !== row.attributes.get("data-row")
+        );
+        assertExists(rowOther, "and another");
+        return { row, rowOther };
+    };
+    const { row } = findRows();
+    const opening = {
+        kind: PANEL_INTENT.openRow,
+        combatantId: Number(row.attributes.get("data-row")),
+    };
+    const heldAt = { clientX: 100, clientY: 300 };
+    // Pressed on one row, a payload landing, and let go where another row now stands.
+    dragOnElement(host, "pointerdown", row, heldAt);
+    panel.render(composeShownScreen(readFight()));
+    dragOnElement(host, "pointerup", findRows().rowOther, heldAt);
+    assertEquals(pressed, [opening], "the row pressed opens, not the one moved under the hand");
+    for (const [travel, said] of [[3, "across"], [-3, "back"]] as const) {
+        dragOnElement(host, "pointerdown", findRows().row, heldAt);
+        dragOnElement(host, "pointerup", findRows().rowOther, {
+            clientX: heldAt.clientX + travel,
+            clientY: heldAt.clientY - travel,
+        });
+        assertEquals(pressed.at(-1), opening, `three pixels ${said} in both axes is still`);
+    }
+    assertStrictEquals(pressed.length, 3, "and each of them opened once");
+    for (
+        const [moved, said] of [[{ clientX: 104, clientY: 300 }, "across"], [{
+            clientX: 100,
+            clientY: 296,
+        }, "up"]] as const
+    ) {
+        dragOnElement(host, "pointerdown", findRows().row, heldAt);
+        dragOnElement(host, "pointerup", findRows().rowOther, moved);
+        assertStrictEquals(pressed.length, 3, `four pixels ${said} has moved, onto another row`);
+    }
+    dragOnElement(host, "pointerdown", findRows().row, heldAt);
+    dragOnElement(host, "pointerup", findRows().row, { clientX: 160, clientY: 300 });
+    assertEquals(pressed.at(-1), opening, "a hand that moved and came back over the row opens it");
+    assertStrictEquals(pressed.length, 4, "once");
+    dragOnElement(host, "pointerdown", findRows().row, heldAt);
+    pointAtElement(host, "pointerout", findRows().row, heldAt.clientY, null);
+    dragOnElement(host, "pointerup", findRows().row, heldAt);
+    assertStrictEquals(pressed.length, 4, "and a press carried out of the panel answers nothing");
 });
 
 Deno.test("a press carried out of the panel is let go of there, wherever it comes back", () => {

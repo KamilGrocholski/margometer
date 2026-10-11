@@ -15,6 +15,7 @@ import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import {
     PANEL_WINDOW,
     PANEL_WINDOWS,
+    type PanelPosition,
     type PanelWindow,
     STORAGE_CHOICES,
     type StorageChoice,
@@ -42,6 +43,7 @@ import {
     type PanelDragHandle,
     type PanelPlacement,
     type PanelViewport,
+    readPointerFromEvent,
     setGripMark,
     SIZE_GRIP_ATTRIBUTE,
     type WindowWidths,
@@ -459,6 +461,12 @@ interface UndrawnReport {
     collect(render: () => void): RenderReport;
 }
 
+/** A press waiting for its release: what it asked for, and where the hand was, if it said. */
+interface PanelPress {
+    intent: PanelIntent;
+    pointer: PanelPosition | null;
+}
+
 interface PanelRegions {
     title: PanelElement;
     header: PanelElement;
@@ -722,6 +730,12 @@ const BACK_MARK = "‹ ";
 const GRIP_MARK = "⠿ ";
 /** The button a press has to be to open anything. A press that states none is that button. */
 const PRIMARY_BUTTON = 0;
+/**
+ * How far a hand may travel between a press and its release and still be held still: under Blink's
+ * bound for starting a drag, which 4 in either axis crosses (`kDragThresholdX`/`Y` in
+ * `mouse_event_manager.cc`, `main` read 2026-10-11) — ADR 0052.
+ */
+const STILL_TRAVEL_PIXELS_MAXIMUM = 3;
 /**
  * ⚠️ **One more than the shelf keeps, and the shelf list is the only list that draws it.** The
  * row for the fight still **running** is not a kept one — a fight goes on the shelf when it ends
@@ -1064,26 +1078,38 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         const onHover = cardHandle.onHover;
         // A click put together out of its two moments, and never the browser's own: that one is
         // dispatched only where both moments land on a node still in the tree, and a frame landing
-        // between the press and the release replaces the row pressed. A release asks for what its
-        // press asked for when the two marks state the same, whichever node carries them now —
-        // ADR 0052.
-        let pressedIntent: PanelIntent | null = null;
+        // between the press and the release replaces the row pressed. A release answers its press
+        // where the hand held still, or where it let go over a mark stating the same — ADR 0052.
+        let pressed: PanelPress | null = null;
         addGuardedListener(root, EVENT_TYPE.press, PANEL_LISTENER.press, (event) => {
             // The primary button alone: without this a right press would open a row and the
             // listener below would step straight back out of it, which is worse than either half.
             if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
-            pressedIntent = null;
+            pressed = null;
             const target = event.target;
             if (target === null) return;
             const intent = readPanelIntent(target);
-            // A stray mark is said by the release, once a gesture.
-            if (intent instanceof Error) return;
-            pressedIntent = intent;
+            if (intent instanceof Error) {
+                addViewFailureGuarded(
+                    options.onFailure,
+                    new GestureDropped(PANEL_LISTENER.press, intent),
+                );
+                return;
+            }
+            if (intent === null) return;
+            pressed = { intent, pointer: readPointerFromEvent(event) };
         }, options.onFailure);
         addGuardedListener(root, EVENT_TYPE.release, PANEL_LISTENER.click, (event) => {
             if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
-            const pressed = pressedIntent;
-            pressedIntent = null;
+            const press = pressed;
+            pressed = null;
+            if (press === null) return;
+            // A hand held still means what it pressed, whatever a frame has moved under it.
+            if (isPointerStill(press.pointer, readPointerFromEvent(event))) {
+                options.onIntent(press.intent);
+                return;
+            }
+            // A hand that moved, or a document stating no place: what it let go over decides.
             const target = event.target;
             if (target === null) return;
             const intent = readPanelIntent(target);
@@ -1094,9 +1120,8 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                 );
                 return;
             }
-            if (pressed === null) return;
             if (intent === null) return;
-            if (isPanelIntentSame(pressed, intent)) options.onIntent(intent);
+            if (isPanelIntentSame(press.intent, intent)) options.onIntent(intent);
         }, options.onFailure);
         // One gesture in, one gesture out, and the way out works from anywhere on the panel: a
         // back control alone would make the cheapest gesture the one that needs aiming. The window
@@ -1126,7 +1151,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
             for (const element of [regions.title, frame, cardHandle.element, helperWindow]) {
                 if (element.contains(towards)) return;
             }
-            pressedIntent = null;
+            pressed = null;
         }, options.onFailure);
     }
     // After the listeners that read a press, and on the same root: a drag is four more of them.
@@ -3667,6 +3692,17 @@ function presentFightCard(fight: FightCardContent): CardContent {
 function addFightCardLine(lines: CardLine[], label: string, stated: string): void {
     if (stated.length === 0) return;
     lines.push({ kind: CARD_LINE.stat, label, stated, isStrong: false, caveat: null });
+}
+
+/** A hand that said where it was both times and travelled under a drag's start in either axis. */
+function isPointerStill(
+    pressedAt: Readonly<PanelPosition> | null,
+    releasedAt: Readonly<PanelPosition> | null,
+): boolean {
+    if (pressedAt === null) return false;
+    if (releasedAt === null) return false;
+    if (Math.abs(releasedAt.left - pressedAt.left) > STILL_TRAVEL_PIXELS_MAXIMUM) return false;
+    return Math.abs(releasedAt.top - pressedAt.top) <= STILL_TRAVEL_PIXELS_MAXIMUM;
 }
 
 export function createCardRegister(): CardRegister {

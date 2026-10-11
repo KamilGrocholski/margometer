@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 ## [Niewydane]
 
 - **Zmiana** — Wiersze, zakładki i przyciski panelu działają po puszczeniu przycisku myszy, jak
-  zwykłe kliknięcie, więc wciśnięcie puszczone gdzie indziej niczego nie otwiera.
+  zwykłe kliknięcie, więc odjechanie kursorem przed puszczeniem odwołuje wciśnięcie.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie skleja się już w panelu z walką
   przed nią, tylko zaczyna się od zera.
 - **Poprawka** — Lista, do której się wraca, pamięta miejsce, w którym ją zostawiono, także po

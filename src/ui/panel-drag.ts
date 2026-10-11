@@ -660,14 +660,6 @@ function composeDraggedSize(
     return clampSize(size, bounds);
 }
 
-function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
-    const left = readCoordinate(event.clientX);
-    const top = readCoordinate(event.clientY);
-    if (left === null) return null;
-    if (top === null) return null;
-    return { left, top };
-}
-
 /** A browser states a coordinate, and a document standing in for one may state anything. */
 function readCoordinate(coordinate: unknown): number | null {
     if (typeof coordinate !== "number") return null;
@@ -705,4 +697,12 @@ function composeDraggedPosition(
         left: grab.fromLeft + (pointer.left - grab.pointerLeft),
         top: grab.fromTop + (pointer.top - grab.pointerTop),
     }, viewport);
+}
+
+export function readPointerFromEvent(event: PanelEvent): PanelPosition | null {
+    const left = readCoordinate(event.clientX);
+    const top = readCoordinate(event.clientY);
+    if (left === null) return null;
+    if (top === null) return null;
+    return { left, top };
 }

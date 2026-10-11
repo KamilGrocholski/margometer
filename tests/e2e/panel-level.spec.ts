@@ -19,6 +19,8 @@ const FED_THROUGH = 12;
 /** Payloads per step, and more steps than this recording needs at that rate. */
 const AT_A_TIME = 10;
 const STEPS_MOST = 100;
+/** Rows pressed in turn before the recording is taken to reorder none of them. */
+const ROWS_TRIED_MOST = 6;
 
 test.use({ recording: GROWING, fedThrough: FED_THROUGH });
 
@@ -43,6 +45,63 @@ test("a row opens though a payload drew it again between the press and the relea
     await expect(panel.at(".crumb-here"), "and letting go over it opened it").toHaveCount(1);
     await panel.expectHonest("a row released after a payload");
 });
+
+/**
+ * The ranking reordering under a hand held still, which is what a fight does to the rows a reader
+ * aims at: the release lands on somebody else's row, and the press is what the reader meant.
+ */
+test("a row pressed opens though the ranking moved another under the still hand", async ({ panel }) => {
+    const ROW = ".list .row.drillable";
+    let pressedIndex = -1;
+    let over = { x: 0, y: 0 };
+    let pressedId: string | null = null;
+    let underHand: string | null = null;
+    // Each row in turn, the fight going on, until one is overtaken under the hand.
+    for (let index = 0; index < ROWS_TRIED_MOST; index += 1) {
+        if ((await panel.at(ROW).count()) <= index) break;
+        over = await readCentreOf(panel.page, ROW, index);
+        pressedId = await readRowIdAt(panel, over);
+        await panel.page.mouse.move(over.x, over.y);
+        await panel.page.mouse.down();
+        underHand = pressedId;
+        for (let fed = 0; fed < STEPS_MOST; fed += 1) {
+            if (underHand !== pressedId) break;
+            if ((await panel.remaining()) === 0) break;
+            await panel.feed(1);
+            await waitForFrame(panel.page);
+            underHand = await readRowIdAt(panel, over);
+        }
+        if (underHand !== pressedId) {
+            pressedIndex = index;
+            break;
+        }
+        // Let go off the panel, so the press opens nothing and the next row starts clean.
+        await panel.page.mouse.move(1, 1, { steps: 4 });
+        await panel.page.mouse.up();
+    }
+    expect(pressedIndex, "the fight moves some row from under a hand held still").not.toBe(-1);
+    expect(pressedId, "the row pressed said who it was").not.toBeNull();
+    const pressedName = await panel.at(`${ROW}[data-row="${pressedId}"] .row-name`).first()
+        .innerText();
+    await panel.page.mouse.up();
+
+    await expect(panel.at(".crumb-here"), "letting go opened a level").toHaveCount(1);
+    expect(await panel.at(".crumb-here").innerText(), "and it is the row pressed").toContain(
+        pressedName,
+    );
+    await panel.expectHonest("a row released after the ranking moved under it");
+});
+
+/** Who stands under a point of the page, read off the row's mark. */
+async function readRowIdAt(
+    panel: PanelHandle,
+    point: { x: number; y: number },
+): Promise<string | null> {
+    return await panel.host.evaluate((host, pointed) => {
+        const hit = host.shadowRoot?.elementFromPoint(pointed.x, pointed.y) ?? null;
+        return hit?.closest("[data-row]")?.getAttribute("data-row") ?? null;
+    }, point);
+}
 
 test("a level open while payloads land grows with the fight under it", async ({ panel }) => {
     await panel.at(".list .row.drillable").first().click();

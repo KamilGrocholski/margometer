@@ -97,7 +97,7 @@ Deno.test("a mark with a value nothing of ours writes drops the gesture and asks
     assertStrictEquals(failures.length, 1, "and the drop is said once");
     const [dropped] = failures;
     assertInstanceOf(dropped, GestureDropped, "as a dropped gesture");
-    assertStrictEquals(dropped.listener, PANEL_LISTENER.click, "of the click, at its release");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "of the press");
     assertInstanceOf(dropped.cause, MarkValueUnknown, "and the drop names the mark that strayed");
     assertStrictEquals(dropped.cause.mark, PANEL_MARK.screen, "which is the screen's");
 });
@@ -176,6 +176,33 @@ function readFight(): ScreenContent {
         NOTHING_SUSPECT,
     );
 }
+
+Deno.test("a hand that moved onto a stray mark drops the gesture, said by the click", () => {
+    const failures: ViewFailure[] = [];
+    const pressed: unknown[] = [];
+    const panel = initTestView(composeFakeDocument(), {
+        onIntent: (intent) => pressed.push(intent),
+        onFailure: (failure) => failures.push(failure),
+    });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const rows = getElementsWithin(host).filter((drawn) => drawn.attributes.has("data-row"));
+    const row = rows[0];
+    assertExists(row, "the ranking has a row that opens");
+    const stray = rows.find((drawn) =>
+        drawn.attributes.get("data-row") !== row.attributes.get("data-row")
+    );
+    assertExists(stray, "and another to stray");
+    stray.setAttribute("data-row", "nobody");
+    dragOnElement(host, "pointerdown", row, { clientX: 100, clientY: 300 });
+    dragOnElement(host, "pointerup", stray, { clientX: 100, clientY: 340 });
+    assertEquals(pressed, [], "nothing is asked for");
+    assertStrictEquals(failures.length, 1, "and the drop is said once");
+    const [dropped] = failures;
+    assertInstanceOf(dropped, GestureDropped, "as a dropped gesture");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.click, "of the click, at its release");
+    assertInstanceOf(dropped.cause, MarkValueUnknown, "naming the mark that strayed");
+});
 
 Deno.test("pinned rows that will not be read cost their own two regions, not the panel", () => {
     const panel = initTestView(composeFakeDocument());

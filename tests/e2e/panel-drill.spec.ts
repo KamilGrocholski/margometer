@@ -40,6 +40,20 @@ test("a press slid off the panel before it is let go opens nothing", async ({ pa
     expect(await readPanelShape(panel.page), "and the panel draws what it drew").toBe(standing);
 });
 
+test("a press slid onto another row before it is let go opens nothing", async ({ panel }) => {
+    const standing = await readPanelShape(panel.page);
+    const from = await readCentreOf(panel.page, ".list .row.drillable", 0);
+    const onto = await readCentreOf(panel.page, ".list .row.drillable", 1);
+    await panel.page.mouse.move(from.x, from.y);
+    await panel.page.mouse.down();
+    await panel.page.mouse.move(onto.x, onto.y, { steps: 4 });
+    await panel.page.mouse.up();
+    await waitForFrame(panel.page);
+
+    await expect(panel.at(".crumb-here"), "no level is open").toHaveCount(0);
+    expect(await readPanelShape(panel.page), "and the panel draws what it drew").toBe(standing);
+});
+
 test("the way back lands exactly where it left, both ways of asking", async ({ panel }) => {
     const standing = await readPanelShape(panel.page);
 
