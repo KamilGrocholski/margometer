@@ -73,12 +73,12 @@ Deno.test("a position is kept inside the window, with the grab area still on scr
 Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     assertEquals(
         composeDefaultPosition(WINDOW, PANEL_WIDTH),
-        { left: 510, top: 153 },
+        { left: 492, top: 153 },
         "centred across, and centred on the tallest body the sheet allows down",
     );
     assertEquals(
         composeDefaultPosition(WINDOW, TYPE_TOKENS[TYPE_STEP.large].meterWidthPixels),
-        { left: 487, top: 153 },
+        { left: 478, top: 153 },
         "across, as wide as the type the reader chose makes it",
     );
     assertEquals(
@@ -150,7 +150,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     // leftwards would be drawn off the screen — where nothing here would measure it back on.
     assertEquals(
         composeCardAcross(composeCardWindowPlace(20), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(284),
+        composeFromLeft(320),
         "and one against the left edge opens it to the right instead",
     );
     assertEquals(
@@ -160,7 +160,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     );
     assertEquals(
         composeCardAcross(composeCardWindowPlace(253), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(517),
+        composeFromLeft(553),
         "and one pixel less is not",
     );
     assertStrictEquals(
@@ -201,7 +201,7 @@ Deno.test("the side a card opens on is the same for every card the window holds"
     const anchor = composeCardWindowPlace(253);
     assertEquals(
         composeCardAcross(anchor, WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(517),
+        composeFromLeft(553),
         "the bound says there is no room on the left",
     );
     assertEquals(
@@ -224,17 +224,17 @@ Deno.test("a card from the window beside the panel opens beside that window", ()
     );
     assertEquals(
         composeCardAcross(composeCardWindowPlace(20, STANDING_WIDTH), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(234),
+        composeFromLeft(252),
         "and flipped right, alone in the strip, it steps over its own width and not the panel's",
     );
     assertEquals(
         composeCardAcross(composeCardWindowPlace(20), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(284),
-        "which is where the panel's own card goes, the two being 58px apart",
+        composeFromLeft(320),
+        "which is where the panel's own card goes, the two being 68px apart",
     );
     assertEquals(
         composeCardAcross(composeCardWindowPlace(253, STANDING_WIDTH), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(467),
+        composeFromLeft(485),
         "the boundary on the left is the bound and the gap, which no window decides",
     );
     assertEquals(
@@ -247,14 +247,14 @@ Deno.test("a card from the window beside the panel opens beside that window", ()
 /**
  * ⚠️ **The two windows are placed apart, and nothing reads the other's corner.** A flip that steps
  * past both puts the panel's own card beyond the second window the moment the panel is dragged
- * left of it — 264 away from the panel it belongs to, at 449, against a window the reader is not
+ * left of it — at 467 where its own window puts it at 300, against a window the reader is not
  * pointing at (`develop ADR 0090`).
  */
 Deno.test("a card flipped right stays with its own window, whatever the other is doing", () => {
     const WINDOW_LEFT = 235;
     assertEquals(
         composeCardAcross(composeCardWindowPlace(0), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(264),
+        composeFromLeft(300),
         "a panel against the left edge opens its card a gap to its own right",
     );
     assertEquals(
@@ -263,14 +263,14 @@ Deno.test("a card flipped right stays with its own window, whatever the other is
             WINDOW,
             CARD_WIDTH_MAXIMUM,
         ),
-        composeFromLeft(449),
+        composeFromLeft(467),
         "and the second window's card is where that window's own right edge puts it",
     );
     // The same two windows, the panel dragged left of the other: neither answer moved, because
     // neither was read from the other. This is the whole of what the pair is held to.
     assertEquals(
         composeCardAcross(composeCardWindowPlace(0), WINDOW, CARD_WIDTH_MAXIMUM),
-        composeFromLeft(264),
+        composeFromLeft(300),
         "the panel's answer is the panel's, whatever corner the second window is standing in",
     );
     // The clamp is the screen and outranks the window. It is reachable only on a screen narrow
@@ -360,10 +360,10 @@ Deno.test("a window is made no narrower than its type and no wider than twice it
     const helper = composeSizeBounds(PANEL_WINDOW.helper, tokens, position, WINDOW);
     assertStrictEquals(helper.widthMinimum, STANDING_WIDTH, "the other window's type is its own");
     assert(helper.heightMinimum < bounds.heightMinimum, "and it keeps fewer rows than the panel");
-    const near = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1000, top: 40 }, WINDOW);
+    const near = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 950, top: 40 }, WINDOW);
     assertStrictEquals(
         near.widthMaximum,
-        WINDOW.width - 1000 - PLACE.insetPixels,
+        WINDOW.width - 950 - PLACE.insetPixels,
         "the screen's edge",
     );
     const cramped = composeSizeBounds(PANEL_WINDOW.meter, tokens, { left: 1200, top: 880 }, WINDOW);

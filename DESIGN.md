@@ -138,10 +138,10 @@ worst pairing across the palette becomes 6.12:1. Past 0.77 the blue fails again.
 
 The panel inherits nothing and asks for nothing: no web font, no download, no layout shift. It uses
 the reader's system UI stack, with weight and colour carrying the hierarchy instead of scale, at one
-of three sizes the reader chooses in the options: 11px, 12px, which a reader who chose none reads
-(ADR 0017), or 13px. Both windows and the card are drawn at the one size chosen. Each size is a row
-of its own measurements and none is another scaled (ADR 0013), so a figure this page quotes in
-pixels is the small size's unless it says which.
+of three sizes the reader chooses in the options: 12px, 13px, which a reader who chose none reads
+(ADR 0017), or 14px (ADR 0054). Both windows and the card are drawn at the one size chosen. Each
+size is a row of its own measurements (ADR 0013), and a figure this page quotes in pixels is the
+small size's unless it says which, or is dated with what it was measured on.
 
 - **Figures** — the reader's eye target. Full `text`, tabular where columns must align.
 - **Names** — same size, same weight, `text`.
@@ -168,13 +168,13 @@ legibility.
 | `spaceSmall`     | `4px` — the base step                                                             |
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region                      |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at                                  |
-| `fontSize`       | `11px` · `12px` · `13px` — the three steps of type, small first                   |
-| `rowHeight`      | `24px` · `25px` · `27px`                                                          |
+| `fontSize`       | `12px` · `13px` · `14px` — the three steps of type, small first                   |
+| `rowHeight`      | `25px` · `27px` · `29px`                                                          |
 | `maxHeightShare` | `66vh`                                                                            |
-| `cardWidth`      | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
-| `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
-| `meterWidth`     | `260px` · `274px` · `306px` — narrow on purpose: the meter is a guest             |
-| `helperWidth`    | `210px` · `228px` · `248px` — the window beside the meter                         |
+| `cardWidth`      | `272px` · `296px` · `318px` — a maximum, and a card is as wide as what it says    |
+| `lineHeight`     | `16px` · `18px` · `20px` — whole pixels, and what a counted card is multiplied by |
+| `meterWidth`     | `296px` · `310px` · `324px` — narrow on purpose: the meter is a guest             |
+| `helperWidth`    | `228px` · `248px` · `268px` — the window beside the meter                         |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
 | `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
 

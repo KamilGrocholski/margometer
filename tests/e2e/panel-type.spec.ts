@@ -10,9 +10,9 @@ import { expect, test } from "./panel-fixture.ts";
 const TYPE_KEY = "MargoMeter-type-step";
 /** Each step, the type it prints and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
-    { step: "small", font: "11px", row: 24 },
-    { step: "medium", font: "12px", row: 25 },
-    { step: "large", font: "13px", row: 27 },
+    { step: "small", font: "12px", row: 25 },
+    { step: "medium", font: "13px", row: 27 },
+    { step: "large", font: "14px", row: 29 },
 ];
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
 const SVG_MASK_OPENER = 'url("data:image/svg+xml,';
@@ -57,7 +57,7 @@ test("a size of type chosen is the size the page comes back at", async ({ panel 
     expect(await panel.stored(TYPE_KEY), "the browser keeps the choice").toBe("large");
     await panel.page.reload();
     const font = await panel.at(".meter").evaluate((meter) => getComputedStyle(meter).fontSize);
-    expect(font, "and the panel comes back in it").toBe("13px");
+    expect(font, "and the panel comes back in it").toBe("14px");
 });
 
 /**

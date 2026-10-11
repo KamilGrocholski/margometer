@@ -12,9 +12,9 @@ const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"
 const PANEL_WIDTH_VARIABLE = "--MargoMeter-meter-width";
 /** Each step and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
-    { step: "small", row: 24 },
-    { step: "medium", row: 25 },
-    { step: "large", row: 27 },
+    { step: "small", row: 25 },
+    { step: "medium", row: 27 },
+    { step: "large", row: 29 },
 ];
 /** What in the options is one row of answer, and so must never fold (ADR 0015). */
 const ANSWERS = [".options-step", ".options-answer", ".options-window"];
@@ -39,10 +39,10 @@ test("a bar too short for what it holds cuts the version, never a control", asyn
     // Set past the clamp a corner drag meets, which never goes under the width of the type: this
     // stands in for a reader's font that asks more of the bar than the one it was measured in.
     await panel.host.evaluate((host, variable) => {
-        (host as HTMLElement).style.setProperty(variable, "220px");
+        (host as HTMLElement).style.setProperty(variable, "260px");
     }, PANEL_WIDTH_VARIABLE);
     const bar = await panel.at(".MargoMeter-titlebar").boundingBox();
-    expect(bar?.width, "the bar is as narrow as it was made").toBe(220);
+    expect(bar?.width, "the bar is as narrow as it was made").toBe(260);
     for (const selector of CONTROLS) {
         const box = await panel.at(selector).boundingBox();
         expect((box?.x ?? 0) + (box?.width ?? 0), `${selector} ends inside the bar`)

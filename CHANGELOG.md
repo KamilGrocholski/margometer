@@ -36,6 +36,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Tekst panelu jest o piksel większy na każdym z trzech rozmiarów w Opcjach: 12, 13
+  albo 14 pikseli, domyślnie 13, a panel jest odpowiednio szerszy.
 - **Zmiana** — Wiersze, zakładki i przyciski panelu mają co najmniej 24 piksele wysokości, więc
   łatwiej w nie trafić, a panel jest przez to wyższy.
 - **Zmiana** — Wiersze, zakładki i przyciski panelu działają po puszczeniu przycisku myszy, jak

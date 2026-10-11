@@ -1916,6 +1916,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeStripStyle` — `tools/preview-page.ts`
 - `composeStructureEntry` — `tests/repository/documents.test.ts`
 - `composeStyleSheet` — `src/ui/panel-look.ts`
+- `composeStyleSheetForTokens` — `src/ui/panel-look.ts`
 - `composeSubstitutionOrder` — `tools/capture-intake.ts`
 - `composeSuspicionsOfReading` — `src/runtime/panel-frame.ts`
 - `composeSwap` — `tests/ui/card-window.test.ts`
@@ -4783,6 +4784,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DEVELOP_SHEET_FILES` — `tests/ui/panel-look.test.ts`
 - `DEVELOP_SHELF` — `tests/runtime/shelf.test.ts`
 - `DEVELOP_SPELLINGS` — `tests/ui/panel-look.test.ts`
+- `DEVELOP_TYPE` — `tests/ui/panel-look.test.ts`
 - `DIRECTIVE_LEAD` — `tests/repository/type-assertions.test.ts`
 - `DIRECTIVE_OPENER` — `tests/repository/type-assertions.test.ts`
 - `DIRECTORY_ROOTS` — `tests/repository/comment-share.test.ts`
@@ -6532,7 +6534,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `textElement` — `src/ui/panel-element.ts`
 - `tile` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`
 - `time` — `src/ui/panel-element.ts`
-- `tokens` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
+- `tokens` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
 - `tone` — `src/ui/panel-element.ts`
 - `top` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
 - `topByName` — `src/ui/panel-element.ts`
@@ -12756,9 +12758,11 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `card` — in 5 files: `tests/`
 - `cardAt` — `tests/e2e/panel-helper.spec.ts`
 - `cardWidth` — `tests/repository/design-tokens.test.ts`
+- `cardWidthPixelsMaximum` — `tests/ui/panel-look.test.ts`
 - `carried` — `tests/tools/preview-page.test.ts`
 - `carriedStatuses` — `tests/core/aura-standing.test.ts`, `tests/core/carried-figure.test.ts`
 - `castSeparator` — `tests/ui/panel-words.test.ts`
+- `castWidthPixelsMinimum` — `tests/ui/panel-look.test.ts`
 - `caster` — `tests/core/absorption-destruction-rule.test.ts`
 - `casterColour` — `tests/ui/panel-helper.test.ts`
 - `casterId` — `tests/core/carried-figure.test.ts`, `tests/ui/helper-window.test.ts`,
@@ -12973,7 +12977,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `focus` — `tests/runtime/carried-tooltip.test.ts`
 - `folded` — `tests/tools/preview-state.test.ts`
 - `font` — `tests/e2e/panel-type.spec.ts`
+- `fontPixels` — `tests/ui/panel-look.test.ts`
 - `fontSize` — `tests/repository/design-tokens.test.ts`
+- `fontSmallPixels` — `tests/ui/panel-look.test.ts`
 - `foo` — `tests/runtime/fight-file.test.ts`
 - `foot` — `tests/e2e/panel-size.spec.ts`
 - `foreignThrowPercent` — `tests/simulation.test.ts`, `tests/simulation.ts`
@@ -13061,6 +13067,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-gesture.test.ts`
 - `helperRight` — `tests/e2e/panel-helper.spec.ts`
 - `helperWidth` — `tests/repository/design-tokens.test.ts`
+- `helperWidthPixels` — `tests/ui/panel-look.test.ts`
 - `here` — `tests/ui/panel-look.test.ts`
 - `hero` — in 5 files: `tests/`
 - `history` — `tests/tools/preview-state.test.ts`
@@ -13173,6 +13180,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lightings` — `tests/tools/aura-lifetime.test.ts`
 - `line` — `tests/tools/develop-reports.test.ts`, `tests/tools/protocol-key-shape.test.ts`
 - `lineHeight` — `tests/repository/design-tokens.test.ts`
+- `lineHeightPixels` — `tests/ui/panel-look.test.ts`
+- `lineHeightTitlePixels` — `tests/ui/panel-look.test.ts`
 - `lineRight` — `tests/e2e/panel-card.spec.ts`
 - `lines` — in 9 files: `tests/`
 - `lint` — `tests/source-tree.ts`
@@ -13199,6 +13208,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `margonemClientBuild` — in 4 files: `tests/`
 - `margonemEngineBattle` — `tests/runtime/panel-frame.test.ts`
 - `mark` — in 4 files: `tests/`
+- `markSizePixels` — `tests/ui/panel-look.test.ts`
 - `marker` — `tests/tools/frozen-files.test.ts`, `tests/tools/protocol-key-table.test.ts`
 - `markerAt` — `tests/tools/frozen-files.test.ts`, `tests/tools/protocol-key-table.test.ts`
 - `markerLength` — `tests/tools/frozen-files.test.ts`, `tests/tools/protocol-key-table.test.ts`
@@ -13219,6 +13229,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `meter` — `tests/ui/panel-drag.test.ts`, `tests/ui/panel-element.test.ts`
 - `meterPlacement` — in 4 files: `tests/`
 - `meterWidth` — `tests/repository/design-tokens.test.ts`
+- `meterWidthPixels` — `tests/ui/panel-look.test.ts`
 - `method` — `tests/libs/unknown-value.test.ts`, `tests/ports/margonem-engine-battle.test.ts`
 - `metric` — in 8 files: `tests/`
 - `mi` — `tests/ports/payload-envelope.test.ts`, `tests/runtime/margometer-runtime.test.ts`
@@ -13339,6 +13350,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `percentBefore` — `tests/core/health-witness.test.ts`, `tests/core/last-heal-rule.test.ts`
 - `percentByName` — `tests/core/last-heal-rule.test.ts`
 - `pinned` — `tests/ui/panel-element.test.ts`
+- `pipSizePixels` — `tests/ui/panel-look.test.ts`
 - `place` — in 14 files: `tests/`
 - `placeName` — `tests/tools/preview-page.test.ts`
 - `placement` — `tests/tools/protocol-key-shape.test.ts`
@@ -13381,6 +13393,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `raised` — `tests/core/health-witness.test.ts`
 - `range` — `tests/repository/declaration-order.test.ts`, `tests/source-tree.ts`
 - `rank` — `tests/ui/panel-element.test.ts`
+- `rankWidthPixels` — `tests/ui/panel-look.test.ts`
 - `ranking` — `tests/shown-screen.ts`, `tests/simulation.ts`, `tests/ui/panel-element.test.ts`
 - `raw` — in 9 files: `tests/`
 - `reach` — `tests/core/carried-figure.test.ts`, `tests/tools/aura-standing.test.ts`
@@ -13434,6 +13447,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `round` — `tests/libs/vocabulary.test.ts`
 - `row` — in 4 files: `tests/`
 - `rowHeight` — `tests/repository/design-tokens.test.ts`
+- `rowHeightPixels` — `tests/ui/panel-look.test.ts`
 - `rowOther` — `tests/ui/panel-element.test.ts`
 - `rows` — in 6 files: `tests/`
 - `rowsVisibleCount` — `tests/ui/panel-element.test.ts`
@@ -15796,6 +15810,7 @@ suite's material.
 - `docs/adr/0051-a-get-works-nothing-out-and-a-figure-worked-out-is-calculated.md`
 - `docs/adr/0052-a-control-answers-its-release-where-the-hand-held-still-or-over-its-mark.md`
 - `docs/adr/0053-every-target-a-reader-presses-is-24-pixels-across-and-down.md`
+- `docs/adr/0054-the-steps-of-type-are-12-13-and-14-pixels.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

@@ -29,6 +29,7 @@ import {
     composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
+    composeStyleSheetForTokens,
     getInkForBar,
     LAYER,
     PLACE,
@@ -38,8 +39,9 @@ import {
     TARGET_PIXELS_MINIMUM,
     TEXT,
     TYPE_TOKENS,
+    type TypeTokens,
 } from "#/src/ui/panel-look.ts";
-import { TYPE_STEP, TYPE_STEP_DEFAULT, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
+import { TYPE_STEP_DEFAULT, TYPE_STEPS } from "#/src/ui/panel-choice.ts";
 import {
     type Colour,
     formatColour,
@@ -134,6 +136,26 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
 ];
 
 /**
+ * The one size `develop` @ `fa1dcce` drew at, so the sheet is held to it at the size it was
+ * written for: what a record moves is a rule, and a step of type is only another row of these
+ * (ADR 0013, ADR 0053, ADR 0054).
+ */
+const DEVELOP_TYPE: Readonly<TypeTokens> = {
+    fontPixels: 11,
+    lineHeightPixels: 15,
+    lineHeightTitlePixels: 13,
+    fontSmallPixels: 10,
+    rowHeightPixels: 18,
+    rankWidthPixels: 22,
+    pipSizePixels: 5,
+    castWidthPixelsMinimum: 48,
+    markSizePixels: 10,
+    meterWidthPixels: 260,
+    cardWidthPixelsMaximum: 250,
+    helperWidthPixels: 210,
+};
+
+/**
  * ADR 0013, 0014, 0015, 0033, 0036, 0046, 0048 and 0053: the rules the options, the sizing, the
  * fight's line, the card in two columns, the bar's controls and the caveat letter, the shelf's
  * outcome, the inks a bar or an opacity held under the floor, and a target's least size move.
@@ -150,7 +172,7 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     },
     // A window sized by its corner: its width and its body's height are the reader's, a sized
     // panel stands past the share of the window, and its list takes the room it is given.
-    { develop: ":host", here: ":host", moved: ["max-height", "--MargoMeter-row-height"] },
+    { develop: ":host", here: ":host", moved: ["max-height"] },
     { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width", "padding"] },
     { develop: ".meter", here: ".meter", moved: ["width", "position", "min-height"] },
     { develop: ".meter>.list", here: ".meter>.list", moved: ["flex", "min-height"] },
@@ -254,8 +276,8 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: ".row-share", here: ".row-share", moved: ["color"] },
     { develop: null, here: ".helper-holding .row-share" },
     // Every target 24 pixels across and down: the row, and what a reader presses that is not one
-    // (ADR 0053). The row's height, the bar's control and the bar's padding are named above,
-    // where a rule can be named once.
+    // (ADR 0053). The bar's control and the bar's padding are named above, where a rule can be
+    // named once.
     { develop: ".helper-bar", here: ".helper-bar", moved: ["padding"] },
     { develop: ".strip", here: ".strip", moved: ["padding", "line-height"] },
     { develop: ".crumb-back", here: ".crumb-back", moved: ["line-height"] },
@@ -938,7 +960,7 @@ Deno.test("the style sheet is develop's, but for the rules its decision records 
         develop = develop.replaceAll(was, is);
     }
     assertEquals(
-        findSheetDepartures(develop, composeStyleSheet(TYPE_STEP.small), SHEET_DEPARTURES),
+        findSheetDepartures(develop, composeStyleSheetForTokens(DEVELOP_TYPE), SHEET_DEPARTURES),
         [],
         `the sheet develop @ ${DEVELOP_REVISION} ships, but for what a record names`,
     );

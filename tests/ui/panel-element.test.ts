@@ -2906,7 +2906,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     // which is also the place the first grab starts from.
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:510px;top:153px;--MargoMeter-meter-top:153px;right:auto",
+        "left:492px;top:153px;--MargoMeter-meter-top:153px;right:auto",
         "a panel nobody has moved is put in the middle of the window it was drawn into",
     );
 
@@ -2914,18 +2914,18 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-meter-top:253px;right:auto",
+        "left:392px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "the panel follows the hand, by the distance the hand moved",
     );
     assertEquals(moved, [], "and nothing is stored while it is still being dragged");
 
     dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
-    assertEquals(moved, [{ left: 410, top: 253 }], "where it was let go is reported, once");
+    assertEquals(moved, [{ left: 392, top: 253 }], "where it was let go is reported, once");
 
     dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-meter-top:253px;right:auto",
+        "left:392px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
 });
@@ -2985,9 +2985,9 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         drawn.attributes.get("data-size-grip") === "meter"
     );
     assertExists(grip, "the panel carries its corner");
-    // The corner stands where the press lands when the event says nothing more: a panel 260 wide
+    // The corner stands where the press lands when the event says nothing more: a panel 296 wide
     // at 40, and a body of 300 under a bar of 29 at 40.
-    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 369 });
+    dragOnElement(host, "pointerdown", grip, { clientX: 336, clientY: 369 });
     dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 419 });
     const style = () => host.attributes.get("style") ?? "";
     assertStringIncludes(style(), "--MargoMeter-meter-width:320px", "the corner widens it");
@@ -3021,9 +3021,9 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         false,
         "one without it gives it back",
     );
-    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
+    dragOnElement(host, "pointerdown", grip, { clientX: 336, clientY: 369 });
     dragOnElement(host, "pointermove", grip, { clientX: 100, clientY: 100 });
-    assertStringIncludes(style(), "--MargoMeter-meter-width:260px", "never narrower than its bar");
+    assertStringIncludes(style(), "--MargoMeter-meter-width:296px", "never narrower than its bar");
     dragOnElement(host, "pointerup", grip, { clientX: 100, clientY: 100 });
 });
 

@@ -404,7 +404,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setCardPosition(card, 292.33333333333, null, size, STEP);
     assertStrictEquals(
         card.attributes.get("style"),
-        "--MargoMeter-card-top:292px;--MargoMeter-card-height:118px",
+        "--MargoMeter-card-top:292px;--MargoMeter-card-height:124px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
     setCardPosition(card, 0, null, size, STEP);
@@ -422,7 +422,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setCardPosition(card, 100, { edge: "left", offsetPixels: 42.6 }, size, STEP);
     assertStrictEquals(
         card.attributes.get("style"),
-        "--MargoMeter-card-top:100px;--MargoMeter-card-height:118px;" +
+        "--MargoMeter-card-top:100px;--MargoMeter-card-height:124px;" +
             "--MargoMeter-card-left:43px;--MargoMeter-card-right:auto",
         "and a panel that has moved says which side the detail opens on",
     );
@@ -756,7 +756,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     assertEquals(getTextsByClass(later, CLASS.cardValue), ["400 000"], "with the new one");
     assertStrictEquals(
         later.attributes.get("style"),
-        "--MargoMeter-card-top:480px;--MargoMeter-card-height:64px",
+        "--MargoMeter-card-top:480px;--MargoMeter-card-height:67px",
         "and a card that shrank says so, or the sheet clamps it against a height it no longer has",
     );
 

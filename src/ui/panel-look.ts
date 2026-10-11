@@ -258,37 +258,17 @@ export const LAYER = {
 } as const;
 
 /**
- * One row per step. Every figure in the small one was measured in Chrome 152: the rank cell's
- * `20.` at 17.50px on 2026-09-15; the cast floor on 2026-09-18, where `Wyzywa` is 49px and
- * `Prowok` 44px, and a 25-character nickname left a cast with no floor 4px; the ring on
- * 2026-09-15, where a smaller one reads as a speck beside a figure.
- *
- * The other two were measured in Chrome 154 on 2026-09-28 through this sheet, the method first
- * reproducing the small row: `20.` at 17.50px, 19.09 and 20.69, each cell that plus its 4px of air
- * and rounded up; `Wyzywa` at 49.33px and 53.44, each floor the whole word (the same Chrome reads
- * it 45.22px at the small step, against the 49 above); and the ring, twelve at both and never
- * eleven, because an odd ring sets the letter drawn in it off the half pixel (ADR 0036). The
- * widest step's panel width is the one measured at `596f95f`. The middle one's bar asks 270px for
- * the name, `0.20.0-dev` and four controls on one line, where the small bar holds them in its 258
- * and the widest in its 304; the panel is 274 because at 272 `Zwykły cios` behind a caveat mark was drawn in 69.25px of
- * the 70 it needs (Chrome 154, 2026-09-29, the browser suite's recording).
+ * One row per step, at 12, 13 and 14px (ADR 0054), measured in Chrome 154 through this sheet, the
+ * method first reproducing the 11px row it was taken on. The rank cell is `20.` plus its 4px of
+ * air, rounded up: 19.09px, 20.69 and 22.27. The cast floor is the whole of `Wyzywa`: 49.33px,
+ * 53.44 and 57.55. The ring is even, because an odd one sets its letter off the half pixel (ADR
+ * 0036), and never under twelve, where it reads as a speck beside a figure. Each panel stands two
+ * past what its bar asks for the name, `0.23.0-dev` and four controls on one line: 293.39px, 307.19
+ * and 321.36 on 2026-10-11, over the browser suite's recording. The card's bound and the window
+ * beside are 250 and 210 at 11px, scaled and made even.
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
     [TYPE_STEP.small]: {
-        fontPixels: 11,
-        lineHeightPixels: 15,
-        lineHeightTitlePixels: 13,
-        fontSmallPixels: 10,
-        rowHeightPixels: 24,
-        rankWidthPixels: 22,
-        pipSizePixels: 5,
-        castWidthPixelsMinimum: 48,
-        markSizePixels: 10,
-        meterWidthPixels: 260,
-        cardWidthPixelsMaximum: 250,
-        helperWidthPixels: 210,
-    },
-    [TYPE_STEP.medium]: {
         fontPixels: 12,
         lineHeightPixels: 16,
         lineHeightTitlePixels: 14,
@@ -298,11 +278,11 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 5,
         castWidthPixelsMinimum: 50,
         markSizePixels: 12,
-        meterWidthPixels: 274,
+        meterWidthPixels: 296,
         cardWidthPixelsMaximum: 272,
         helperWidthPixels: 228,
     },
-    [TYPE_STEP.large]: {
+    [TYPE_STEP.medium]: {
         fontPixels: 13,
         lineHeightPixels: 18,
         lineHeightTitlePixels: 15,
@@ -312,9 +292,23 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 6,
         castWidthPixelsMinimum: 54,
         markSizePixels: 12,
-        meterWidthPixels: 306,
+        meterWidthPixels: 310,
         cardWidthPixelsMaximum: 296,
         helperWidthPixels: 248,
+    },
+    [TYPE_STEP.large]: {
+        fontPixels: 14,
+        lineHeightPixels: 20,
+        lineHeightTitlePixels: 16,
+        fontSmallPixels: 13,
+        rowHeightPixels: 29,
+        rankWidthPixels: 27,
+        pipSizePixels: 6,
+        castWidthPixelsMinimum: 58,
+        markSizePixels: 14,
+        meterWidthPixels: 324,
+        cardWidthPixelsMaximum: 318,
+        helperWidthPixels: 268,
     },
 };
 
@@ -590,7 +584,11 @@ export function composeOptionsStepClass(step: TypeStep): string {
 }
 
 export function composeStyleSheet(step: TypeStep): string {
-    const tokens = TYPE_TOKENS[step];
+    return composeStyleSheetForTokens(TYPE_TOKENS[step]);
+}
+
+/** The sheet at any row of measurements: a step's, or the one size `develop` drew at. */
+export function composeStyleSheetForTokens(tokens: Readonly<TypeTokens>): string {
     return `${composeFrameRules(tokens)}${composeRegionRules(tokens)}` +
         `${composeOptionsRules(tokens)}` +
         `${composeListRules(tokens)}${composeRowRules(tokens)}${composeUnderListRules()}` +
