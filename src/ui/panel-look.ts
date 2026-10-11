@@ -121,6 +121,7 @@ export const CLASS = {
     optionsQuestion: "options-question",
     optionsHeading: "options-heading",
     optionsSteps: "options-steps",
+    options: "options",
     optionsStep: "options-step",
     optionsWindow: "options-window",
     optionsWindowName: "options-window-name",
@@ -791,6 +792,9 @@ function composeOptionsRules(tokens: TypeTokens): string {
     ).join("");
     return `.${CLASS.optionsQuestion}{padding:var(${VARIABLE_PREFIX}wide) ` +
         `var(${VARIABLE_PREFIX}region-across) 0;}` +
+        // The air under the last question that the first keeps over it: nothing under the options
+        // draws the window's foot, as the sides' bar does under a ranking.
+        `.${CLASS.options}{padding-bottom:var(${VARIABLE_PREFIX}wide);}` +
         `.${CLASS.optionsHeading}{color:var(${VARIABLE_PREFIX}heading);` +
         `letter-spacing:${HEADING_LETTER_SPACING_EM}em;` +
         `font-size:${tokens.fontSmallPixels}px;text-transform:uppercase;}` +

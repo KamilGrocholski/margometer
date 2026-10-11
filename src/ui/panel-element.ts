@@ -2693,7 +2693,7 @@ function renderPanelOptions(
             }),
     );
     regions.options = renderInPlace(regions.options, PANEL_REGION.strips, () => {
-        const region = renderElement(document, "div", "");
+        const region = renderElement(document, "div", CLASS.options);
         // Ask the size of type: three steps side by side, each written in its size (ADR 0015).
         {
             const question = renderOptionsQuestion(document, PANEL_WORDS.typeSize);

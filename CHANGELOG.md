@@ -43,6 +43,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   łatwiej w nie trafić, a panel jest przez to wyższy.
 - **Zmiana** — Wiersze, zakładki i przyciski panelu działają po puszczeniu przycisku myszy, jak
   zwykłe kliknięcie, więc odjechanie kursorem przed puszczeniem odwołuje wciśnięcie.
+- **Poprawka** — Opcje kończą się z odstępem od dolnej krawędzi okna, a nie tuż przy niej.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie skleja się już w panelu z walką
   przed nią, tylko zaczyna się od zera.
 - **Poprawka** — Lista, do której się wraca, pamięta miejsce, w którym ją zostawiono, także po

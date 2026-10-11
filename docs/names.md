@@ -7266,7 +7266,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-content.test.ts`
 - `agreeing` — `tests/repository/design-tokens.test.ts`
 - `aimed` — `tests/core/aura-standing.test.ts`, `tests/core/fight-statistics.test.ts`
-- `air` — `tests/ui/panel-look.test.ts`
+- `air` — `tests/e2e/panel-options.spec.ts`, `tests/ui/panel-look.test.ts`
 - `allowed` — `tests/e2e/panel-fixture.ts`, `tests/repository/layers.test.ts`
 - `alone` — in 13 files: `tests/`
 - `along` — `tests/e2e/panel-probe.ts`
@@ -7562,7 +7562,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `created` — `tests/fake-document.ts`, `tests/ui/view-failure.test.ts`
 - `critical` — `tests/core/message-grammar.test.ts`
 - `crowded` — in 4 files: `tests/`
-- `crumb` — `tests/ui/panel-element.test.ts`
+- `crumb` — `tests/e2e/panel-options.spec.ts`, `tests/ui/panel-element.test.ts`
 - `crumbs` — `tests/ui/panel-element.test.ts`
 - `currentLine` — `tests/tools/margonem-readings.test.ts`
 - `currentState` — `tests/tools/margonem-readings.test.ts`
@@ -7879,7 +7879,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `hatch` — `tests/ui/panel-look.test.ts`
 - `hatched` — `tests/ui/panel-element.test.ts`
 - `header` — in 4 files: `tests/`
-- `heading` — in 8 files: `tests/`
+- `heading` — in 9 files: `tests/`
 - `headingIndex` — `tests/register-table.ts`, `tests/repository/design-tokens.test.ts`
 - `headings` — `tests/repository/changelog.test.ts`, `tests/repository/comment-share.test.ts`,
   `tests/ui/panel-element.test.ts`
@@ -8045,8 +8045,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `large` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-element.test.ts`
 - `largest` — `tests/core/combatant-roster.test.ts`, `tests/libs/number-text.test.ts`,
   `tests/ui/panel-element.test.ts`
+- `lastLine` — `tests/e2e/panel-options.spec.ts`
 - `lastMember` — `tests/core/last-heal-rule.test.ts`
 - `lastPort` — `tests/tools/panel-giving-way.test.ts`
+- `lastQuestion` — `tests/e2e/panel-options.spec.ts`
 - `lastShout` — `tests/core/aura-standing.test.ts`
 - `late` — in 6 files: `tests/`
 - `lateClock` — `tests/runtime/margonem-engine-search.test.ts`
@@ -8156,8 +8158,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `messages` — in 11 files: `tests/`
 - `messagesRead` — `tests/core/message-grammar.test.ts`
 - `metadata` — `tests/tools/build-userscript.test.ts`
-- `meter` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-look.test.ts`,
-  `tests/ui/view-failure.test.ts`
+- `meter` — in 4 files: `tests/`
 - `method` — in 4 files: `tests/`
 - `methodFunction` — `tests/repository/event-entries.test.ts`
 - `metric` — in 7 files: `tests/`
@@ -8449,6 +8450,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `purities` — `tests/repository/purity.test.ts`, `tests/verb-purities.ts`
 - `purity` — `tests/repository/name-register.test.ts`, `tests/verb-purities.ts`
 - `query` — `tests/repository/declaration-order.test.ts`
+- `questions` — `tests/e2e/panel-options.spec.ts`
 - `queue` — `tests/ports/payload-envelope.test.ts`, `tests/runtime/margometer-runtime.test.ts`
 - `quiet` — in 8 files: `tests/`
 - `quote` — `tests/ui/panel-words.test.ts`
@@ -8552,7 +8554,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
   `tests/ui/panel-drag.test.ts`
 - `ring` — `tests/ui/panel-look.test.ts`
 - `room` — `tests/e2e/panel-card.spec.ts`, `tests/runtime/shelf.test.ts`
-- `root` — in 14 files: `tests/`
+- `root` — in 15 files: `tests/`
 - `roster` — in 31 files: `tests/`
 - `roundTripped` — `tests/runtime/fight-file.test.ts`
 - `rounded` — `tests/core/combatant-health.test.ts`, `tests/core/injure-rule.test.ts`
@@ -8921,7 +8923,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unclaused` — `tests/tools/aura-lifetime.test.ts`
 - `uncounted` — `tests/repository/protocol-keys.test.ts`
 - `undated` — `tests/tools/frozen-files.test.ts`
-- `under` — in 12 files: `tests/`
+- `under` — in 13 files: `tests/`
 - `underAnnouncement` — `tests/tools/drill-report.test.ts`
 - `underHand` — `tests/e2e/panel-level.spec.ts`
 - `underway` — `tests/tools/panel-shots.test.ts`, `tests/ui/helper-window.test.ts`,
@@ -13311,7 +13313,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `outsideNote` — `tests/ui/panel-words.test.ts`
 - `outsideRanking` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-words.test.ts`
 - `outsideRow` — `tests/ui/panel-words.test.ts`
-- `over` — `tests/tools/preview-state.test.ts`, `tests/tools/turn-count.test.ts`
+- `over` — `tests/e2e/panel-options.spec.ts`, `tests/tools/preview-state.test.ts`,
+  `tests/tools/turn-count.test.ts`
 - `overflow` — `tests/e2e/panel-size.spec.ts`
 - `ownTurnsCommon` — `tests/tools/aura-lifetime.test.ts`
 - `ownTurnsCommonRuns` — `tests/tools/aura-lifetime.test.ts`
@@ -13666,7 +13669,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `typeSize` — `tests/ui/panel-words.test.ts`
 - `typeStep` — `tests/panel-view.ts`, `tests/shown-screen.ts`, `tests/ui/panel-element.test.ts`
 - `types` — `tests/repository/declaration-order.test.ts`, `tests/source-tree.ts`
-- `under` — `tests/tools/turn-count.test.ts`
+- `under` — `tests/e2e/panel-options.spec.ts`, `tests/tools/turn-count.test.ts`
 - `undrawn` — `tests/runtime/panel-frame.test.ts`
 - `unexplained` — `tests/core/health-witness.test.ts`
 - `unhandledKinds` — `tests/simulation.ts`
@@ -13827,7 +13830,7 @@ Each `as const` object of a module, by its keys.
 - `CLASS` — `src/ui/panel-look.ts`: `title`, `control`, `controlLead`, `frame`, `folded`, `meter`,
   `slot`, `header`, `headerLine`, `headerPlace`, `headerPlaceName`, `headerPlaceTile`,
   `headerOutcome`, `outcomeWon`, `outcomeLost`, `strips`, `stripsGap`, `strip`, `stripCurrent`,
-  `crumb`, `crumbBack`, `crumbHere`, `optionsQuestion`, `optionsHeading`, `optionsSteps`,
+  `crumb`, `crumbBack`, `crumbHere`, `optionsQuestion`, `optionsHeading`, `optionsSteps`, `options`,
   `optionsStep`, `optionsWindow`, `optionsWindowName`, `optionsWindowState`, `optionsWindowOwn`,
   `optionsReset`, `optionsAnswer`, `optionsMeaning`, `optionsVersion`, `list`, `listWaiting`,
   `section`, `sectionWords`, `row`, `rowDrillable`, `rowLeaf`, `rowRank`, `rowTime`, `rowName`,
@@ -15081,7 +15084,7 @@ suite's material.
 - `"list"` — `CLASS`
 - `"list-waiting"` — `CLASS`
 - `"meter"` — `CLASS`
-- `"options"` — `BAR_ICON`
+- `"options"` — `BAR_ICON`, `CLASS`
 - `"options-answer"` — `CLASS`
 - `"options-heading"` — `CLASS`
 - `"options-meaning"` — `CLASS`

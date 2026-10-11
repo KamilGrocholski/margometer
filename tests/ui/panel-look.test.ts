@@ -191,6 +191,7 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // Each question of the options under a heading, its answers in the shape they need (ADR 0015).
     { develop: ".strips-label", here: null },
     { develop: null, here: ".options-question" },
+    { develop: null, here: ".options" },
     { develop: null, here: ".options-heading" },
     { develop: null, here: ".options-steps" },
     { develop: null, here: ".options-step" },

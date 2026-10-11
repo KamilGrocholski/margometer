@@ -4,6 +4,7 @@
  */
 
 import { expect, test } from "./panel-fixture.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** Named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
@@ -57,6 +58,25 @@ test("the options say which build drew the panel, and the bar does not", async (
         .toContainText(panel.version);
     await panel.at("[data-options]").click();
     await expect(panel.at(".options-version"), "the options state it").toHaveText(panel.version);
+});
+
+test("the options keep the air under their last question that they keep over their first", async ({ panel }) => {
+    await panel.at("[data-options]").click();
+    await waitForFrame(panel.page);
+    const air = await panel.host.evaluate((host) => {
+        const root = host.shadowRoot;
+        const meter = root?.querySelector(".meter")?.getBoundingClientRect();
+        const crumb = root?.querySelector(".crumb")?.getBoundingClientRect();
+        const questions = root?.querySelectorAll(".options-question") ?? [];
+        const heading = questions[0]?.querySelector(".options-heading")?.getBoundingClientRect();
+        const lastQuestion = questions[questions.length - 1];
+        const lastLine = lastQuestion?.lastElementChild?.getBoundingClientRect();
+        // The meter's own bottom rule stands under the last question's air.
+        const under = (meter?.bottom ?? 0) - 1 - (lastLine?.bottom ?? 0);
+        return { over: (heading?.top ?? 0) - (crumb?.bottom ?? 0), under };
+    });
+    expect(air.over, "the first question stands clear of the crumb").toBeGreaterThan(0);
+    expect(air.under, "and the last as clear of the window's foot").toBe(air.over);
 });
 
 test("the options cover the ranking, and a right press anywhere puts them away", async ({ panel }) => {
