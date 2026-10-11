@@ -702,8 +702,8 @@ reading (ADR 0046).
 ## Motion and interaction
 
 - Nothing animates. No transition, no fade, no pulse, no reveal.
-- Events are delegated at the root, never bound per row, so re-rendering cannot lose a handler and a
-  click during a redraw is not swallowed.
+- Events are delegated at the root, never bound per row, so re-rendering cannot lose a handler.
+- A control acts on the release of its press, which a redraw in between cannot swallow (ADR 0052).
 - Hover shows detail; leaving hides it. There is no state a reader can get stuck in.
 - Nothing interrupts: no `alert`, `confirm`, `prompt`, modal or overlay, no stolen focus, no sound.
 
