@@ -1202,6 +1202,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     { regions, renderInPlace, drawing, register: meterRegister },
                     shown.options,
                     { typeStep: shown.typeStep, windowSizes: shown.windowSizes },
+                    panelDrawing.addOnVersion,
                 );
                 regions.defects = renderInPlace(
                     regions.defects,
@@ -1290,6 +1291,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                         { regions, renderInPlace, drawing, register: meterRegister },
                         waiting.options,
                         { typeStep: waiting.typeStep, windowSizes: waiting.windowSizes },
+                        panelDrawing.addOnVersion,
                     );
                 } else {
                     drawing.renderListRegion(
@@ -2493,18 +2495,6 @@ function renderFold(
             bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
             bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
             setGripMark(bar, PANEL_WINDOW.meter);
-            const label = renderText(
-                document,
-                "span",
-                CLASS.titleVersion,
-                panelDrawing.addOnVersion,
-            );
-            // Marked as well as the bar under it. The bar wears `cursor:move` and every child
-            // inherits it, so a label that starts no drag is an affordance that lies (`DESIGN.md`)
-            // — and this one sits between the name and the controls, where a hand aiming for the
-            // bar lands.
-            setGripMark(label, PANEL_WINDOW.meter);
-            bar.append(label);
             // First of the controls, so the three a reader already knew keep their places: the save
             // comes and goes, and a control standing after it would walk along the bar with it.
             bar.append(renderBarControl(document, {
@@ -2686,6 +2676,7 @@ function renderPanelOptions(
     },
     options: OptionsContent,
     chosen: { typeStep: TypeStep; windowSizes: WindowSizes },
+    addOnVersion: string,
 ): void {
     const { regions, renderInPlace, drawing, register } = drawn;
     const renderEmptySlot = () => renderSlot(document);
@@ -2777,6 +2768,13 @@ function renderPanelOptions(
                 getWordsForStorageMeaning(storageChosen),
             );
             question.append(meaning);
+            region.append(question);
+        }
+        // Say which build this is: the bar leaves it out, so the panel is as wide as its rows ask
+        // (ADR 0055).
+        {
+            const question = renderOptionsQuestion(document, PANEL_WORDS.version);
+            question.append(renderText(document, "div", CLASS.optionsVersion, addOnVersion));
             region.append(question);
         }
         return region;

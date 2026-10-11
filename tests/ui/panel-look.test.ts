@@ -163,13 +163,8 @@ const DEVELOP_TYPE: Readonly<TypeTokens> = {
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
     { develop: ".titlebar-fights", here: ".titlebar-lead" },
-    // Each step's width is its bar measured in one font; where a reader's asks more, the version
-    // gives way and no control does. Its ink is drawn through no opacity (ADR 0048).
-    {
-        develop: ".titlebar-version",
-        here: ".titlebar-version",
-        moved: ["opacity", "min-width", "overflow", "text-overflow"],
-    },
+    // The build is said in the options and not on the bar (ADR 0055).
+    { develop: ".titlebar-version", here: null },
     // A window sized by its corner: its width and its body's height are the reader's, a sized
     // panel stands past the share of the window, and its list takes the room it is given.
     { develop: ":host", here: ":host", moved: ["max-height"] },
@@ -214,6 +209,7 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: null, here: ".options-step:hover,.options-answer:hover" },
     { develop: null, here: ".options-step.selected,.options-answer.selected" },
     { develop: null, here: ".options-meaning" },
+    { develop: null, here: ".options-version" },
     // A card too tall for the window in one column stands in two (ADR 0033).
     { develop: null, here: ".MargoMeter-card.card-wide" },
     { develop: null, here: ".card-columns" },

@@ -35,9 +35,11 @@ test("every control the bar carries stands inside the bar", async ({ panel }) =>
     }
 });
 
-test("a bar too short for what it holds cuts the version, never a control", async ({ panel }) => {
+test("a bar narrower than its type still holds every control", async ({ panel }) => {
     // Set past the clamp a corner drag meets, which never goes under the width of the type: this
     // stands in for a reader's font that asks more of the bar than the one it was measured in.
+    // The bar carries no version to give way (ADR 0055), so the room is the name's and the
+    // controls': 231 px at the default step in Chrome 154 on 2026-10-11.
     await panel.host.evaluate((host, variable) => {
         (host as HTMLElement).style.setProperty(variable, "260px");
     }, PANEL_WIDTH_VARIABLE);
@@ -48,11 +50,13 @@ test("a bar too short for what it holds cuts the version, never a control", asyn
         expect((box?.x ?? 0) + (box?.width ?? 0), `${selector} ends inside the bar`)
             .toBeLessThanOrEqual((bar?.x ?? 0) + (bar?.width ?? 0));
     }
-    const version = await panel.at(".titlebar-version").evaluate((versionLabel) => ({
-        drawn: versionLabel.clientWidth,
-        asked: versionLabel.scrollWidth,
-    }));
-    expect(version.drawn, "the version is what gave way").toBeLessThan(version.asked);
+});
+
+test("the options say which build drew the panel, and the bar does not", async ({ panel }) => {
+    await expect(panel.at(".MargoMeter-titlebar"), "the bar leaves the build out").not
+        .toContainText(panel.version);
+    await panel.at("[data-options]").click();
+    await expect(panel.at(".options-version"), "the options state it").toHaveText(panel.version);
 });
 
 test("the options cover the ranking, and a right press anywhere puts them away", async ({ panel }) => {

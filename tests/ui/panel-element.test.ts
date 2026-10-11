@@ -313,8 +313,8 @@ Deno.test("the options cover the screen, a heading over each question, with the 
     );
     assertEquals(
         getTextsByClass(host, "options-heading"),
-        [PANEL_WORDS.typeSize, PANEL_WORDS.windowSize, PANEL_WORDS.storage],
-        "a heading over each question — the type, the size, where the shelf is kept",
+        [PANEL_WORDS.typeSize, PANEL_WORDS.windowSize, PANEL_WORDS.storage, PANEL_WORDS.version],
+        "a heading over each question — the type, the size, where the shelf is kept, the build",
     );
     assertEquals(getWholeTextsByClass(host, "header-place"), [], "no header of the fight's");
     assertEquals(
@@ -2200,7 +2200,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     assert(bar?.textContent.endsWith(PANEL_WORDS.title), "the name standing on");
 });
 
-Deno.test("the panel says which build drew it, in the bar and on the host", () => {
+Deno.test("the panel says which build drew it, in the options and on the host", () => {
     const document = composeFakeDocument();
     const panel = initTestView(document);
     const host = panel.element as FakeElement;
@@ -2213,15 +2213,26 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         ...composeShownScreen(readFight()),
         fightPlace: { name: "Mapa", tile: "(12, 34)" },
     });
-    assertEquals(
-        getTextsByClass(host, "titlebar-version"),
-        [TEST_VERSION],
-        "and the bar says it once, beside the name",
+    const bar = getElementsWithin(host).find((drawn) => drawn.className === CLASS.title);
+    assertExists(bar, "the bar is drawn");
+    assertStrictEquals(
+        bar.textContent.includes(TEST_VERSION),
+        false,
+        "and leaves the build out, so the panel is as wide as its rows ask (ADR 0055)",
     );
     assertEquals(
         getWholeTextsByClass(host, "header-place"),
         ["Mapa (12, 34)"],
-        "with the place still drawn, on the header where it belongs",
+        "with the place drawn on the header where it belongs",
+    );
+    panel.render({
+        ...composeShownScreen(readFight()),
+        options: { storage: STORAGE_CHOICE.local, answers: [] },
+    });
+    assertEquals(
+        getTextsByClass(host, CLASS.optionsVersion),
+        [TEST_VERSION],
+        "the options say it once",
     );
 });
 
@@ -2906,7 +2917,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     // which is also the place the first grab starts from.
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:492px;top:153px;--MargoMeter-meter-top:153px;right:auto",
+        "left:503px;top:153px;--MargoMeter-meter-top:153px;right:auto",
         "a panel nobody has moved is put in the middle of the window it was drawn into",
     );
 
@@ -2914,18 +2925,18 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:392px;top:253px;--MargoMeter-meter-top:253px;right:auto",
+        "left:403px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "the panel follows the hand, by the distance the hand moved",
     );
     assertEquals(moved, [], "and nothing is stored while it is still being dragged");
 
     dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
-    assertEquals(moved, [{ left: 392, top: 253 }], "where it was let go is reported, once");
+    assertEquals(moved, [{ left: 403, top: 253 }], "where it was let go is reported, once");
 
     dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
     assertStrictEquals(
         host.attributes.get("style"),
-        "left:392px;top:253px;--MargoMeter-meter-top:253px;right:auto",
+        "left:403px;top:253px;--MargoMeter-meter-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
 });
@@ -2985,9 +2996,9 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         drawn.attributes.get("data-size-grip") === "meter"
     );
     assertExists(grip, "the panel carries its corner");
-    // The corner stands where the press lands when the event says nothing more: a panel 296 wide
+    // The corner stands where the press lands when the event says nothing more: a panel 274 wide
     // at 40, and a body of 300 under a bar of 29 at 40.
-    dragOnElement(host, "pointerdown", grip, { clientX: 336, clientY: 369 });
+    dragOnElement(host, "pointerdown", grip, { clientX: 314, clientY: 369 });
     dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 419 });
     const style = () => host.attributes.get("style") ?? "";
     assertStringIncludes(style(), "--MargoMeter-meter-width:320px", "the corner widens it");
@@ -3021,9 +3032,9 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         false,
         "one without it gives it back",
     );
-    dragOnElement(host, "pointerdown", grip, { clientX: 336, clientY: 369 });
+    dragOnElement(host, "pointerdown", grip, { clientX: 314, clientY: 369 });
     dragOnElement(host, "pointermove", grip, { clientX: 100, clientY: 100 });
-    assertStringIncludes(style(), "--MargoMeter-meter-width:296px", "never narrower than its bar");
+    assertStringIncludes(style(), "--MargoMeter-meter-width:274px", "never narrower than its type");
     dragOnElement(host, "pointerup", grip, { clientX: 100, clientY: 100 });
 });
 
@@ -3058,34 +3069,6 @@ Deno.test("the options give back only a window a reader sized, and name which", 
         windowSizes: { meter: { width: 300, height: 400 }, helper: { width: 300, height: 200 } },
     });
     assertStrictEquals(resets().length, 2, "and both where both were");
-});
-
-Deno.test("the version label on the bar is a handle, like the bar around it", () => {
-    const document = composeFakeDocument();
-    const panel = initTestView(document, {
-        meterPlacement: {
-            position: { left: 40, top: 40 },
-            size: null,
-            readViewport: () => ({ width: 1280, height: 900 }),
-        },
-    });
-    const host = panel.element as FakeElement;
-    panel.renderWaiting(NOTHING_WAITING);
-    const version = getElementsWithin(host).find((drawn) => drawn.className === CLASS.titleVersion);
-    assertExists(version, "the bar states the version it was built at");
-    assertStrictEquals(
-        version.attributes.get("data-grip"),
-        "meter",
-        "and a drag may start from it",
-    );
-
-    dragOnElement(host, "pointerdown", version, { clientX: 100, clientY: 100 });
-    dragOnElement(host, "pointermove", version, { clientX: 400, clientY: 300 });
-    assertStrictEquals(
-        host.attributes.get("style"),
-        "left:340px;top:240px;--MargoMeter-meter-top:240px;right:auto",
-        "the panel follows a hand that took hold of the label",
-    );
 });
 
 Deno.test("a press on a control is not a drag, whatever the pointer does next", () => {

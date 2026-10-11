@@ -206,6 +206,7 @@ const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
     storage: ENDING.bare,
     typeSize: ENDING.bare,
     windowSize: ENDING.bare,
+    version: ENDING.bare,
     resizeHint: ENDING.fullStop,
     sizeOwn: ENDING.bare,
     sizeDefault: ENDING.bare,

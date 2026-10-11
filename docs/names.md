@@ -8985,7 +8985,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `verb` — `tests/repository/name-register.test.ts`
 - `verbs` — `tests/verb-purities.ts`
 - `verdict` — `tests/tools/drill-report.test.ts`, `tests/tools/turn-count.test.ts`
-- `version` — in 4 files: `tests/`
+- `version` — `tests/runtime/shelf.test.ts`, `tests/tools/build-userscript.test.ts`
 - `versions` — `tests/repository/browser-support.test.ts`
 - `view` — in 15 files: `tests/`
 - `viewportHeight` — `tests/ui/card-window.test.ts`
@@ -9412,6 +9412,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `above` — `src/ui/panel-look.ts`
 - `absence` — `src/ui/panel-words.ts`
 - `across` — `src/ui/panel-element.ts`
+- `addOnVersion` — `src/ui/panel-element.ts`
 - `after` — `src/ui/panel-drag.ts`
 - `alpha` — `src/ui/panel-look.ts`
 - `amount` — `src/ui/panel-words.ts`
@@ -10605,7 +10606,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `verb` — `tests/repository/called-once.test.ts`, `tests/repository/name-register.test.ts`
 - `verbs` — `tests/repository/event-entries.test.ts`
 - `version` — `tests/e2e/panel-fixture.ts`, `tests/repository/browser-support.test.ts`
-- `versionLabel` — `tests/e2e/panel-options.spec.ts`
 - `view` — `tests/ports/recorded-session.test.ts`, `tests/tools/panel-shots.test.ts`
 - `visit` — `tests/ports/recorded-session.test.ts`
 - `visitedNode` — `tests/source-tree.ts`
@@ -11744,6 +11744,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `optionsReset` — `src/ui/panel-look.ts`
 - `optionsStep` — `src/ui/panel-look.ts`
 - `optionsSteps` — `src/ui/panel-look.ts`
+- `optionsVersion` — `src/ui/panel-look.ts`
 - `optionsWindow` — `src/ui/panel-look.ts`
 - `optionsWindowName` — `src/ui/panel-look.ts`
 - `optionsWindowOwn` — `src/ui/panel-look.ts`
@@ -11941,7 +11942,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tile` — `src/ui/panel-words.ts`
 - `time` — `src/ui/panel-words.ts`
 - `title` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
-- `titleVersion` — `src/ui/panel-look.ts`
 - `tone` — `src/ui/panel-element.ts`
 - `top` — `src/ui/panel-choice.ts`, `src/ui/panel-drag.ts`, `src/ui/panel-look.ts`
 - `total` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
@@ -11977,6 +11977,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unreadMessagesNoParameter` — `src/ui/panel-content.ts`
 - `unreadMessagesUnknownKey` — `src/ui/panel-content.ts`
 - `uses` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
+- `version` — `src/ui/panel-words.ts`
 - `view` — `src/ui/panel-element.ts`
 - `w` — `src/ui/panel-words.ts`
 - `wasTurnLostRead` — `src/ui/panel-content.ts`
@@ -12688,7 +12689,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `argument` — `tests/source-tree.ts`
 - `arguments` — `tests/source-tree.ts`
 - `article` — `tests/tools/help-article.test.ts`
-- `asked` — `tests/e2e/panel-options.spec.ts`, `tests/tools/turn-count.test.ts`
+- `asked` — `tests/tools/turn-count.test.ts`
 - `assertions` — `tests/repository/assertion-density.test.ts`
 - `async` — `tests/source-tree.ts`
 - `at` — in 9 files: `tests/`
@@ -12914,7 +12915,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `download` — `tests/fake-window.ts`, `tests/ports/browser-file.test.ts`
 - `downloads` — `tests/fake-window.ts`, `tests/ports/browser-file.test.ts`
 - `drag` — `tests/ui/panel-words.test.ts`
-- `drawn` — in 5 files: `tests/`
+- `drawn` — in 4 files: `tests/`
 - `drill` — `tests/ui/panel-element.test.ts`
 - `droppedCalls` — `tests/runtime/fight-file.test.ts`
 - `droppedOpenedAt` — `tests/runtime/shelf.test.ts`
@@ -13701,8 +13702,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `values` — `tests/tools/skill-table.test.ts`
 - `vanished` — `tests/core/health-witness.test.ts`
 - `verdict` — in 5 files: `tests/`
-- `version` — `tests/e2e/panel-fixture.ts`, `tests/runtime/margometer-runtime.test.ts`,
-  `tests/runtime/shelf.test.ts`
+- `version` — in 4 files: `tests/`
 - `versionLine` — `tests/tools/preview-page.test.ts`
 - `versions` — `tests/repository/browser-support.test.ts`
 - `view` — `tests/recorded-fights.ts`, `tests/runtime/panel-frame.test.ts`,
@@ -13824,12 +13824,12 @@ Each `as const` object of a module, by its keys.
   `legendaryReached`, `gesture`, `gestureBack`, `gestureBackAnywhere`, `cut`
 - `CAVEAT` — `src/ui/panel-words.ts`: `reduction`, `turns`, `unannounced`, `undivided`
 - `CAVEAT_LETTER` — `src/ui/panel-look.ts`: `clearPixels`, `gapPixels`, `stemWidthPixels`
-- `CLASS` — `src/ui/panel-look.ts`: `title`, `titleVersion`, `control`, `controlLead`, `frame`,
-  `folded`, `meter`, `slot`, `header`, `headerLine`, `headerPlace`, `headerPlaceName`,
-  `headerPlaceTile`, `headerOutcome`, `outcomeWon`, `outcomeLost`, `strips`, `stripsGap`, `strip`,
-  `stripCurrent`, `crumb`, `crumbBack`, `crumbHere`, `optionsQuestion`, `optionsHeading`,
-  `optionsSteps`, `optionsStep`, `optionsWindow`, `optionsWindowName`, `optionsWindowState`,
-  `optionsWindowOwn`, `optionsReset`, `optionsAnswer`, `optionsMeaning`, `list`, `listWaiting`,
+- `CLASS` — `src/ui/panel-look.ts`: `title`, `control`, `controlLead`, `frame`, `folded`, `meter`,
+  `slot`, `header`, `headerLine`, `headerPlace`, `headerPlaceName`, `headerPlaceTile`,
+  `headerOutcome`, `outcomeWon`, `outcomeLost`, `strips`, `stripsGap`, `strip`, `stripCurrent`,
+  `crumb`, `crumbBack`, `crumbHere`, `optionsQuestion`, `optionsHeading`, `optionsSteps`,
+  `optionsStep`, `optionsWindow`, `optionsWindowName`, `optionsWindowState`, `optionsWindowOwn`,
+  `optionsReset`, `optionsAnswer`, `optionsMeaning`, `optionsVersion`, `list`, `listWaiting`,
   `section`, `sectionWords`, `row`, `rowDrillable`, `rowLeaf`, `rowRank`, `rowTime`, `rowName`,
   `rowSize`, `rowChosen`, `rowApart`, `rowPin`, `rowPinSet`, `rowValue`, `rowOutcome`, `rowUnread`,
   `rowShare`, `rowSuspect`, `rowCaveat`, `rowTurn`, `rowSide`, `bar`, `barCap`, `figure`, `pinned`,
@@ -13879,10 +13879,10 @@ Each `as const` object of a module, by its keys.
 - `PANEL_WORDS` — `src/ui/panel-words.ts`: `title`, `withoutActor`, `withoutTarget`, `unknown`,
   `unknownHowMany`, `nothingYet`, `noFightYet`, `fightUnread`, `keptUnread`, `keptUnreadNote`,
   `noSides`, `fights`, `backFromFights`, `options`, `backFromOptions`, `storage`, `typeSize`,
-  `windowSize`, `resizeHint`, `sizeOwn`, `sizeDefault`, `sizeReset`, `resizeGrip`, `ourSide`,
-  `theirSide`, `withoutSide`, `wholeFight`, `openFights`, `openOptions`, `back`, `shelfEmpty`,
-  `dealtTo`, `takenFrom`, `damageKind`, `healthSource`, `skills`, `withoutKind`, `eitherKind`,
-  `restOfKinds`, `outsideRanking`, `outsideRow`, `outsideNote`, `restNote`, `share`,
+  `windowSize`, `version`, `resizeHint`, `sizeOwn`, `sizeDefault`, `sizeReset`, `resizeGrip`,
+  `ourSide`, `theirSide`, `withoutSide`, `wholeFight`, `openFights`, `openOptions`, `back`,
+  `shelfEmpty`, `dealtTo`, `takenFrom`, `damageKind`, `healthSource`, `skills`, `withoutKind`,
+  `eitherKind`, `restOfKinds`, `outsideRanking`, `outsideRow`, `outsideNote`, `restNote`, `share`,
   `shareOfFigure`, `drag`, `collapse`, `expand`, `saveFight`
 - `PINNED_CASE` — `src/ui/panel-content.ts`: `dealtWithNoActor`, `givenWithNoActor`,
   `takenWithNoActor`, `takenWithNoTarget`, `restoredWithNoActor`
@@ -15089,6 +15089,7 @@ suite's material.
 - `"options-reset"` — `CLASS`
 - `"options-step"` — `CLASS`
 - `"options-steps"` — `CLASS`
+- `"options-version"` — `CLASS`
 - `"options-window"` — `CLASS`
 - `"options-window-name"` — `CLASS`
 - `"options-window-own"` — `CLASS`
@@ -15132,7 +15133,6 @@ suite's material.
 - `"suspicions"` — `CLASS`
 - `"titlebar-button"` — `CLASS`
 - `"titlebar-lead"` — `CLASS`
-- `"titlebar-version"` — `CLASS`
 - `"undrawn"` — `CLASS`
 - `"unfold"` — `BAR_ICON`
 - `"unread"` — `CLASS`
@@ -15811,6 +15811,7 @@ suite's material.
 - `docs/adr/0052-a-control-answers-its-release-where-the-hand-held-still-or-over-its-mark.md`
 - `docs/adr/0053-every-target-a-reader-presses-is-24-pixels-across-and-down.md`
 - `docs/adr/0054-the-steps-of-type-are-12-13-and-14-pixels.md`
+- `docs/adr/0055-the-bar-states-no-version-and-a-panel-is-as-wide-as-its-rows-ask.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

@@ -99,20 +99,6 @@ test("nothing the bar draws starts a drag, and neither does a row", async ({ pan
     }
 });
 
-test("the version label is part of the handle, not a hole in it", async ({ panel }) => {
-    // It inherits the bar's `cursor:move` and sits between the name and the controls, so a hand
-    // aiming for the bar lands on it. Held here rather than left to the walk above, whose points
-    // are spaced along the bar and would stop covering it the day the version number narrows.
-    const before = await panel.place();
-    await setDragged(panel.page, await readCentreOf(panel.page, ".titlebar-version"), {
-        x: ACROSS,
-        y: DOWN,
-    });
-    const after = await panel.place();
-    expect(after.left - before.left, "the panel went where the label was taken").toBe(ACROSS);
-    expect(after.top - before.top, "on both axes").toBe(DOWN);
-});
-
 test("dragged at any edge, the panel keeps its footing on the screen", async ({ panel }) => {
     const corners = [
         { name: "off the left", by: { x: -WINDOW_WIDTH, y: 0 } },

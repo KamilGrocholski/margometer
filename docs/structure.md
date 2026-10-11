@@ -123,6 +123,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0052-a-control-answers-its-release-where-the-hand-held-still-or-over-its-mark.md`            | a control acts on the release, for what its press asked, where the hand held still or let go over the same mark                                                 |
 | `docs/adr/0053-every-target-a-reader-presses-is-24-pixels-across-and-down.md`                          | every target a reader presses is 24 pixels across and down, the size grip alone spaced as wide (WCAG 2.2, 2.5.8)                                                |
 | `docs/adr/0054-the-steps-of-type-are-12-13-and-14-pixels.md`                                           | the steps of type are 12, 13 and 14 pixels, each panel two past what its bar asks                                                                               |
+| `docs/adr/0055-the-bar-states-no-version-and-a-panel-is-as-wide-as-its-rows-ask.md`                    | the bar states no version, the options do, and a panel is as wide as its rows ask                                                                               |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

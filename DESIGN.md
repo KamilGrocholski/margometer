@@ -173,7 +173,7 @@ legibility.
 | `maxHeightShare` | `66vh`                                                                            |
 | `cardWidth`      | `272px` · `296px` · `318px` — a maximum, and a card is as wide as what it says    |
 | `lineHeight`     | `16px` · `18px` · `20px` — whole pixels, and what a counted card is multiplied by |
-| `meterWidth`     | `296px` · `310px` · `324px` — narrow on purpose: the meter is a guest             |
+| `meterWidth`     | `274px` · `306px` · `316px` — narrow on purpose: the meter is a guest             |
 | `helperWidth`    | `228px` · `248px` · `268px` — the window beside the meter                         |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
 | `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
@@ -208,12 +208,10 @@ something of ours.
 ## Components
 
 **Title bar.** `surfaceRaised`, one line, always. It stands **over** the panel rather than inside
-it, carrying the top two corners while the panel carries the bottom two, and it holds the name, the
-version and the controls. It stays one line as the version number grows — a bar that wraps moves
-everything below it, and one character more of a version is enough to wrap it. Where the line is
-shorter than what it holds, the version is cut with an ellipsis and a control never is: a control
-pushed off the bar is one a reader cannot press. Where the fight is being fought is **not** on it:
-that is the header's.
+it, carrying the top two corners while the panel carries the bottom two, and it holds the name and
+the controls. It stays one line — a bar that wraps moves everything below it. The build is said in
+the options and not here, so the bar asks less than the rows do and the panel is as wide as its rows
+ask (ADR 0055). Where the fight is being fought is **not** on it: that is the header's.
 
 **A control says what a press would do**, never what the panel already is, so its mark and its
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing

@@ -94,7 +94,6 @@ export const TEXT = {
  */
 export const CLASS = {
     title: "MargoMeter-titlebar",
-    titleVersion: "titlebar-version",
     control: "titlebar-button",
     /** The first control on the bar, which pushes every control after it to the far end. */
     controlLead: "titlebar-lead",
@@ -130,6 +129,7 @@ export const CLASS = {
     optionsReset: "options-reset",
     optionsAnswer: "options-answer",
     optionsMeaning: "options-meaning",
+    optionsVersion: "options-version",
     list: "list",
     listWaiting: "list-waiting",
     section: "section-heading",
@@ -262,10 +262,11 @@ export const LAYER = {
  * method first reproducing the 11px row it was taken on. The rank cell is `20.` plus its 4px of
  * air, rounded up: 19.09px, 20.69 and 22.27. The cast floor is the whole of `Wyzywa`: 49.33px,
  * 53.44 and 57.55. The ring is even, because an odd one sets its letter off the half pixel (ADR
- * 0036), and never under twelve, where it reads as a speck beside a figure. Each panel stands two
- * past what its bar asks for the name, `0.23.0-dev` and four controls on one line: 293.39px, 307.19
- * and 321.36 on 2026-10-11, over the browser suite's recording. The card's bound and the window
- * beside are 250 and 210 at 11px, scaled and made even.
+ * 0036), and never under twelve, where it reads as a speck beside a figure. The panels at 12 and
+ * 13px are the widths those sizes were drawn at; the 14px one gives a name the room the 13px one
+ * does, its rank, figure and share standing 160.38px against 150.86 over the browser suite's
+ * recording on 2026-10-11. The bar asks less than any of them (ADR 0055). The card's bound and the
+ * window beside are 250 and 210 at 11px, scaled and made even.
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
     [TYPE_STEP.small]: {
@@ -278,7 +279,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 5,
         castWidthPixelsMinimum: 50,
         markSizePixels: 12,
-        meterWidthPixels: 296,
+        meterWidthPixels: 274,
         cardWidthPixelsMaximum: 272,
         helperWidthPixels: 228,
     },
@@ -292,7 +293,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 6,
         castWidthPixelsMinimum: 54,
         markSizePixels: 12,
-        meterWidthPixels: 310,
+        meterWidthPixels: 306,
         cardWidthPixelsMaximum: 296,
         helperWidthPixels: 248,
     },
@@ -306,7 +307,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         pipSizePixels: 6,
         castWidthPixelsMinimum: 58,
         markSizePixels: 14,
-        meterWidthPixels: 324,
+        meterWidthPixels: 316,
         cardWidthPixelsMaximum: 318,
         helperWidthPixels: 268,
     },
@@ -625,13 +626,6 @@ function composeFrameRules(tokens: TypeTokens): string {
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `box-sizing:border-box;width:${width};` +
         `cursor:move;${NO_SELECTION}touch-action:none;}` +
-        // Every width in `TYPE_TOKENS` is a bar measured in one font, and a reader's may ask more:
-        // in the Google Chrome that CI's `ubuntu-latest` image ships, its version not recorded,
-        // the middle step's bar asked 0.44px past its width on 2026-09-29 and pushed the fold off.
-        // The version is what gives way, because a control cut off is one a reader cannot press.
-        // Its quiet ink is drawn undimmed: at `opacity:0.7` it would stand 3.77 off `raised` (ADR 0048).
-        `.${CLASS.titleVersion}{font-size:${tokens.fontSmallPixels}px;` +
-        `min-width:0;overflow:hidden;text-overflow:ellipsis;}` +
         // A box of one size with its icon centred in it, rather than air around a glyph: each mark
         // is a different width, so padding made a row of four widths (ADR 0036). The mark stays
         // the control's text at no size, for whoever copies it.
@@ -841,7 +835,9 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `font-weight:600;}` +
         `.${CLASS.optionsMeaning}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `padding:0 var(${VARIABLE_PREFIX}half);color:var(${VARIABLE_PREFIX}quiet);` +
-        `font-size:${tokens.fontSmallPixels}px;}`;
+        `font-size:${tokens.fontSmallPixels}px;}` +
+        `.${CLASS.optionsVersion}{margin-top:var(${VARIABLE_PREFIX}half);` +
+        `padding:0 var(${VARIABLE_PREFIX}half);font-variant-numeric:tabular-nums;}`;
 }
 
 /** The list's height is the rows it promises times what a row costs. `develop ADR 0014`. */

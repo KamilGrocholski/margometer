@@ -174,6 +174,7 @@ export const PANEL_WORDS = {
     storage: "Zapisane walki",
     typeSize: "Rozmiar czcionki",
     windowSize: "Rozmiar okien",
+    version: "Wersja dodatku",
     resizeHint: "Rozmiar zmienisz, ciągnąc prawy dolny róg okna.",
     sizeOwn: "własny",
     sizeDefault: "domyślny",
