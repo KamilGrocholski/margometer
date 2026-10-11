@@ -21,6 +21,7 @@ import {
 } from "#/src/ui/panel-helper.ts";
 import { getWordsForTurnState, HELPER_WORDS, PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import {
+    clickElement,
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
@@ -341,7 +342,7 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
         undefined,
         "and never the panel's, which would put both windows away at once",
     );
-    pressElement(host, "pointerdown", control);
+    clickElement(host, control);
     assertEquals(
         pressed,
         [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.helper }],

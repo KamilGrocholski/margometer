@@ -22,7 +22,12 @@ import {
 import { type KeptFight, openShelf } from "#/src/runtime/shelf.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
 import type { PanelElement } from "#/src/ui/panel-document.ts";
-import { composeFakeDocument, type FakeElement, pressElement } from "./fake-document.ts";
+import {
+    clickElement,
+    composeFakeDocument,
+    type FakeElement,
+    pressElement,
+} from "./fake-document.ts";
 import { TEST_VERSION } from "./panel-view.ts";
 
 export interface RuntimeWorld {
@@ -38,6 +43,7 @@ export interface RuntimeWorld {
     saved: { name: string; text: string }[];
     /** One call through the wrap the game's method wears, and the frame after it. */
     update(payload: unknown): unknown;
+    /** A click on `target`, or the one event `type` names where a test states it. */
     press(target: FakeElement, type?: string): void;
     flush(): void;
     getHost(): FakeElement;
@@ -122,8 +128,9 @@ function composeRuntimeWorld(
             world.flush();
             return answered;
         },
-        press: (target, type = "pointerdown") => {
-            pressElement(world.getHost(), type, target);
+        press: (target, type) => {
+            if (type === undefined) clickElement(world.getHost(), target);
+            else pressElement(world.getHost(), type, target);
             world.flush();
         },
         flush: () => {

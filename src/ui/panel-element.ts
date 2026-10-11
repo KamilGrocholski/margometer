@@ -47,6 +47,7 @@ import {
     type WindowWidths,
 } from "./panel-drag.ts";
 import {
+    isPanelIntentSame,
     LIVE_FIGHT_MARK,
     PANEL_INTENT,
     PANEL_MARK,
@@ -1061,24 +1062,41 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         // Two windows sit under that root — `develop ADR 0060` — so the second is asked whether it
         // holds a press.
         const onHover = cardHandle.onHover;
-        // The press and never the click: a browser assembles a click out of two moments and
-        // dispatches it only if both resolve to a node still in the tree, so a payload landing
-        // between the press and the release would detach what was pressed and dispatch nothing.
+        // A click put together out of its two moments, and never the browser's own: that one is
+        // dispatched only where both moments land on a node still in the tree, and a frame landing
+        // between the press and the release replaces the row pressed. A release asks for what its
+        // press asked for when the two marks state the same, whichever node carries them now —
+        // ADR 0052.
+        let pressedIntent: PanelIntent | null = null;
         addGuardedListener(root, EVENT_TYPE.press, PANEL_LISTENER.press, (event) => {
             // The primary button alone: without this a right press would open a row and the
             // listener below would step straight back out of it, which is worse than either half.
             if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
+            pressedIntent = null;
+            const target = event.target;
+            if (target === null) return;
+            const intent = readPanelIntent(target);
+            // A stray mark is said by the release, once a gesture.
+            if (intent instanceof Error) return;
+            pressedIntent = intent;
+        }, options.onFailure);
+        addGuardedListener(root, EVENT_TYPE.release, PANEL_LISTENER.click, (event) => {
+            if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
+            const pressed = pressedIntent;
+            pressedIntent = null;
             const target = event.target;
             if (target === null) return;
             const intent = readPanelIntent(target);
             if (intent instanceof Error) {
                 addViewFailureGuarded(
                     options.onFailure,
-                    new GestureDropped(PANEL_LISTENER.press, intent),
+                    new GestureDropped(PANEL_LISTENER.click, intent),
                 );
                 return;
             }
-            if (intent !== null) options.onIntent(intent);
+            if (pressed === null) return;
+            if (intent === null) return;
+            if (isPanelIntentSame(pressed, intent)) options.onIntent(intent);
         }, options.onFailure);
         // One gesture in, one gesture out, and the way out works from anywhere on the panel: a
         // back control alone would make the cheapest gesture the one that needs aiming. The window
@@ -1101,7 +1119,14 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         // apart: a crossing that lands on the same row's mark is not a leaving, and reading it
         // keeps the card from being thrown away and rebuilt four times on the way across the row.
         addGuardedListener(root, EVENT_TYPE.leave, PANEL_LISTENER.leave, (event) => {
-            onHover(readCardKey(event.relatedTarget ?? null), event.clientY);
+            const towards = event.relatedTarget ?? null;
+            onHover(readCardKey(towards), event.clientY);
+            // A press carried out of the panel is let go of where the root never hears it, and a
+            // release brought back in by another press would answer the first.
+            for (const element of [regions.title, frame, cardHandle.element, helperWindow]) {
+                if (element.contains(towards)) return;
+            }
+            pressedIntent = null;
         }, options.onFailure);
     }
     // After the listeners that read a press, and on the same root: a drag is four more of them.

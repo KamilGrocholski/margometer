@@ -30,10 +30,17 @@ Deno.test("only the primary button opens anything, and a press stating none is t
         descendant.attributes.has("data-fold")
     );
     assertExists(fold, "the bar folds the panel");
-    dispatch(host, "pointerdown", { target: fold, clientY: 10, button: SECONDARY_BUTTON });
+    const click = (button: number | undefined): void => {
+        dispatch(host, "pointerdown", { target: fold, clientY: 10, button });
+        dispatch(host, "pointerup", { target: fold, clientY: 10, button });
+    };
+    click(SECONDARY_BUTTON);
     assertEquals(asked, [], "a second button asks for nothing");
     dispatch(host, "pointerdown", { target: fold, clientY: 10, button: 0 });
-    dispatch(host, "pointerdown", { target: fold, clientY: 10 });
+    dispatch(host, "pointerup", { target: fold, clientY: 10, button: SECONDARY_BUTTON });
+    assertEquals(asked, [], "nor does it let go of a press the first one made");
+    dispatch(host, "pointerup", { target: fold, clientY: 10, button: 0 });
+    click(undefined);
     const folding = { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter };
     assertEquals(asked, [folding, folding], "the first does, stated or not");
 });

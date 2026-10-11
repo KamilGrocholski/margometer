@@ -174,7 +174,7 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
  * closing row states a constant: it has no field of its own, and a place a reader was left at is
  * the whole of what this name is for (`develop ADR 0050`).
  */
-function composeNameForPart(openedPart: OpenedPart): string {
+export function composeNameForPart(openedPart: OpenedPart): string {
     if (openedPart.kind === OPENED_PART.skill) return `${OPENED_PART.skill}:${openedPart.name}`;
     if (openedPart.kind === OPENED_PART.source) return `${OPENED_PART.source}:${openedPart.source}`;
     if (openedPart.kind === OPENED_PART.plain) return `${OPENED_PART.plain}:`;

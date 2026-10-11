@@ -10,6 +10,7 @@ import {
     assertArrayIncludes,
     assertEquals,
     assertExists,
+    assertNotStrictEquals,
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
@@ -93,6 +94,7 @@ import {
     TURN_MARK,
 } from "#/src/ui/panel-words.ts";
 import {
+    clickElement,
     composeFakeDocument,
     dragOnElement,
     type FakeElement,
@@ -754,7 +756,7 @@ Deno.test("a pinned row is pressed by the end it leaves out, from any part of it
     }
     const name = row.children.find((cell) => cell.className === "row-name");
     assertExists(name, "the row names what it stands for");
-    pressElement(host, "pointerdown", name);
+    clickElement(host, name);
     assertEquals(
         pressed,
         [{ kind: PANEL_INTENT.openUnnamed, end: UNNAMED_END.actor }],
@@ -1009,7 +1011,7 @@ Deno.test("an end left out inside an opened figure is pressed by that end, from 
     assertArrayIncludes(readCard(host).notes, [CARD_WORDS.gesture], "its card says it opens");
     const name = row.children.find((cell) => cell.className === "row-name");
     assertExists(name, "the row names what it stands for");
-    pressElement(host, "pointerdown", name);
+    clickElement(host, name);
     assertEquals(
         pressed,
         [{ kind: PANEL_INTENT.openUnnamed, end: UNNAMED_END.target }],
@@ -1416,14 +1418,14 @@ Deno.test("every listener sits on the root, where a press is not retargeted", ()
     // reason; this holds the other half, which is that the root got one of each and no more.
     assertEquals(
         [...host.rootListeners.keys()],
-        ["pointerdown", "contextmenu", "pointermove", "pointerout"],
-        "a press, the way back, a move that opens the detail, and the leave that closes it",
+        ["pointerdown", "pointerup", "contextmenu", "pointermove", "pointerout"],
+        "a press, the release that answers it, the way back, a move that opens the detail, and the leave that closes it",
     );
     for (const type of host.rootListeners.keys()) {
         assertStrictEquals(host.rootListeners.get(type)?.length, 1, `${type} is listened for once`);
     }
     for (const drawn of getElementsWithin(host)) {
-        assertStrictEquals(drawn.rootListeners.size, drawn === host ? 4 : 0, "no row carries one");
+        assertStrictEquals(drawn.rootListeners.size, drawn === host ? 5 : 0, "no row carries one");
     }
 });
 
@@ -1440,7 +1442,7 @@ Deno.test("a press on a strip reaches the panel, and a press on anything else do
         strip.attributes.get("data-screen") === "damageTaken"
     );
     assertExists(takenStrip, "there is a screen to reach for");
-    pressElement(host, "pointerdown", takenStrip);
+    clickElement(host, takenStrip);
     assertEquals(
         pressed,
         [{ kind: PANEL_INTENT.metric, metric: "damageTaken" }],
@@ -1449,7 +1451,7 @@ Deno.test("a press on a strip reaches the panel, and a press on anything else do
 
     const title = getElementsWithin(host).find((drawn) => drawn.className.endsWith("titlebar"));
     assertExists(title, "there is something that is not a strip to press");
-    pressElement(host, "pointerdown", title);
+    clickElement(host, title);
     assertStrictEquals(pressed.length, 1, "the bar asks for nothing, so pressing it moves nothing");
 });
 
@@ -1464,7 +1466,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         (drawn) => drawn.attributes.get("data-side") === "opposing",
     );
     assertExists(opposing, "the side strip offers the other side");
-    pressElement(host, "pointerdown", opposing);
+    clickElement(host, opposing);
     assertEquals(
         pressed.at(-1),
         { kind: PANEL_INTENT.side, side: "opposing" },
@@ -1473,7 +1475,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
 
     const shelf = getElementsWithin(host).find((drawn) => drawn.attributes.has("data-shelf"));
     assertExists(shelf, "the bar carries the shelf control");
-    pressElement(host, "pointerdown", shelf);
+    clickElement(host, shelf);
     assertEquals(
         pressed.at(-1),
         { kind: PANEL_INTENT.shelf },
@@ -1515,7 +1517,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
 
     const strip = strips[0];
     assertExists(strip, "and the rows still have strips");
-    pressElement(host, "pointerdown", strip);
+    clickElement(host, strip);
     // The damage noun, which from healing received crosses to damage received: a press reaches
     // the listener the host has carried since before either redraw.
     assertEquals(
@@ -1523,6 +1525,88 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         { kind: PANEL_INTENT.metric, metric: "damageTaken" },
         "after a redraw",
     );
+});
+
+Deno.test("a release asks for what its press asked for, on whatever node a redraw left", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find((drawn) => drawn.attributes.has("data-row"));
+    assertExists(row, "the ranking has a row that opens");
+    const combatantId = row.attributes.get("data-row");
+    pressElement(host, "pointerdown", row);
+    assertEquals(pressed, [], "a press alone asks for nothing");
+    // A payload landing while the hand is down: the browser's own click would go nowhere now.
+    panel.render(composeShownScreen(readFight()));
+    const rowRedrawn = getElementsWithin(host).find((drawn) =>
+        drawn.attributes.get("data-row") === combatantId
+    );
+    assertExists(rowRedrawn, "the redraw draws the row again");
+    assertNotStrictEquals(rowRedrawn, row, "as a node of its own");
+    pressElement(host, "pointerup", rowRedrawn);
+    assertEquals(
+        pressed,
+        [{ kind: PANEL_INTENT.openRow, combatantId: Number(combatantId) }],
+        "and letting go over it opens what was pressed",
+    );
+});
+
+Deno.test("letting go anywhere but where the press stated asks for nothing", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const rows = getElementsWithin(host).filter((drawn) => drawn.attributes.has("data-row"));
+    const row = rows[0];
+    assertExists(row, "the ranking has a row that opens");
+    const rowOther = rows.find((drawn) =>
+        drawn.attributes.get("data-row") !== row.attributes.get("data-row")
+    );
+    assertExists(rowOther, "and another");
+    const title = getElementsWithin(host).find((drawn) => drawn.className.endsWith("titlebar"));
+    assertExists(title, "the bar states no intent");
+    pressElement(host, "pointerdown", row);
+    pressElement(host, "pointerup", rowOther);
+    assertEquals(pressed, [], "a release over another row is a press called off");
+    pressElement(host, "pointerdown", row);
+    pressElement(host, "pointerup", title);
+    assertEquals(pressed, [], "and so is one over nothing that asks");
+    pressElement(host, "pointerup", row);
+    assertEquals(pressed, [], "a release asks for nothing where no press is standing");
+    // Let go of where the root never heard it, and pressed again over nothing that asks.
+    pressElement(host, "pointerdown", row);
+    pressElement(host, "pointerdown", title);
+    pressElement(host, "pointerup", row);
+    assertEquals(pressed, [], "nor where the last press asked for nothing");
+    const opening = {
+        kind: PANEL_INTENT.openRow,
+        combatantId: Number(row.attributes.get("data-row")),
+    };
+    pressElement(host, "pointerdown", row);
+    pointAtElement(host, "pointerout", row, 100, rowOther);
+    pointAtElement(host, "pointerout", rowOther, 100, row);
+    pressElement(host, "pointerup", row);
+    assertEquals(pressed, [opening], "a hand wandering inside the panel and back still opens it");
+});
+
+Deno.test("a press carried out of the panel is let go of there, wherever it comes back", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find((drawn) => drawn.attributes.has("data-row"));
+    assertExists(row, "the ranking has a row that opens");
+    const page = document.createElement("div") as FakeElement;
+    for (const [towards, said] of [[null, "off the page"], [page, "onto the page"]] as const) {
+        pressElement(host, "pointerdown", row);
+        pointAtElement(host, "pointerout", row, 100, towards);
+        pressElement(host, "pointerup", row);
+        assertEquals(pressed, [], `a press carried ${said} answers no release brought back`);
+    }
 });
 
 Deno.test("a region that cannot be drawn is replaced by itself, and the rest stands", () => {
@@ -1854,7 +1938,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     // The press lands on the deepest element under the pointer, which is the name inside the row.
     const name = getElementsWithin(host).find((drawn) => drawn.className === "row-name");
     assertExists(name, "there is a row to press");
-    pressElement(host, "pointerdown", name);
+    clickElement(host, name);
     const combatantId = reading.rows[0]?.combatantId;
     assertExists(combatantId, "the row pressed is somebody's");
     assertEquals(pressed, [{ kind: PANEL_INTENT.openRow, combatantId }], "that row");
@@ -1862,7 +1946,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     panel.render({ ...composeShownScreen(reading), opened: drill });
     const back = getElementsWithin(host).find((drawn) => drawn.className === "crumb-back");
     assertExists(back, "an opened row has a way back");
-    pressElement(host, "pointerdown", back);
+    clickElement(host, back);
     assertEquals(
         pressed.at(-1),
         { kind: PANEL_INTENT.close },
@@ -2027,7 +2111,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         getElementsWithin(host).some((drawn) => drawn.className.startsWith("row ")),
         "a ranking",
     );
-    pressElement(host, "pointerdown", control);
+    clickElement(host, control);
     assertEquals(
         pressed.at(-1),
         { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter },
@@ -2583,7 +2667,7 @@ Deno.test("a kept fight that will not read keeps its row and its pin, and opens 
         ["", DEFECT_MARK.trimEnd()],
         "no headcount a reading would have given, and the defect's mark where its ending would be",
     );
-    pressElement(host, "pointerdown", row);
+    clickElement(host, row);
     assertEquals(pressed, [], "a press on it asks for nothing");
     const card = readCardByKey(host, "shelf:7");
     assertEquals(card.name, ["Grota (34, 12)"], "its card is named for where it was");
@@ -2656,7 +2740,7 @@ Deno.test("the live row is pressed and pointed at by its word, with a moment and
             pinnedAt === undefined ? [] : [FIGHT_CARD_WORDS.when],
             `${said}: its card states a time only where there was one`,
         );
-        pressElement(host, "pointerdown", row);
+        clickElement(host, row);
         assertEquals(pressed, [{ kind: PANEL_INTENT.showLive }], `${said}: a press shows it`);
     }
 });
@@ -3521,7 +3605,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
     // and the count beside the value: a press that lands nowhere leaves the one before it standing.
     for (const [pressIndex, cell] of [opening[0], marked[0]].entries()) {
         assertExists(cell, "the row and the name a reader aims at both carry the mark");
-        pressElement(host, "pointerdown", cell);
+        clickElement(host, cell);
         assertStrictEquals(pressed.length, pressIndex + 1, "every press on the row lands");
         assertEquals(
             pressed.at(-1),

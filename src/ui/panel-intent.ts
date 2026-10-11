@@ -21,6 +21,7 @@ import {
 import type { PanelTarget } from "./panel-document.ts";
 import { type OpenedPart, type PanelUnnamedEnd, UNNAMED_END } from "./panel-content.ts";
 import {
+    composeNameForPart,
     OPENED_PART,
     type PanelMetric,
     type PanelSideChoice,
@@ -215,4 +216,42 @@ export function readPanelIntent(target: PanelTarget): IntentReading {
 
 function createOpenPartIntent(openedPart: OpenedPart): PanelIntent {
     return { kind: PANEL_INTENT.openPart, part: openedPart };
+}
+
+/**
+ * Whether a release asks for what its press asked for. The two are compared by what their marks
+ * state and never by the node, because a frame landing between them replaces the node (ADR 0052).
+ */
+export function isPanelIntentSame(
+    pressed: Readonly<PanelIntent>,
+    released: Readonly<PanelIntent>,
+): boolean {
+    return composeNameForIntent(pressed) === composeNameForIntent(released);
+}
+
+/** Each kind with the fields it carries, and nothing else: no two intents share a name. */
+function composeNameForIntent(intent: Readonly<PanelIntent>): string {
+    if (intent.kind === PANEL_INTENT.metric) return `${intent.kind}:${intent.metric}`;
+    if (intent.kind === PANEL_INTENT.side) return `${intent.kind}:${intent.side}`;
+    if (intent.kind === PANEL_INTENT.openRow) return `${intent.kind}:${intent.combatantId}`;
+    if (intent.kind === PANEL_INTENT.openUnnamed) return `${intent.kind}:${intent.end}`;
+    if (intent.kind === PANEL_INTENT.openPart) {
+        return `${intent.kind}:${composeNameForPart(intent.part)}`;
+    }
+    if (intent.kind === PANEL_INTENT.fold) return `${intent.kind}:${intent.window}`;
+    if (intent.kind === PANEL_INTENT.move) {
+        const position = intent.position;
+        return `${intent.kind}:${intent.window}:${position.left}:${position.top}`;
+    }
+    if (intent.kind === PANEL_INTENT.resize) {
+        const size = intent.size;
+        return `${intent.kind}:${intent.window}:${size.width}:${size.height}`;
+    }
+    if (intent.kind === PANEL_INTENT.resetSize) return `${intent.kind}:${intent.window}`;
+    if (intent.kind === PANEL_INTENT.storage) return `${intent.kind}:${intent.choice}`;
+    if (intent.kind === PANEL_INTENT.typeStep) return `${intent.kind}:${intent.step}`;
+    if (intent.kind === PANEL_INTENT.showKept) return `${intent.kind}:${intent.openedAt}`;
+    if (intent.kind === PANEL_INTENT.pin) return `${intent.kind}:${intent.openedAt}`;
+    // The kinds that carry nothing but themselves.
+    return intent.kind;
 }

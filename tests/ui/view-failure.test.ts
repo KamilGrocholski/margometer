@@ -35,13 +35,13 @@ import {
     WindowUnplaced,
 } from "#/src/ui/view-failure.ts";
 import {
+    clickElement,
     composeFakeDocument,
     dragOnElement,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
     pointAtElement,
-    pressElement,
 } from "#/tests/fake-document.ts";
 import { initTestView, NOTHING_WAITING } from "#/tests/panel-view.ts";
 import { tallyRecordedFight } from "#/tests/recorded-fights.ts";
@@ -64,13 +64,13 @@ Deno.test("a press whose handler throws is a dropped gesture, and the next one l
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
+    clickElement(host, findMarked(host, PANEL_MARK.fold));
     assertStrictEquals(failures.length, 1, "the gesture is dropped, and said once");
     const [dropped] = failures;
     assertInstanceOf(dropped, GestureDropped, "as a gesture, and one that names its listener");
-    assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "which is the press");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.click, "which is the click");
     isRefusing = false;
-    pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
+    clickElement(host, findMarked(host, PANEL_MARK.fold));
     assertEquals(asked, [{ kind: PANEL_INTENT.fold, window: PANEL_WINDOW.meter }], "then lands");
     assertStrictEquals(failures.length, 1, "and the one that landed is no failure");
 });
@@ -92,12 +92,12 @@ Deno.test("a mark with a value nothing of ours writes drops the gesture and asks
     const host = panel.element as FakeElement;
     const fold = findMarked(host, PANEL_MARK.fold);
     fold.setAttribute(PANEL_MARK.screen, "nowhere");
-    pressElement(host, "pointerdown", fold);
+    clickElement(host, fold);
     assertEquals(asked, [], "a stray mark is never read as the first screen there is");
     assertStrictEquals(failures.length, 1, "and the drop is said once");
     const [dropped] = failures;
     assertInstanceOf(dropped, GestureDropped, "as a dropped gesture");
-    assertStrictEquals(dropped.listener, PANEL_LISTENER.press, "of the press");
+    assertStrictEquals(dropped.listener, PANEL_LISTENER.click, "of the click, at its release");
     assertInstanceOf(dropped.cause, MarkValueUnknown, "and the drop names the mark that strayed");
     assertStrictEquals(dropped.cause.mark, PANEL_MARK.screen, "which is the screen's");
 });
@@ -130,7 +130,7 @@ Deno.test("a sink that throws is not the browser's to hear", () => {
     });
     panel.renderWaiting(NOTHING_WAITING);
     const host = panel.element as FakeElement;
-    pressElement(host, "pointerdown", findMarked(host, PANEL_MARK.fold));
+    clickElement(host, findMarked(host, PANEL_MARK.fold));
     pointAtElement(host, "contextmenu", null, 10);
 });
 

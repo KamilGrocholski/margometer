@@ -1784,6 +1784,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composeMask` — `tests/core/carried-status.test.ts`
 - `composeMessageReadings` — `tools/turn-reading.ts`
 - `composeMessageReadingsOfStep` — `tools/turn-reading.ts`
+- `composeNameForIntent` — `src/ui/panel-intent.ts`
 - `composeNameForPart` — `src/ui/panel-screen.ts`
 - `composeNameRegister` — `tests/repository/name-register.test.ts`
 - `composeNamed` — `tests/ui/card-window.test.ts`
@@ -2025,6 +2026,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `isOurWrap` — `src/ports/margonem-engine-battle.ts`
 - `isOutsidePictures` — `tools/panel-giving-way.ts`
 - `isOwnNode` — `tests/repository/handed-callbacks.test.ts`
+- `isPanelIntentSame` — `src/ui/panel-intent.ts`
 - `isPascalCase` — `tests/repository/names.test.ts`
 - `isPastBoundInCaller` — `tests/repository/called-once.test.ts`
 - `isPastItsTurn` — `src/core/charged-skill.ts`
@@ -2223,7 +2225,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `click` — not in N2's table
 
-- `click` — `src/ports/browser-file.ts`, `tests/fake-window.ts`, `tests/ports/browser-file.test.ts`
+- `click` — in 4 files: `src/ports/`, `tests/`
+- `clickElement` — `tests/fake-document.ts`
 
 ### `close` — not in N2's table
 
@@ -6197,7 +6200,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `drawnLine` — `src/ui/panel-element.ts`
 - `droppedIndex` — `src/ui/panel-element.ts`
 - `edgeOffset` — `src/ui/panel-element.ts`
-- `element` — `src/ui/panel-content.ts`, `src/ui/panel-intent.ts`
+- `element` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
 - `elementWords` — `src/ui/panel-words.ts`
 - `empty` — `src/ui/panel-element.ts`
 - `end` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
@@ -6403,7 +6406,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `pointer` — `src/ui/panel-drag.ts`
 - `points` — `src/ui/panel-words.ts`
 - `pointsPaid` — `src/ui/panel-words.ts`
-- `position` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
+- `position` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
+- `pressed` — `src/ui/panel-element.ts`
+- `pressedIntent` — `src/ui/panel-element.ts`
 - `provocation` — `src/ui/panel-element.ts`
 - `provocationsBounded` — `src/ui/panel-helper.ts`
 - `provoked` — `src/ui/panel-helper.ts`
@@ -6472,7 +6477,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `sides` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `sideways` — `src/ui/panel-element.ts`
 - `sign` — `src/ui/panel-words.ts`
-- `size` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
+- `size` — in 4 files: `src/ui/`
 - `sized` — `src/ui/panel-drag.ts`
 - `sizes` — `src/ui/panel-content.ts`
 - `skill` — `src/ui/panel-content.ts`
@@ -6518,6 +6523,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `topByName` — `src/ui/panel-element.ts`
 - `total` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `totals` — `src/ui/panel-content.ts`
+- `towards` — `src/ui/panel-element.ts`
 - `track` — `src/ui/panel-element.ts`
 - `translate` — `src/ui/panel-element.ts`
 - `trimmed` — `src/ui/panel-element.ts`
@@ -8283,7 +8289,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `outer` — `tests/ui/panel-element.test.ts`
 - `output` — `tests/repository/name-register.test.ts`
 - `outside` — in 4 files: `tests/`
-- `over` — in 10 files: `tests/`
+- `over` — in 12 files: `tests/`
 - `overlong` — `tests/ui/blow-vocabulary.test.ts`
 - `owed` — `tests/runtime/fight-file.test.ts`
 - `own` — in 5 files: `tests/`
@@ -8291,7 +8297,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `owner` — `tests/repository/declaration-order.test.ts`, `tests/repository/protocol-keys.test.ts`
 - `pad` — `tests/repository/name-register.test.ts`
 - `padded` — `tests/ports/payload-envelope.test.ts`
-- `page` — in 16 files: `tests/`
+- `page` — in 17 files: `tests/`
 - `pagePart` — `tests/userscript-entry.test.ts`
 - `pagePath` — `tests/tools/skill-table.test.ts`
 - `paint` — `tests/ui/panel-look.test.ts`
@@ -8362,7 +8368,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `pinsByAction` — `tests/repository/workflows.test.ts`
 - `pips` — `tests/ui/helper-window.test.ts`
 - `pixels` — `tests/ui/panel-look.test.ts`
-- `place` — in 13 files: `tests/`
+- `place` — in 14 files: `tests/`
 - `placeName` — `tests/ui/panel-screen.test.ts`
 - `placed` — in 5 files: `tests/`
 - `placeholders` — `tests/repository/name-shapes.test.ts`
@@ -8392,6 +8398,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `pressIndex` — `tests/ui/panel-element.test.ts`
 - `pressed` — `tests/tools/panel-giving-way.test.ts`, `tests/ui/helper-window.test.ts`,
   `tests/ui/panel-element.test.ts`
+- `pressedNode` — `tests/e2e/panel-level.spec.ts`
 - `prevented` — `tests/ui/panel-gesture.test.ts`
 - `preview` — `tests/tools/preview-server.test.ts`
 - `procs` — `tests/ui/panel-content.test.ts`
@@ -8520,6 +8527,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `rowGround` — `tests/ui/panel-look.test.ts`
 - `rowHeight` — `tests/ui/panel-look.test.ts`
 - `rowIndex` — in 6 files: `tests/`
+- `rowOther` — `tests/ui/panel-element.test.ts`
+- `rowRedrawn` — `tests/ui/panel-element.test.ts`
 - `rowValue` — `tests/e2e/panel-card.spec.ts`
 - `rows` — in 25 files: `tests/`
 - `rowsBefore` — `tests/ui/panel-element.test.ts`
@@ -8836,6 +8845,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `total` — in 6 files: `tests/`
 - `totals` — in 4 files: `tests/`
 - `touching` — `tests/ui/panel-drag.test.ts`
+- `towards` — `tests/ui/panel-element.test.ts`
 - `track` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-look.test.ts`
 - `trackName` — `tests/ui/panel-look.test.ts`
 - `tracked` — `tests/repository/cited-paths.test.ts`, `tests/repository/documents.test.ts`
@@ -9448,7 +9458,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `index` — `src/ui/panel-words.ts`
 - `ink` — `src/ui/panel-look.ts`
 - `inset` — `src/ui/panel-look.ts`
-- `intent` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`
+- `intent` — `src/ui/panel-drag.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
 - `isCollapsed` — `src/ui/panel-element.ts`
 - `isHeld` — `src/ui/panel-drag.ts`
 - `isHelperCollapsed` — `src/ui/panel-screen.ts`
@@ -9534,6 +9544,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `points` — `src/ui/panel-words.ts`
 - `position` — `src/ui/panel-drag.ts`
 - `positionRequested` — `src/ui/panel-drag.ts`
+- `pressed` — `src/ui/panel-intent.ts`
 - `previousCard` — `src/ui/panel-element.ts`
 - `previousRegion` — `src/ui/panel-element.ts`
 - `profession` — `src/ui/panel-helper.ts`, `src/ui/panel-palette.ts`, `src/ui/panel-words.ts`
@@ -9547,6 +9558,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `region` — `src/ui/panel-element.ts`, `src/ui/panel-words.ts`, `src/ui/view-failure.ts`
 - `regions` — `src/ui/panel-element.ts`
 - `register` — `src/ui/panel-element.ts`
+- `released` — `src/ui/panel-intent.ts`
 - `render` — `src/ui/panel-element.ts`
 - `renderInPlace` — `src/ui/panel-element.ts`
 - `renderedList` — `src/ui/panel-element.ts`
@@ -10026,6 +10038,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `build` — `tests/tools/margonem-readings.test.ts`
 - `built` — `tests/e2e/panel-boot.spec.ts`, `tests/e2e/panel-fixture.ts`,
   `tests/runtime/margometer-runtime.test.ts`
+- `button` — `tests/ui/panel-gesture.test.ts`
 - `by` — `tests/e2e/panel-probe.ts`
 - `call` — in 11 files: `tests/`
 - `callIndex` — `tests/runtime/live-fight.test.ts`
@@ -10126,7 +10139,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `document` — in 4 files: `tests/`
 - `doesFakeClock` — `tests/e2e/panel-fixture.ts`
 - `doesLoadTwice` — `tests/e2e/panel-fixture.ts`
-- `drawn` — in 5 files: `tests/`
+- `drawn` — in 6 files: `tests/`
 - `drill` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-element.test.ts`
 - `drillCase` — `tests/tools/drill-report.test.ts`
 - `edition` — `tests/tools/preview-server.test.ts`
@@ -11422,6 +11435,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `chosenFightOpenedAt` — `src/ui/panel-screen.ts`
 - `className` — `src/ui/panel-document.ts`, `src/ui/panel-element.ts`
 - `clearPixels` — `src/ui/panel-look.ts`
+- `click` — `src/ui/view-failure.ts`
 - `clientX` — `src/ui/panel-document.ts`
 - `clientY` — `src/ui/panel-document.ts`
 - `close` — `src/ui/panel-intent.ts`
@@ -13500,7 +13514,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `stdout` — in 4 files: `tests/`
 - `step` — `tests/e2e/panel-options.spec.ts`, `tests/e2e/panel-type.spec.ts`,
   `tests/ui/panel-intent.test.ts`
-- `steps` — in 4 files: `tests/`
+- `steps` — in 5 files: `tests/`
 - `storage` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-words.test.ts`
 - `store` — `tests/tools/preview-page.test.ts`, `tests/tools/preview-state.test.ts`
 - `storeRead` — `tests/fake-window.ts`
@@ -13794,8 +13808,8 @@ Each `as const` object of a module, by its keys.
 - `PANEL_INTENT` — `src/ui/panel-intent.ts`: `metric`, `side`, `openRow`, `openUnnamed`, `openPart`,
   `close`, `fold`, `move`, `resize`, `resetSize`, `saveFile`, `storage`, `typeStep`, `shelf`,
   `options`, `showKept`, `showLive`, `pin`
-- `PANEL_LISTENER` — `src/ui/view-failure.ts`: `press`, `back`, `hover`, `leave`, `grab`, `drag`,
-  `release`, `cancel`, `capture`
+- `PANEL_LISTENER` — `src/ui/view-failure.ts`: `press`, `click`, `back`, `hover`, `leave`, `grab`,
+  `drag`, `release`, `cancel`, `capture`
 - `PANEL_MARK` — `src/ui/panel-intent.ts`: `fold`, `save`, `shelf`, `options`, `screen`, `side`,
   `row`, `back`, `skill`, `source`, `kind`, `plain`, `fight`, `pin`, `unnamed`, `storage`,
   `typeStep`, `resetSize`, `helperFold`
@@ -15128,6 +15142,7 @@ suite's material.
 - `"back"` — `PANEL_LISTENER`
 - `"cancel"` — `PANEL_LISTENER`
 - `"capture"` — `PANEL_LISTENER`
+- `"click"` — `PANEL_LISTENER`
 - `"drag"` — `PANEL_LISTENER`
 - `"grab"` — `PANEL_LISTENER`
 - `"hover"` — `PANEL_LISTENER`
@@ -15736,6 +15751,7 @@ suite's material.
 - `docs/adr/0049-an-attempt-is-as-pure-as-the-call-it-is-handed.md`
 - `docs/adr/0050-a-development-build-is-dated-to-the-second.md`
 - `docs/adr/0051-a-get-works-nothing-out-and-a-figure-worked-out-is-calculated.md`
+- `docs/adr/0052-a-control-answers-a-release-over-the-mark-its-press-stated.md`
 - `docs/auras-standing.md`
 - `docs/browser-support.md`
 - `docs/captured-fights.md`

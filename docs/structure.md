@@ -120,6 +120,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0049-an-attempt-is-as-pure-as-the-call-it-is-handed.md`                                      | `attempt` is either, as `read` is, and the purity guard follows a call through a module imported whole                                                          |
 | `docs/adr/0050-a-development-build-is-dated-to-the-second.md`                                          | the preview server's build is dated to the second, so two edits saved in one minute are both offered                                                            |
 | `docs/adr/0051-a-get-works-nothing-out-and-a-figure-worked-out-is-calculated.md`                       | `calculate` joins N2 for a figure worked out, and a guard keeps arithmetic out of `get`                                                                         |
+| `docs/adr/0052-a-control-answers-a-release-over-the-mark-its-press-stated.md`                          | a control acts on the release over the mark its press stated, so a redraw between the two eats nothing                                                          |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

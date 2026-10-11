@@ -76,7 +76,11 @@ var fault = function (said) { if (faults.length < ${FAULTS_KEPT}) faults.push(sa
 var press = function (node) {
   presses += 1;
   if (presses > ${MAXIMUM_PRESSES}) throw new RangeError("the crawl ran past its stated bound");
+  // A click as the panel reads one: a press and a release on the same node (ADR 0052).
   node.dispatchEvent(new PointerEvent("pointerdown", {
+    bubbles: true, composed: true, button: 0
+  }));
+  node.dispatchEvent(new PointerEvent("pointerup", {
     bubbles: true, composed: true, button: 0
   }));
   // The panel draws once a frame, and a crawl reading after each press cannot wait for thousands

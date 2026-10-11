@@ -10,6 +10,7 @@
 
 import { expect, type PanelHandle, test } from "./panel-fixture.ts";
 import { waitForFrame } from "./panel-page.ts";
+import { readCentreOf } from "./panel-probe.ts";
 
 /** A group fight, so an opened row has several cuts to grow. */
 const GROWING = "captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json";
@@ -20,6 +21,28 @@ const AT_A_TIME = 10;
 const STEPS_MOST = 100;
 
 test.use({ recording: GROWING, fedThrough: FED_THROUGH });
+
+/**
+ * A payload landing between the press and the release, which is what a fight being read is: the
+ * row pressed is gone by the release, and the browser's own click with it (ADR 0052).
+ */
+test("a row opens though a payload drew it again between the press and the release", async ({ panel }) => {
+    const pressedNode = await panel.at("[data-row]").first().elementHandle();
+    const over = await readCentreOf(panel.page, "[data-row]");
+    await panel.page.mouse.move(over.x, over.y);
+    await panel.page.mouse.down();
+    expect(await panel.remaining(), "the fight has more to deliver").toBeGreaterThan(0);
+    await panel.feed(1);
+    await waitForFrame(panel.page);
+    expect(
+        await pressedNode?.evaluate((drawn) => drawn.isConnected),
+        "the row pressed was drawn again under the hand",
+    ).toBe(false);
+    await panel.page.mouse.up();
+
+    await expect(panel.at(".crumb-here"), "and letting go over it opened it").toHaveCount(1);
+    await panel.expectHonest("a row released after a payload");
+});
 
 test("a level open while payloads land grows with the fight under it", async ({ panel }) => {
     await panel.at(".list .row.drillable").first().click();

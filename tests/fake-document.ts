@@ -65,6 +65,15 @@ export function pressElement(host: FakeElement, type: string, target: FakeElemen
     pointAtElement(host, type, target, SOMEWHERE_DOWN);
 }
 
+/**
+ * A click, as a hand makes one: a press and a release on the same element. The panel acts on the
+ * release, where it states what the press stated (ADR 0052).
+ */
+export function clickElement(host: FakeElement, target: FakeElement): void {
+    pressElement(host, "pointerdown", target);
+    pressElement(host, "pointerup", target);
+}
+
 /** The same, with the pointer stated in full, for the one gesture that reads both coordinates. */
 export function dragOnElement(
     host: FakeElement,

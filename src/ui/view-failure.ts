@@ -13,6 +13,7 @@ import type { PanelRegion } from "./panel-words.ts";
 /** Which of the view's listeners dropped a gesture. */
 export const PANEL_LISTENER = {
     press: "press",
+    click: "click",
     back: "back",
     hover: "hover",
     leave: "leave",
