@@ -2986,9 +2986,9 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
     );
     assertExists(grip, "the panel carries its corner");
     // The corner stands where the press lands when the event says nothing more: a panel 260 wide
-    // at 40, and a body of 300 under a bar of 24 at 40.
-    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 364 });
-    dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 414 });
+    // at 40, and a body of 300 under a bar of 29 at 40.
+    dragOnElement(host, "pointerdown", grip, { clientX: 300, clientY: 369 });
+    dragOnElement(host, "pointermove", grip, { clientX: 360, clientY: 419 });
     const style = () => host.attributes.get("style") ?? "";
     assertStringIncludes(style(), "--MargoMeter-meter-width:320px", "the corner widens it");
     assertStringIncludes(style(), "--MargoMeter-meter-height:350px", "and lengthens its body");
@@ -2999,7 +2999,7 @@ Deno.test("a window is sized by its corner, told once, and held through a frame"
         "--MargoMeter-meter-width:320px",
         "a frame does not undo the hand",
     );
-    dragOnElement(host, "pointerup", grip, { clientX: 360, clientY: 414 });
+    dragOnElement(host, "pointerup", grip, { clientX: 360, clientY: 419 });
     assertEquals(
         sized,
         [{

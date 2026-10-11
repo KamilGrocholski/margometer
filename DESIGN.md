@@ -169,7 +169,7 @@ legibility.
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region                      |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at                                  |
 | `fontSize`       | `11px` · `12px` · `13px` — the three steps of type, small first                   |
-| `rowHeight`      | `18px` · `19px` · `21px`                                                          |
+| `rowHeight`      | `24px` · `25px` · `27px`                                                          |
 | `maxHeightShare` | `66vh`                                                                            |
 | `cardWidth`      | `250px` · `272px` · `296px` — a maximum, and a card is as wide as what it says    |
 | `lineHeight`     | `15px` · `16px` · `18px` — whole pixels, and what a counted card is multiplied by |
@@ -715,6 +715,9 @@ reading (ADR 0046).
   thinnest pairing and the thinnest of the signal inks are the test's to state, with the date they
   were measured (`tests/ui/panel-look.test.ts`).
 - Colour is never the only signal — _The Colour Never Alone Rule_.
+- **Every target a reader presses is 24 pixels across and down**, and the size grip alone is spaced
+  as wide instead: WCAG 2.2's 2.5.8, by ADR 0053, which `tests/e2e/panel-targets.spec.ts` measures
+  in a browser.
 - **Nothing the panel draws can be reached from a keyboard, and that is a finding.** Every control
   is a `div` or a `span` listening for a press or a hover; no element it puts in the page is
   focusable and no key is read anywhere in `src/`. What it does not do is take anything away — it

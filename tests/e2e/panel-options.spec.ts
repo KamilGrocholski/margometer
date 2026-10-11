@@ -12,9 +12,9 @@ const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"
 const PANEL_WIDTH_VARIABLE = "--MargoMeter-meter-width";
 /** Each step and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
-    { step: "small", row: 18 },
-    { step: "medium", row: 19 },
-    { step: "large", row: 21 },
+    { step: "small", row: 24 },
+    { step: "medium", row: 25 },
+    { step: "large", row: 27 },
 ];
 /** What in the options is one row of answer, and so must never fold (ADR 0015). */
 const ANSWERS = [".options-step", ".options-answer", ".options-window"];

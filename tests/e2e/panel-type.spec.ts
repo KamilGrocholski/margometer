@@ -10,9 +10,9 @@ import { expect, test } from "./panel-fixture.ts";
 const TYPE_KEY = "MargoMeter-type-step";
 /** Each step, the type it prints and the row it draws: `TYPE_TOKENS` in `src/ui/panel-look.ts`. */
 const STEPS = [
-    { step: "small", font: "11px", row: 18 },
-    { step: "medium", font: "12px", row: 19 },
-    { step: "large", font: "13px", row: 21 },
+    { step: "small", font: "11px", row: 24 },
+    { step: "medium", font: "12px", row: 25 },
+    { step: "large", font: "13px", row: 27 },
 ];
 const CONTROLS = ["[data-options]", "[data-shelf]", "[data-save]", "[data-fold]"];
 const SVG_MASK_OPENER = 'url("data:image/svg+xml,';

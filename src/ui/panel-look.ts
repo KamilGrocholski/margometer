@@ -217,6 +217,12 @@ export const CLASS = {
     sizeGrip: "size-grip",
 } as const;
 
+/**
+ * The least a target stands across and down: WCAG 2.2's 2.5.8, Target Size (Minimum), read
+ * 2026-10-11. A row of every step clears it, and so does every control (ADR 0053).
+ */
+export const TARGET_PIXELS_MINIMUM = 24;
+
 export const SPACE_PIXELS = {
     half: 2,
     small: 4,
@@ -273,7 +279,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         lineHeightPixels: 15,
         lineHeightTitlePixels: 13,
         fontSmallPixels: 10,
-        rowHeightPixels: 18,
+        rowHeightPixels: 24,
         rankWidthPixels: 22,
         pipSizePixels: 5,
         castWidthPixelsMinimum: 48,
@@ -287,7 +293,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         lineHeightPixels: 16,
         lineHeightTitlePixels: 14,
         fontSmallPixels: 11,
-        rowHeightPixels: 19,
+        rowHeightPixels: 25,
         rankWidthPixels: 24,
         pipSizePixels: 5,
         castWidthPixelsMinimum: 50,
@@ -301,7 +307,7 @@ export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
         lineHeightPixels: 18,
         lineHeightTitlePixels: 15,
         fontSmallPixels: 12,
-        rowHeightPixels: 21,
+        rowHeightPixels: 27,
         rankWidthPixels: 25,
         pipSizePixels: 6,
         castWidthPixelsMinimum: 54,
@@ -345,8 +351,6 @@ const ROWS_BY_DEFAULT = RANKING_ROWS;
 const FONT_STACK = "system-ui, sans-serif";
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH_PIXELS = 1;
-/** The air above and below a strip's word: a hair, so the strips stand a word high. */
-const STRIP_PADDING_DOWN_PIXELS = 1;
 const SIDES_TRACK_HEIGHT_PIXELS = SPACE_PIXELS.small;
 /** The side's edge on a row: `DESIGN.md`'s two-pixel rule. */
 const ROW_SIDE_WIDTH_PIXELS = 2;
@@ -560,16 +564,19 @@ export function composeSizedPanelStyle(): string {
 }
 
 /**
- * How tall a window's bar stands: its line, the rules its controls carry over and under it — a
- * control is the tallest thing on the bar — the air over and under that, and the bar's top rule.
+ * How tall a window's bar stands: a control, which is the tallest thing on the bar, the air over
+ * and under it, and the bar's top rule.
  */
 export function calculateBarHeight(tokens: TypeTokens): number {
-    return calculateControlHeightPixels(tokens) + 2 * SPACE_PIXELS.small + RULE_WIDTH_PIXELS;
+    return calculateControlHeightPixels(tokens) + 2 * SPACE_PIXELS.half + RULE_WIDTH_PIXELS;
 }
 
-/** A bar control's box: its line and its two rules. Every control is this tall. */
+/**
+ * A bar control's box, as wide as it is tall: its line and its two rules, and never under a
+ * target's least. Every control is this size, so the four stand as a row of equals (ADR 0036).
+ */
 export function calculateControlHeightPixels(tokens: TypeTokens): number {
-    return tokens.lineHeightTitlePixels + 2 * RULE_WIDTH_PIXELS;
+    return Math.max(tokens.lineHeightTitlePixels + 2 * RULE_WIDTH_PIXELS, TARGET_PIXELS_MINIMUM);
 }
 
 /** The class a bar control wears for the icon it draws. */
@@ -610,7 +617,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `max-height:${ceiling};}` +
         `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
-        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
+        `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}wide);` +
         `font:${composeFontTitle(tokens)};letter-spacing:${TITLE_LETTER_SPACING_EM}em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
         // One line whatever the version says: no guard here lays anything out, so a wrap is
@@ -632,9 +639,8 @@ function composeFrameRules(tokens: TypeTokens): string {
         // the control's text at no size, for whoever copies it.
         `.${CLASS.control}{display:inline-flex;align-items:center;justify-content:center;` +
         `flex:none;box-sizing:border-box;padding:0;font-size:0;` +
-        `width:${calculateControlWidthPixels(tokens)}px;height:${
-            calculateControlHeightPixels(tokens)
-        }px;` +
+        `width:${calculateControlHeightPixels(tokens)}px;` +
+        `height:${calculateControlHeightPixels(tokens)}px;` +
         `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
@@ -667,22 +673,15 @@ function composeFrameRules(tokens: TypeTokens): string {
 }
 
 /**
- * A bar control is this wide, whatever its mark: a little wider than tall, so the widest mark,
- * `—`, keeps air at both sides, and one width for all so the four stand as a row of equals
- * (ADR 0036).
- */
-function calculateControlWidthPixels(tokens: TypeTokens): number {
-    return calculateControlHeightPixels(tokens) + SPACE_PIXELS.small;
-}
-
-/**
  * The icon a bar control draws: its ink is a mask over the control's own colour, so it follows the
  * hover as a glyph did. ⚠️ **Spelled prefixed too**: below `docs/browser-support.md`'s floor for
  * the bare property an unmasked icon is a solid square, which is a defect and not a look.
  */
 function composeBarIconRules(tokens: TypeTokens): string {
-    const size = calculateControlHeightPixels(tokens) - 2 * RULE_WIDTH_PIXELS -
-        2 * BAR_ICON_INSET_PIXELS;
+    // As tall as the title's line less its air, so an icon grows with the type its bar is set
+    // in, and even: the control's inside is, and an odd icon in it stands on a half pixel.
+    const lined = tokens.lineHeightTitlePixels - 2 * BAR_ICON_INSET_PIXELS;
+    const size = lined + lined % 2;
     let rules = `.${CLASS.control}::before{content:"";flex:none;` +
         `width:${size}px;height:${size}px;background:currentColor;}`;
     for (const icon of BAR_ICONS) {
@@ -772,7 +771,7 @@ function composeRegionRules(tokens: TypeTokens): string {
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
         `.${CLASS.stripsGap}{flex:1;}` +
         `.${CLASS.strip}{white-space:nowrap;` +
-        `padding:${STRIP_PADDING_DOWN_PIXELS}px var(${VARIABLE_PREFIX}small);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);line-height:var(${VARIABLE_PREFIX}row-height);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
         `${NO_SELECTION}}` +
@@ -780,7 +779,8 @@ function composeRegionRules(tokens: TypeTokens): string {
         `background:var(${VARIABLE_PREFIX}raised);}` +
         `.${CLASS.crumb}{display:flex;gap:var(${VARIABLE_PREFIX}wide);align-items:baseline;` +
         `padding:${region};padding-bottom:0;}` +
-        `.${CLASS.crumbBack}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.crumbBack}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
+        `line-height:var(${VARIABLE_PREFIX}row-height);}` +
         `.${CLASS.crumbBack}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.crumbHere}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
         `white-space:nowrap;}`;
@@ -824,7 +824,7 @@ function composeOptionsRules(tokens: TypeTokens): string {
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
         `background:var(${VARIABLE_PREFIX}raised);color:var(${VARIABLE_PREFIX}text);` +
         `font-size:${tokens.fontSmallPixels}px;` +
-        `line-height:calc(var(${VARIABLE_PREFIX}row-height) - var(${VARIABLE_PREFIX}small));` +
+        `line-height:calc(var(${VARIABLE_PREFIX}row-height) - ${2 * RULE_WIDTH_PIXELS}px);` +
         `cursor:pointer;${NO_SELECTION}}` +
         `.${CLASS.optionsAnswer}{display:flex;align-items:center;` +
         `height:var(${VARIABLE_PREFIX}row-height);margin-top:var(${VARIABLE_PREFIX}half);` +
@@ -978,7 +978,10 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.rowPin}{position:relative;cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
         `width:var(${VARIABLE_PREFIX}row-height);flex:none;align-self:stretch;display:flex;` +
         `align-items:center;justify-content:center;` +
-        `margin-right:var(${VARIABLE_PREFIX}small);}` +
+        // The row's whole height, the drop over its contents included: a pin a pixel short of
+        // the row is a target under the least, standing inside another (ADR 0053).
+        `margin:-${ROW_INK_DROP_PIXELS}px var(${VARIABLE_PREFIX}small) 0 0;` +
+        `padding-top:${ROW_INK_DROP_PIXELS}px;}` +
         `.${CLASS.rowPin}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowPin}.${CLASS.rowPinSet}{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;flex:none;white-space:nowrap;` +
@@ -1185,7 +1188,7 @@ function composeHelperRules(tokens: TypeTokens): string {
         `color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.helperBar}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
-        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
+        `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}wide);` +
         `font:${composeFontTitle(tokens)};letter-spacing:${TITLE_LETTER_SPACING_EM}em;` +
         `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
         `background:var(${VARIABLE_PREFIX}raised);` +

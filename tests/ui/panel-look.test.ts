@@ -10,6 +10,7 @@ import {
     assertArrayIncludes,
     assertEquals,
     assertExists,
+    assertGreaterOrEqual,
     AssertionError,
     assertNotStrictEquals,
     assertStrictEquals,
@@ -34,6 +35,7 @@ import {
     SIZE_VARIABLES,
     SPACE_PIXELS,
     SURFACE,
+    TARGET_PIXELS_MINIMUM,
     TEXT,
     TYPE_TOKENS,
 } from "#/src/ui/panel-look.ts";
@@ -132,9 +134,9 @@ const DEVELOP_SPELLINGS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * ADR 0013, 0014, 0015, 0033, 0036, 0046 and 0048: the rules the options, the sizing, the fight's
- * line, the card in two columns, the bar's controls and the caveat letter, the shelf's outcome,
- * and the inks a bar or an opacity held under the floor move.
+ * ADR 0013, 0014, 0015, 0033, 0036, 0046, 0048 and 0053: the rules the options, the sizing, the
+ * fight's line, the card in two columns, the bar's controls and the caveat letter, the shelf's
+ * outcome, the inks a bar or an opacity held under the floor, and a target's least size move.
  */
 const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     // The options control stands first on the bar and leads the rest to its far end.
@@ -148,8 +150,8 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     },
     // A window sized by its corner: its width and its body's height are the reader's, a sized
     // panel stands past the share of the window, and its list takes the room it is given.
-    { develop: ":host", here: ":host", moved: ["max-height"] },
-    { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width"] },
+    { develop: ":host", here: ":host", moved: ["max-height", "--MargoMeter-row-height"] },
+    { develop: ".MargoMeter-titlebar", here: ".MargoMeter-titlebar", moved: ["width", "padding"] },
     { develop: ".meter", here: ".meter", moved: ["width", "position", "min-height"] },
     { develop: ".meter>.list", here: ".meter>.list", moved: ["flex", "min-height"] },
     { develop: ".MargoMeter-card", here: ".MargoMeter-card", moved: ["right"] },
@@ -251,6 +253,13 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: ".row-turn", here: ".row-turn", moved: ["color"] },
     { develop: ".row-share", here: ".row-share", moved: ["color"] },
     { develop: null, here: ".helper-holding .row-share" },
+    // Every target 24 pixels across and down: the row, and what a reader presses that is not one
+    // (ADR 0053). The row's height, the bar's control and the bar's padding are named above,
+    // where a rule can be named once.
+    { develop: ".helper-bar", here: ".helper-bar", moved: ["padding"] },
+    { develop: ".strip", here: ".strip", moved: ["padding", "line-height"] },
+    { develop: ".crumb-back", here: ".crumb-back", moved: ["line-height"] },
+    { develop: ".row-pin", here: ".row-pin", moved: ["margin-right", "margin", "padding-top"] },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -1742,6 +1751,30 @@ Deno.test("every control on a bar is one box with its icon centred, at every ste
                 getDeclaration(body, "-webkit-mask-image"),
                 mask,
                 `${step}: and ${drawn} is drawn where only the prefix is read`,
+            );
+        }
+    }
+});
+
+/**
+ * WCAG 2.2's 2.5.8 as far as the sheet states it: a row and a bar control are a target's least or
+ * more. Everything else a reader presses is laid out by a browser, and
+ * `tests/e2e/panel-targets.spec.ts` measures it there (ADR 0053).
+ */
+Deno.test("a row and a bar control are each a target's least or more, at every step", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        assertGreaterOrEqual(
+            getPixels(readSheetVariable(sheet, "row-height")),
+            TARGET_PIXELS_MINIMUM,
+            `${step}: a row is as tall as a target`,
+        );
+        const control = getRuleBody(sheet, `.${CLASS.control}`);
+        for (const axis of ["width", "height"]) {
+            assertGreaterOrEqual(
+                getPixels(getDeclaration(control, axis) ?? ""),
+                TARGET_PIXELS_MINIMUM,
+                `${step}: a bar control's ${axis} is a target's`,
             );
         }
     }

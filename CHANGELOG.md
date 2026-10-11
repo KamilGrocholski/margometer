@@ -36,6 +36,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Wiersze, zakładki i przyciski panelu mają co najmniej 24 piksele wysokości, więc
+  łatwiej w nie trafić, a panel jest przez to wyższy.
 - **Zmiana** — Wiersze, zakładki i przyciski panelu działają po puszczeniu przycisku myszy, jak
   zwykłe kliknięcie, więc odjechanie kursorem przed puszczeniem odwołuje wciśnięcie.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie skleja się już w panelu z walką
