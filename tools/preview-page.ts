@@ -141,7 +141,7 @@ const PLAY_SECONDS = 12;
 const PLAY_STEP_MILLISECONDS_MINIMUM = 90;
 const PLAY_STEP_MILLISECONDS_MAXIMUM = 900;
 /** The game's own page colour, read off v0.10.1's picture of the panel in the game: its ground. */
-const MARGONEM_PAGE_COLOUR = "#14171c";
+export const MARGONEM_PAGE_COLOUR = "#14171c";
 /** Counted down from the panel's own layer, so the harness never covers the thing under test. */
 const PREVIEW_STRIP_LAYER = Number(PLACE.layer) - 1;
 const PREVIEW_TIPS_LAYER = PREVIEW_STRIP_LAYER - 1;

@@ -32,7 +32,7 @@ import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
 import { CONFIGURATION_FILE, readUserscriptFiles, USERSCRIPT_NAME } from "./build-userscript.ts";
 import { PanelShotError } from "./margometer-tool-error.ts";
 import { BUNDLE_SOURCE_PATHS } from "./preview-server.ts";
-import { WINDOWS_ACROSS_PIXELS } from "./preview-page.ts";
+import { MARGONEM_PAGE_COLOUR, WINDOWS_ACROSS_PIXELS } from "./preview-page.ts";
 import { LANDING_RECORDING, PREVIEW_SITE_WORDS, readSiteVersion } from "./preview-site.ts";
 import { formatRecordingName } from "./recorded-material.ts";
 
@@ -233,7 +233,8 @@ export function isSameBesideVersion(committed: string, worked: string): boolean 
 }
 
 /**
- * The page a picture is taken of: the fight fed through `fedThrough`, both windows in the corner.
+ * The page a picture is taken of: the fight fed through `fedThrough`, both windows in the corner,
+ * over the game's own ground.
  */
 export function composeShotPage(calls: readonly unknown[], fedThrough: number): string {
     assert(fedThrough <= calls.length, "a picture is of a moment the recording reaches");
@@ -244,7 +245,8 @@ export function composeShotPage(calls: readonly unknown[], fedThrough: number): 
         doesLoadTwice: false,
         place: PREVIEW_SITE_WORDS.placeName,
         userscriptName: USERSCRIPT_NAME,
-        beforeBundle: `<script>${composeWindowsSeeded()}</script>\n`,
+        beforeBundle: `<style>html, body { background: ${MARGONEM_PAGE_COLOUR}; }</style>
+<script>${composeWindowsSeeded()}</script>\n`,
     });
     assert(html.length > 0, "and it is a page");
     return html;
