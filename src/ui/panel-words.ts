@@ -179,7 +179,6 @@ export const PANEL_WORDS = {
     sizeOwn: "własny",
     sizeDefault: "domyślny",
     sizeReset: "przywróć",
-    resizeGrip: "Przeciągnij, żeby zmienić rozmiar",
     ourSide: "My",
     theirSide: "Oni",
     withoutSide: "Bez strony",
@@ -210,7 +209,6 @@ export const PANEL_WORDS = {
     restNote: "Za dużo pozycji, żeby pokazać każdą — te są tu zsumowane.",
     share: "Udział w walce",
     shareOfFigure: "Udział w tej liczbie",
-    drag: "Przeciągnij, żeby przesunąć",
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
     saveFight: "Zapisz tę walkę do pliku: policzone liczby i surowy zapis prosto z gry",
@@ -739,7 +737,6 @@ const HUNDRED = 100;
 /** The window beside the panel: the turn in hand, what is being made ready, and who holds whom. */
 export const HELPER_WORDS = {
     title: "Pomocnik",
-    drag: PANEL_WORDS.drag,
     collapse: "Zwiń Pomocnika",
     expand: "Rozwiń Pomocnika",
     now: "Teraz",

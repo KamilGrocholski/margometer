@@ -22,6 +22,8 @@ const OPENS_NOTE = "LPM — rozwiń wiersz";
  */
 const BACK_NOTE = "LPM tutaj — wróć o krok";
 const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
+/** What the shelf's control says on its own card (ADR 0056). */
+const SHELF_CONTROL_NAME = "Pokaż albo schowaj zapisane walki";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
 /**
@@ -186,9 +188,11 @@ test("a redraw that drops the row takes its card with it", async ({ panel }) => 
 
     await panel.at("[data-shelf]").click();
 
-    await expect(panel.at(CARD_OPEN), "the shelf drew rows the card knew nothing of").toHaveCount(
-        0,
-    );
+    // The pointer stays on the control, whose own card is the one left open (ADR 0056).
+    await expect(
+        panel.at(`${CARD_OPEN} .card-name`),
+        "the shelf drew rows the card knew nothing of, so only the control's card stands",
+    ).toHaveText(SHELF_CONTROL_NAME);
 });
 
 /**
@@ -325,7 +329,7 @@ test("the card stands on whichever side of the panel it fits", async ({ panel })
 /**
  * The way out of a level, said where a level is open and nowhere else. Held in a browser because
  * both halves are about a node under a real pointer: that the mark reaches the card from the way
- * back, and that the name beside it is left alone.
+ * back, and that the name beside it opens a card of its own that names no gesture.
  */
 test("the way back says both gestures, and only where a level is open", async ({ panel }) => {
     await expect(panel.at(".crumb-back"), "the ranking draws no way back").toHaveCount(0);
@@ -344,8 +348,14 @@ test("the way back says both gestures, and only where a level is open", async ({
     // returns its `textContent` from `innerText`, so a hidden card goes on reading exactly like
     // the one that was open a moment ago.
     await panel.at(".crumb-here").hover();
-    await expect(panel.at(CARD_OPEN), "the name beside it carries no card of its own")
-        .toHaveCount(0);
+    const named = await panel.at(".crumb-here").innerText();
+    await expect(panel.at(`${CARD_OPEN} .card-name`), "the name beside it is named in full")
+        .toHaveText(named);
+    const here = await panel.at(CARD).innerText();
+    expect(here, "and says neither gesture, because a press on it does nothing").not.toContain(
+        BACK_NOTE,
+    );
+    expect(here, "nor the one from anywhere").not.toContain(BACK_ANYWHERE_NOTE);
 });
 
 /**

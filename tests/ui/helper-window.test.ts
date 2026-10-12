@@ -350,6 +350,29 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
     );
 });
 
+Deno.test("the window's fold names itself on a card, opened beside the window", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    const words = [false, true].map((isCollapsed) => {
+        panel.renderHelper(presentHelper([], [], ROSTER, OURS, composeTurn(null)), isCollapsed);
+        const control = getElementsWithin(getWindow(host))
+            .find((descendant) => descendant.attributes.has("data-helper-fold"));
+        assertExists(control, "the window's bar carries its fold");
+        assert(
+            control.attributes.get("data-card")?.startsWith("helper:"),
+            "under a key the card places beside this window",
+        );
+        pointAtElement(host, "pointermove", control, 20);
+        return readCard(host).name;
+    });
+    assertEquals(
+        words,
+        [[HELPER_WORDS.collapse], [HELPER_WORDS.expand]],
+        "in the window's own words, whichever way it would go",
+    );
+});
+
 Deno.test("a shout is drawn under whoever is holding it, and the turns are the held's", () => {
     // ⚠️ Inverted on 2026-09-09: the held character led and the holder hung under them as a
     // sentence. `develop ADR 0067` carries the fold and why it is not the alternative develop ADR

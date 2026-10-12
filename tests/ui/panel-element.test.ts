@@ -79,6 +79,7 @@ import {
     getWordsForNothing,
     getWordsForNoun,
     getWordsForOutcome,
+    getWordsForPin,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForProfession,
@@ -2002,6 +2003,10 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     panel.render({ ...composeShownScreen(reading), opened: drill });
     const back = getElementsWithin(host).find((drawn) => drawn.className === "crumb-back");
     assertExists(back, "an opened row has a way back");
+    const here = getElementsWithin(host).find((drawn) => drawn.className === "crumb-here");
+    assertExists(here, "and says where the reader is");
+    pointAtElement(host, "pointermove", here, 20);
+    assertEquals(readCard(host).name, [here.textContent], "in full on a card, wherever it is cut");
     clickElement(host, back);
     assertEquals(
         pressed.at(-1),
@@ -2158,11 +2163,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     const control = controls().find((drawn) => drawn.attributes.has("data-fold"));
     assertExists(control, "an unfolded panel carries the control that folds it");
     assertStrictEquals(control.textContent, "\u2014", "which says what a press would do");
-    assertStrictEquals(
-        control.attributes.get("title"),
-        PANEL_WORDS.collapse,
-        "in the reader's words",
-    );
+    pointAtElement(host, "pointermove", control, 20);
+    assertEquals(readCard(host).name, [PANEL_WORDS.collapse], "in the reader's words, on a card");
     assert(
         getElementsWithin(host).some((drawn) => drawn.className.startsWith("row ")),
         "a ranking",
@@ -2191,11 +2193,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         "+",
         "which now offers the way back rather than the way in",
     );
-    assertStrictEquals(
-        back.attributes.get("title"),
-        PANEL_WORDS.expand,
-        "and says so in the same words",
-    );
+    pointAtElement(host, "pointermove", back, 20);
+    assertEquals(readCard(host).name, [PANEL_WORDS.expand], "and says so in the same words");
     const bar = getElementsWithin(host).find((drawn) => drawn.className === CLASS.title);
     assert(bar?.textContent.endsWith(PANEL_WORDS.title), "the name standing on");
 });
@@ -2744,6 +2743,51 @@ Deno.test("a kept fight that will not read keeps its row and its pin, and opens 
         [`${DEFECT_MARK}${PANEL_WORDS.keptUnreadNote}`],
         "and says that it will not open",
     );
+});
+
+Deno.test("a pin says on a card what a press on it would do, set and unset", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const unpinned = composeKeptShelfRow(7, null, []);
+    const pinned = { ...composeKeptShelfRow(8, null, []), isPinned: true };
+    panel.render({
+        ...composeShownScreen(readFight()),
+        shelf: [pinned, unpinned],
+        isOnShelf: true,
+    });
+    const host = panel.element as FakeElement;
+    const pins = getElementsWithin(host).filter((drawn) => drawn.attributes.has("data-pin"));
+    assertStrictEquals(pins.length, 2, "both rows carry a pin");
+    const named = pins.map((pin) => {
+        pointAtElement(host, "pointermove", pin, 300);
+        return readCard(host).name;
+    });
+    assertEquals(
+        named,
+        [[getWordsForPin(true)], [getWordsForPin(false)]],
+        "the set pin offers to let go, and the other to hold",
+    );
+});
+
+Deno.test("nothing the panel draws opens the browser's own tooltip, on any screen", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    const shown = composeShownScreen(reading);
+    const pinned = { ...composeKeptShelfRow(8, null, []), isPinned: true };
+    const screens: ShownScreen[] = [
+        shown,
+        { ...shown, opened: drill },
+        { ...shown, shelf: [pinned, composeKeptShelfRow(7, null, [])], isOnShelf: true },
+        { ...shown, options: { storage: STORAGE_CHOICE.session, answers: [] } },
+        { ...shown, isMeterCollapsed: true },
+    ];
+    const titled = screens.map((screen) => {
+        panel.render(screen);
+        return getElementsWithin(host).filter((drawn) => drawn.attributes.has("title")).length;
+    });
+    assertEquals(titled, [0, 0, 0, 0, 0], "a hint is the panel's card, and never the browser's");
 });
 
 /**

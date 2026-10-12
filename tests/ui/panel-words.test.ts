@@ -211,7 +211,6 @@ const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
     sizeOwn: ENDING.bare,
     sizeDefault: ENDING.bare,
     sizeReset: ENDING.bare,
-    resizeGrip: ENDING.bare,
     ourSide: ENDING.bare,
     theirSide: ENDING.bare,
     withoutSide: ENDING.bare,
@@ -234,7 +233,6 @@ const PANEL_WORD_ENDINGS: Record<keyof typeof PANEL_WORDS, Ending> = {
     restNote: ENDING.fullStop,
     share: ENDING.bare,
     shareOfFigure: ENDING.bare,
-    drag: ENDING.bare,
     collapse: ENDING.bare,
     expand: ENDING.bare,
     saveFight: ENDING.bare,
@@ -265,7 +263,6 @@ const CARD_WORD_ENDINGS: Record<keyof typeof CARD_WORDS, Ending> = {
 };
 const HELPER_WORD_ENDINGS: Record<keyof typeof HELPER_WORDS, Ending> = {
     title: ENDING.bare,
-    drag: ENDING.bare,
     collapse: ENDING.bare,
     expand: ENDING.bare,
     now: ENDING.bare,

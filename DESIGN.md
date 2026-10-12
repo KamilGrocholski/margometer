@@ -528,6 +528,11 @@ Neither window reads where the other is standing. **develop ADR 0090**, **develo
 vertical position is clamped between the inset and the viewport's foot, and where the two cross the
 top edge wins: a window hanging off the bottom beats one whose first line is off the top.
 
+**Every hint the panel gives is a card, and none is the browser's own tooltip.** A control, a pin
+and the crumb's own name each open a card naming them, because a `title` is drawn in the browser's
+face and ink, at a moment the browser picks. The drag hint is the grip itself, and needs no card.
+**ADR 0056.**
+
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
 the rule and the air each run of them spends over itself. A line that wraps is counted at a floor of

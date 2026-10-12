@@ -599,6 +599,24 @@ type CardCompose = () => CardContent;
 type CardLookup = (key: string) => CardCompose | null;
 
 /**
+ * The cards no draw composes: a control and a pin say the same whatever the fight, and the bars they
+ * stand on are drawn outside the register a draw resets. The helper's open with `HELPER_CARD_PREFIX`,
+ * which is what stands a card beside that window.
+ */
+const STANDING_CARD = {
+    options: "bar:options",
+    shelf: "bar:shelf",
+    save: "bar:save",
+    fold: "bar:fold",
+    unfold: "bar:unfold",
+    helperFold: "helper:bar:fold",
+    helperUnfold: "helper:bar:unfold",
+    pinSet: "pin:set",
+    pinUnset: "pin:unset",
+} as const;
+type StandingCard = VocabularyWord<typeof STANDING_CARD>;
+
+/**
  * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
  * off the draw order: a fight reorders its ranking between payloads, and a counted key would let
  * an open card go on describing whichever row now stands in that place.
@@ -697,9 +715,9 @@ export const CARD_ATTRIBUTE = "data-card";
 /** Every ranking row opens its person, on every screen (`docs/drill-levels.md`). */
 const DOES_RANKING_ROW_OPEN = true;
 /**
- * The one card key no row states, so it can be a constant where every other is composed off what
- * the row stands for: one crumb is drawn at a time and its card says the same two things whatever
- * level it leaves.
+ * A card key no row states, so it can be a constant where a row's is composed off what the row
+ * stands for: one crumb is drawn at a time and its card says the same two things whatever level it
+ * leaves.
  */
 const CRUMB_CARD_KEY = "crumb:back";
 /** The fight's line: one is drawn at a time, and its card is the fight on screen. */
@@ -716,7 +734,19 @@ const HELPER_NOW_CARD_KEY = `${HELPER_CARD_PREFIX}now`;
 const HELPER_CHARGE_CARD_PREFIX = `${HELPER_CARD_PREFIX}charge:`;
 const HELPER_HOLDING_CARD_PREFIX = `${HELPER_CARD_PREFIX}holding:`;
 const HELPER_HELD_CARD_PREFIX = `${HELPER_CARD_PREFIX}held:`;
-const TITLE_ATTRIBUTE = "title";
+const STANDING_CARD_WORDS: ReadonlyMap<StandingCard, string> = new Map([
+    [STANDING_CARD.options, PANEL_WORDS.openOptions],
+    [STANDING_CARD.shelf, PANEL_WORDS.openFights],
+    [STANDING_CARD.save, PANEL_WORDS.saveFight],
+    [STANDING_CARD.fold, PANEL_WORDS.collapse],
+    [STANDING_CARD.unfold, PANEL_WORDS.expand],
+    [STANDING_CARD.helperFold, HELPER_WORDS.collapse],
+    [STANDING_CARD.helperUnfold, HELPER_WORDS.expand],
+    [STANDING_CARD.pinSet, getWordsForPin(true)],
+    [STANDING_CARD.pinUnset, getWordsForPin(false)],
+]);
+/** The crumb's own name, in full where the crumb had to cut it. */
+const CRUMB_HERE_CARD_KEY = "crumb:here";
 /**
  * A bar control's text, which is never shown: the sheet draws each control's icon instead (ADR
  * 0036), so no face has to carry these and a copy of the bar still reads them.
@@ -946,6 +976,10 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     };
     const meterRegister = createCardRegister();
     const helperRegister = createCardRegister();
+    const standingRegister = createCardRegister();
+    for (const [key, words] of STANDING_CARD_WORDS) {
+        standingRegister.add(key, () => presentNamedCard(words));
+    }
     let drawing: ListDrawing;
     // Draw the one region that scrolls, keeping the reader's position under the place it is for.
     {
@@ -1004,7 +1038,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     }
     let meterDrag: PanelDragHandle | null = null;
     let helperDrag: PanelDragHandle | null = null;
-    const lookupCard = composeCardLookup(meterRegister, helperRegister);
+    const lookupCard = composeCardLookup(meterRegister, helperRegister, standingRegister);
     const getTypeStep = () => typeStep;
     let cardHandle: CardHandle;
     // Place the card against wherever its own window stands **now**, not where it was wired.
@@ -1348,6 +1382,11 @@ function readCardKey(target: PanelTarget | null): string | null {
     if (target === null) return null;
     if (typeof target.getAttribute !== "function") return null;
     return target.getAttribute(CARD_ATTRIBUTE);
+}
+
+/** A card that only names something: a control, a pin, or a crumb cut short. */
+function presentNamedCard(name: string): CardContent {
+    return { name, subtitle: null, ending: null, groups: [] };
 }
 
 /** Draw the list while no fight stands: kept unread, unread, or none yet. */
@@ -1747,7 +1786,10 @@ function renderListLevel(
                     `${CLASS.rowPin}${set}`,
                     fight.isPinned ? PIN_MARK : UNPINNED_MARK,
                 );
-                pin.setAttribute(TITLE_ATTRIBUTE, getWordsForPin(fight.isPinned));
+                pin.setAttribute(
+                    CARD_ATTRIBUTE,
+                    fight.isPinned ? STANDING_CARD.pinSet : STANDING_CARD.pinUnset,
+                );
                 // The moment and never the word a live row is pressed by: what a
                 // pin acts on is a fight the shelf holds, and the one going on now
                 // is on the shelf only while it is also kept.
@@ -2335,7 +2377,6 @@ function renderSlot(document: PanelDocument): PanelElement {
 function renderSizeGrip(document: PanelDocument, window: PanelWindow): PanelElement {
     const grip = renderElement(document, "div", CLASS.sizeGrip);
     grip.setAttribute(SIZE_GRIP_ATTRIBUTE, window);
-    grip.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.resizeGrip);
     return grip;
 }
 
@@ -2360,11 +2401,16 @@ function renderRegion(
 }
 
 /**
- * One card over two windows, so one reading over two registers. The panel's is asked first: it is
- * the one a fight refills every few seconds, and no key is stated by both.
+ * One card over two windows, so one reading over the registers. The panel's is asked first: it is
+ * the one a fight refills every few seconds, and no key is stated by two.
  */
-function composeCardLookup(meterRegister: CardRegister, helperRegister: CardRegister): CardLookup {
-    return (key: string) => meterRegister.lookup(key) ?? helperRegister.lookup(key);
+function composeCardLookup(
+    meterRegister: CardRegister,
+    helperRegister: CardRegister,
+    standingRegister: CardRegister,
+): CardLookup {
+    return (key: string) =>
+        meterRegister.lookup(key) ?? helperRegister.lookup(key) ?? standingRegister.lookup(key);
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
@@ -2375,26 +2421,31 @@ function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelEl
         CLASS.helperBar,
         `${GRIP_MARK}${HELPER_WORDS.title}`,
     );
-    bar.setAttribute(TITLE_ATTRIBUTE, HELPER_WORDS.drag);
     setGripMark(bar, PANEL_WINDOW.helper);
     bar.append(renderBarControl(document, {
         className: CLASS.control,
         icon: isCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
         mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
         attribute: PANEL_MARK.helperFold,
-        words: isCollapsed ? HELPER_WORDS.expand : HELPER_WORDS.collapse,
+        card: isCollapsed ? STANDING_CARD.helperUnfold : STANDING_CARD.helperFold,
     }));
     return bar;
 }
 
 function renderBarControl(
     document: PanelDocument,
-    stated: { className: string; icon: BarIcon; mark: string; attribute: string; words: string },
+    stated: {
+        className: string;
+        icon: BarIcon;
+        mark: string;
+        attribute: string;
+        card: StandingCard;
+    },
 ): PanelElement {
     const className = `${stated.className} ${composeBarIconClass(stated.icon)}`;
     const control = renderText(document, "span", className, stated.mark);
     control.setAttribute(stated.attribute, "");
-    control.setAttribute(TITLE_ATTRIBUTE, stated.words);
+    control.setAttribute(CARD_ATTRIBUTE, stated.card);
     return control;
 }
 
@@ -2493,7 +2544,6 @@ function renderFold(
             // Set before the controls are appended, not after: `textContent` replaces every child,
             // so the other order would wipe them.
             bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
-            bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
             setGripMark(bar, PANEL_WINDOW.meter);
             // First of the controls, so the three a reader already knew keep their places: the save
             // comes and goes, and a control standing after it would walk along the bar with it.
@@ -2502,14 +2552,14 @@ function renderFold(
                 icon: BAR_ICON.options,
                 mark: OPTIONS_MARK,
                 attribute: PANEL_MARK.options,
-                words: PANEL_WORDS.openOptions,
+                card: STANDING_CARD.options,
             }));
             bar.append(renderBarControl(document, {
                 className: CLASS.control,
                 icon: BAR_ICON.shelf,
                 mark: SHELF_MARK,
                 attribute: PANEL_MARK.shelf,
-                words: PANEL_WORDS.openFights,
+                card: STANDING_CARD.shelf,
             }));
             if (hasFightToSave) {
                 bar.append(renderBarControl(document, {
@@ -2517,7 +2567,7 @@ function renderFold(
                     icon: BAR_ICON.save,
                     mark: SAVE_MARK,
                     attribute: PANEL_MARK.save,
-                    words: PANEL_WORDS.saveFight,
+                    card: STANDING_CARD.save,
                 }));
             }
             bar.append(renderBarControl(document, {
@@ -2525,7 +2575,7 @@ function renderFold(
                 icon: isMeterCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
                 mark: isMeterCollapsed ? UNFOLD_MARK : FOLD_MARK,
                 attribute: PANEL_MARK.fold,
-                words: isMeterCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,
+                card: isMeterCollapsed ? STANDING_CARD.unfold : STANDING_CARD.fold,
             }));
             return bar;
         },
@@ -2605,7 +2655,8 @@ function renderCrumb(
     register.add(CRUMB_CARD_KEY, () => presentCrumbCard(leaving));
     back.setAttribute(CARD_ATTRIBUTE, CRUMB_CARD_KEY);
     const here = renderText(document, "span", CLASS.crumbHere, stated.said);
-    here.setAttribute(TITLE_ATTRIBUTE, here.textContent);
+    register.add(CRUMB_HERE_CARD_KEY, () => presentNamedCard(stated.said));
+    here.setAttribute(CARD_ATTRIBUTE, CRUMB_HERE_CARD_KEY);
     crumb.append(back);
     crumb.append(here);
     return crumb;
