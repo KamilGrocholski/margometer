@@ -599,20 +599,14 @@ type CardCompose = () => CardContent;
 type CardLookup = (key: string) => CardCompose | null;
 
 /**
- * The cards no draw composes: a control and a pin say the same whatever the fight, and the bars they
- * stand on are drawn outside the register a draw resets. The helper's open with `HELPER_CARD_PREFIX`,
- * which is what stands a card beside that window.
+ * The cards no draw composes: these controls say the same whatever the fight and whatever the panel
+ * is doing. A control whose press changes what it would do next — a fold, a pin — is keyed by the
+ * control and registered by the draw, with the words of the state drawn (ADR 0056).
  */
 const STANDING_CARD = {
     options: "bar:options",
     shelf: "bar:shelf",
     save: "bar:save",
-    fold: "bar:fold",
-    unfold: "bar:unfold",
-    helperFold: "helper:bar:fold",
-    helperUnfold: "helper:bar:unfold",
-    pinSet: "pin:set",
-    pinUnset: "pin:unset",
 } as const;
 type StandingCard = VocabularyWord<typeof STANDING_CARD>;
 
@@ -738,13 +732,15 @@ const STANDING_CARD_WORDS: ReadonlyMap<StandingCard, string> = new Map([
     [STANDING_CARD.options, PANEL_WORDS.openOptions],
     [STANDING_CARD.shelf, PANEL_WORDS.openFights],
     [STANDING_CARD.save, PANEL_WORDS.saveFight],
-    [STANDING_CARD.fold, PANEL_WORDS.collapse],
-    [STANDING_CARD.unfold, PANEL_WORDS.expand],
-    [STANDING_CARD.helperFold, HELPER_WORDS.collapse],
-    [STANDING_CARD.helperUnfold, HELPER_WORDS.expand],
-    [STANDING_CARD.pinSet, getWordsForPin(true)],
-    [STANDING_CARD.pinUnset, getWordsForPin(false)],
 ]);
+/**
+ * ⚠️ **Keyed by the control and never by what it says.** A press redraws it under a pointer that
+ * has not moved, so no move asks for its card again, and the draw puts up the card under the key
+ * already open: a key naming the state would offer the press just made.
+ */
+const FOLD_CARD_KEY = "bar:fold";
+const HELPER_FOLD_CARD_KEY = `${HELPER_CARD_PREFIX}bar:fold`;
+const PIN_CARD_PREFIX = "pin:";
 /** The crumb's own name, in full where the crumb had to cut it. */
 const CRUMB_HERE_CARD_KEY = "crumb:here";
 /**
@@ -1096,7 +1092,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
     // The window beside the panel, as one element under the same root — `SECURITY.md`'s guest
     // rule puts everything a reader meets inside one shadow root under one name.
     const helperWindow = renderElement(document, "div", CLASS.helper);
-    let helperBar = renderHelperBar(document, false);
+    let helperBar = renderHelperBar(document, helperRegister, false);
     let helperBody = renderSlot(document);
     const helperGrip = renderSizeGrip(document, PANEL_WINDOW.helper);
     helperWindow.append(helperBar);
@@ -1227,7 +1223,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         report.collect(() => {
             executeRegionStep(report, PANEL_REGION.list, () => drawing.keep());
             meterRegister.reset();
-            renderFold(panelDrawing, shown);
+            renderFold(panelDrawing, meterRegister, shown);
             if (shown.isMeterCollapsed) {
                 renderPanelFolded(document, regions, renderInPlace);
             } else if (shown.options !== null) {
@@ -1314,7 +1310,7 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
         report.collect(() => {
             executeRegionStep(report, PANEL_REGION.list, () => drawing.keep());
             meterRegister.reset();
-            renderFold(panelDrawing, waiting);
+            renderFold(panelDrawing, meterRegister, waiting);
             renderPanelFolded(document, regions, renderInPlace);
             // A defect can arrive before a fight does — a reading that would not compose leaves
             // the panel waiting — so what could not be done is drawn here too.
@@ -1353,15 +1349,15 @@ export function initPanelView(document: PanelDocument, options: PanelViewOptions
                     ? `${CLASS.helper} ${CLASS.helperFolded}`
                     : CLASS.helper;
             });
-            helperBar = renderInPlace(
-                helperBar,
-                PANEL_REGION.helper,
-                () => renderHelperBar(document, isCollapsed),
-            );
             // ⚠️ The two windows keep two registers because they are drawn at two moments: this
             // one goes up first and the panel's own draw resets the panel's register under it,
             // which took every card this window had registered with it (`develop ADR 0086`).
             helperRegister.reset();
+            helperBar = renderInPlace(
+                helperBar,
+                PANEL_REGION.helper,
+                () => renderHelperBar(document, helperRegister, isCollapsed),
+            );
             helperBody = renderInPlace(
                 helperBody,
                 PANEL_REGION.helper,
@@ -1786,10 +1782,10 @@ function renderListLevel(
                     `${CLASS.rowPin}${set}`,
                     fight.isPinned ? PIN_MARK : UNPINNED_MARK,
                 );
-                pin.setAttribute(
-                    CARD_ATTRIBUTE,
-                    fight.isPinned ? STANDING_CARD.pinSet : STANDING_CARD.pinUnset,
-                );
+                const pinKey = `${PIN_CARD_PREFIX}${fight.openedAt}`;
+                const pinWords = getWordsForPin(fight.isPinned);
+                register.add(pinKey, () => presentNamedCard(pinWords));
+                pin.setAttribute(CARD_ATTRIBUTE, pinKey);
                 // The moment and never the word a live row is pressed by: what a
                 // pin acts on is a fight the shelf holds, and the one going on now
                 // is on the shelf only while it is also kept.
@@ -2414,7 +2410,11 @@ function composeCardLookup(
 }
 
 /** The window's own bar: its own grip, its own fold, and no control that would close it. */
-function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelElement {
+function renderHelperBar(
+    document: PanelDocument,
+    register: CardRegister,
+    isCollapsed: boolean,
+): PanelElement {
     const bar = renderText(
         document,
         "div",
@@ -2422,12 +2422,14 @@ function renderHelperBar(document: PanelDocument, isCollapsed: boolean): PanelEl
         `${GRIP_MARK}${HELPER_WORDS.title}`,
     );
     setGripMark(bar, PANEL_WINDOW.helper);
+    const words = isCollapsed ? HELPER_WORDS.expand : HELPER_WORDS.collapse;
+    register.add(HELPER_FOLD_CARD_KEY, () => presentNamedCard(words));
     bar.append(renderBarControl(document, {
         className: CLASS.control,
         icon: isCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
         mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
         attribute: PANEL_MARK.helperFold,
-        card: isCollapsed ? STANDING_CARD.helperUnfold : STANDING_CARD.helperFold,
+        card: HELPER_FOLD_CARD_KEY,
     }));
     return bar;
 }
@@ -2439,7 +2441,8 @@ function renderBarControl(
         icon: BarIcon;
         mark: string;
         attribute: string;
-        card: StandingCard;
+        /** A `STANDING_CARD`, or a key the draw registered with the words of its state. */
+        card: string;
     },
 ): PanelElement {
     const className = `${stated.className} ${composeBarIconClass(stated.icon)}`;
@@ -2490,6 +2493,7 @@ function executeRegionStep(report: UndrawnReport, region: PanelRegion, step: () 
  */
 function renderFold(
     panelDrawing: PanelDrawing,
+    register: CardRegister,
     drawn: {
         isMeterCollapsed: boolean;
         hasFightToSave: boolean;
@@ -2532,6 +2536,8 @@ function renderFold(
     executeRegionStep(panelDrawing.report, PANEL_REGION.helper, () => {
         panelDrawing.helperDrag?.sizeWindow(drawn.windowSizes.helper);
     });
+    const foldWords = isMeterCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse;
+    register.add(FOLD_CARD_KEY, () => presentNamedCard(foldWords));
     panelDrawing.regions.title = panelDrawing.renderInPlace(
         panelDrawing.regions.title,
         PANEL_REGION.header,
@@ -2575,7 +2581,7 @@ function renderFold(
                 icon: isMeterCollapsed ? BAR_ICON.unfold : BAR_ICON.fold,
                 mark: isMeterCollapsed ? UNFOLD_MARK : FOLD_MARK,
                 attribute: PANEL_MARK.fold,
-                card: isMeterCollapsed ? STANDING_CARD.unfold : STANDING_CARD.fold,
+                card: FOLD_CARD_KEY,
             }));
             return bar;
         },

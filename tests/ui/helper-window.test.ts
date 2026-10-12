@@ -355,7 +355,9 @@ Deno.test("the window's fold names itself on a card, opened beside the window", 
     const panel = initTestView(document);
     const host = panel.element as FakeElement;
     const words = [false, true].map((isCollapsed) => {
+        // As a frame draws: the window beside, then the panel, which puts the open card up again.
         panel.renderHelper(presentHelper([], [], ROSTER, OURS, composeTurn(null)), isCollapsed);
+        panel.renderWaiting(NOTHING_WAITING);
         const control = getElementsWithin(getWindow(host))
             .find((descendant) => descendant.attributes.has("data-helper-fold"));
         assertExists(control, "the window's bar carries its fold");
@@ -370,6 +372,28 @@ Deno.test("the window's fold names itself on a card, opened beside the window", 
         words,
         [[HELPER_WORDS.collapse], [HELPER_WORDS.expand]],
         "in the window's own words, whichever way it would go",
+    );
+});
+
+Deno.test("a card left open on the window's fold says what a press would do after it", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    const reading = presentHelper([], [], ROSTER, OURS, composeTurn(null));
+    panel.renderHelper(reading, false);
+    panel.renderWaiting(NOTHING_WAITING);
+    const control = getElementsWithin(getWindow(host))
+        .find((descendant) => descendant.attributes.has("data-helper-fold"));
+    assertExists(control, "the window's bar carries its fold");
+    pointAtElement(host, "pointermove", control, 20);
+    assertEquals(readCard(host).name, [HELPER_WORDS.collapse], "the fold offers to fold");
+    // A frame draws the window beside, then the panel, which puts the open card up again.
+    panel.renderHelper(reading, true);
+    panel.renderWaiting(NOTHING_WAITING);
+    assertEquals(
+        readCard(host).name,
+        [HELPER_WORDS.expand],
+        "and folded, offers to unfold without the pointer moving",
     );
 });
 

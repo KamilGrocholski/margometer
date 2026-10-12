@@ -2769,6 +2769,37 @@ Deno.test("a pin says on a card what a press on it would do, set and unset", () 
     );
 });
 
+/**
+ * ⚠️ **A press redraws the control under a pointer that has not moved**, and no move reaches the
+ * card. Keyed by what the control says, the card left open went on offering the press just made:
+ * the key names the control, and every draw says what it would do now.
+ */
+Deno.test("a card left open on a pin or the fold says what a press would do after it", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    const shown = composeShownScreen(readFight());
+    const unpinned = composeKeptShelfRow(7, null, []);
+    panel.render({ ...shown, shelf: [unpinned], isOnShelf: true });
+    const pin = getElementsWithin(host).find((drawn) => drawn.attributes.has("data-pin"));
+    assertExists(pin, "the kept fight carries a pin");
+    pointAtElement(host, "pointermove", pin, 300);
+    assertEquals(readCard(host).name, [getWordsForPin(false)], "the pin offers to hold");
+    panel.render({ ...shown, shelf: [{ ...unpinned, isPinned: true }], isOnShelf: true });
+    assertEquals(
+        readCard(host).name,
+        [getWordsForPin(true)],
+        "and pressed, offers to let go without the pointer moving",
+    );
+    panel.render(shown);
+    const fold = getElementsWithin(host).find((drawn) => drawn.attributes.has("data-fold"));
+    assertExists(fold, "the bar carries its fold");
+    pointAtElement(host, "pointermove", fold, 10);
+    assertEquals(readCard(host).name, [PANEL_WORDS.collapse], "the fold offers to fold");
+    panel.render({ ...shown, isMeterCollapsed: true });
+    assertEquals(readCard(host).name, [PANEL_WORDS.expand], "and folded, to unfold");
+});
+
 Deno.test("nothing the panel draws opens the browser's own tooltip, on any screen", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();

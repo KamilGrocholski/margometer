@@ -4019,6 +4019,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FIGHT_CARD_KEY` — `src/ui/panel-element.ts`
 - `FIGHT_CARD_WORDS` — `src/ui/panel-words.ts`
 - `FILL_PLACES` — `src/ui/panel-element.ts`
+- `FOLD_CARD_KEY` — `src/ui/panel-element.ts`
 - `FOLD_MARK` — `src/ui/panel-element.ts`
 - `FONT_STACK` — `src/ui/panel-look.ts`
 - `GRAB_KIND` — `src/ui/panel-drag.ts`
@@ -4037,6 +4038,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `HELPER_ABSENCE_WORDS` — `src/ui/panel-words.ts`
 - `HELPER_CARD_PREFIX` — `src/ui/panel-element.ts`
 - `HELPER_CHARGE_CARD_PREFIX` — `src/ui/panel-element.ts`
+- `HELPER_FOLD_CARD_KEY` — `src/ui/panel-element.ts`
 - `HELPER_GAP_PIXELS` — `src/ui/panel-drag.ts`
 - `HELPER_HELD_CARD_PREFIX` — `src/ui/panel-element.ts`
 - `HELPER_HOLDING_CARD_PREFIX` — `src/ui/panel-element.ts`
@@ -4107,6 +4109,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PINNED_PLACING_NOTES` — `src/ui/panel-words.ts`
 - `PINNED_SCOPE_NOTES` — `src/ui/panel-words.ts`
 - `PINNED_SHAPES` — `src/ui/panel-content.ts`
+- `PIN_CARD_PREFIX` — `src/ui/panel-element.ts`
 - `PIN_INSET_PIXELS` — `src/ui/panel-look.ts`
 - `PIN_MARK` — `src/ui/panel-element.ts`
 - `PIN_REFUSED_ANSWER` — `src/ui/panel-words.ts`
@@ -5112,6 +5115,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `PREPARE_ALONE` — `tests/core/fight-statistics.test.ts`
 - `PREPARE_BESIDE` — `tests/core/fight-statistics.test.ts`
 - `PREPARE_BLOW` — `tests/core/fight-statistics.test.ts`
+- `PRESSED_CONTROLS` — `tests/e2e/panel-card.spec.ts`
 - `PRESSED_CURSORS` — `tests/e2e/panel-targets.spec.ts`
 - `PRINTABLE_FIRST` — `tests/repository/name-register.test.ts`
 - `PRINTABLE_LAST` — `tests/repository/name-register.test.ts`
@@ -6250,6 +6254,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `firstCharged` — `src/ui/panel-element.ts`
 - `firstColumn` — `src/ui/panel-element.ts`
 - `floors` — `src/ui/panel-element.ts`
+- `foldWords` — `src/ui/panel-element.ts`
 - `folded` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `frame` — `src/ui/panel-element.ts`
 - `from` — `src/ui/panel-drag.ts`, `src/ui/panel-words.ts`
@@ -6421,6 +6426,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `personContext` — `src/ui/panel-element.ts`
 - `personPart` — `src/ui/panel-content.ts`
 - `pin` — `src/ui/panel-element.ts`
+- `pinKey` — `src/ui/panel-element.ts`
+- `pinWords` — `src/ui/panel-element.ts`
 - `pinned` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
 - `pinnedApart` — `src/ui/panel-content.ts`
 - `pinnedCase` — `src/ui/panel-content.ts`
@@ -8401,7 +8408,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `personNotes` — `tests/ui/panel-element.test.ts`
 - `phrase` — `tests/repository/protocol-keys.test.ts`
 - `pictures` — `tests/repository/readmes.test.ts`
-- `pin` — in 5 files: `tests/`
+- `pin` — in 6 files: `tests/`
 - `pinned` — in 9 files: `tests/`
 - `pinnedAt` — `tests/ui/panel-element.test.ts`
 - `pinnedCase` — `tests/ui/level-drawn.test.ts`, `tests/ui/panel-content.test.ts`,
@@ -8635,7 +8642,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `selected` — `tests/ui/panel-look.test.ts`
 - `selectedStrips` — `tests/ui/panel-element.test.ts`
 - `selection` — `tests/repository/browser-support.test.ts`
-- `selector` — in 5 files: `tests/`
+- `selector` — in 6 files: `tests/`
 - `selectorIndex` — `tests/ui/panel-look.test.ts`
 - `selectors` — `tests/e2e/panel-type.spec.ts`
 - `self` — `tests/ports/margonem-engine-battle.test.ts`
@@ -9064,7 +9071,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `word` — in 7 files: `tests/`
 - `worded` — `tests/repository/comment-share.test.ts`, `tests/runtime/carried-tooltip.test.ts`,
   `tests/ui/blow-vocabulary.test.ts`
-- `words` — in 9 files: `tests/`
+- `words` — in 10 files: `tests/`
 - `workflowFile` — `tests/repository/workflows.test.ts`
 - `working` — `tests/repository/get-verb.test.ts`
 - `world` — in 4 files: `tests/`
@@ -11578,7 +11585,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `fill` — `src/ui/panel-content.ts`, `src/ui/panel-element.ts`
 - `fire` — `src/ui/panel-words.ts`
 - `fled` — `src/ui/panel-words.ts`
-- `fold` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`, `src/ui/panel-look.ts`
+- `fold` — `src/ui/panel-intent.ts`, `src/ui/panel-look.ts`
 - `folded` — `src/ui/panel-look.ts`
 - `fontPixels` — `src/ui/panel-look.ts`
 - `fontSmallPixels` — `src/ui/panel-look.ts`
@@ -11633,7 +11640,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `helperBody` — `src/ui/panel-look.ts`
 - `helperCast` — `src/ui/panel-look.ts`
 - `helperDrag` — `src/ui/panel-element.ts`
-- `helperFold` — `src/ui/panel-element.ts`, `src/ui/panel-intent.ts`
+- `helperFold` — `src/ui/panel-intent.ts`
 - `helperFolded` — `src/ui/panel-look.ts`
 - `helperHolding` — `src/ui/panel-look.ts`
 - `helperPip` — `src/ui/panel-look.ts`
@@ -11641,7 +11648,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `helperPips` — `src/ui/panel-look.ts`
 - `helperPlacement` — `src/ui/panel-element.ts`
 - `helperUnder` — `src/ui/panel-look.ts`
-- `helperUnfold` — `src/ui/panel-element.ts`
 - `helperWidthPixels` — `src/ui/panel-look.ts`
 - `holytouchHealsReceived` — `src/ui/panel-words.ts`
 - `hour` — `src/ui/panel-content.ts`
@@ -11794,8 +11800,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `percent` — `src/ui/panel-words.ts`
 - `person` — `src/ui/panel-content.ts`
 - `pin` — `src/ui/panel-intent.ts`
-- `pinSet` — `src/ui/panel-element.ts`
-- `pinUnset` — `src/ui/panel-element.ts`
 - `pinned` — `src/ui/panel-content.ts`, `src/ui/panel-look.ts`, `src/ui/panel-words.ts`
 - `pinnedActor` — `src/ui/panel-element.ts`
 - `pinnedTarget` — `src/ui/panel-element.ts`
@@ -11988,7 +11992,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `unannounced` — `src/ui/panel-words.ts`
 - `undivided` — `src/ui/panel-words.ts`
 - `undrawn` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`, `src/ui/view-failure.ts`
-- `unfold` — `src/ui/panel-element.ts`, `src/ui/panel-look.ts`
+- `unfold` — `src/ui/panel-look.ts`
 - `unit` — `src/ui/panel-words.ts`
 - `unknown` — `src/ui/panel-palette.ts`, `src/ui/panel-words.ts`
 - `unknownHowMany` — `src/ui/panel-words.ts`
@@ -13504,7 +13508,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `secondColumnFrom` — `tests/ui/card-window.test.ts`
 - `section` — `tests/repository/changelog.test.ts`, `tests/repository/declaration-order.test.ts`
 - `seed` — `tests/simulation.test.ts`, `tests/simulation.ts`
-- `selector` — in 4 files: `tests/`
+- `selector` — in 5 files: `tests/`
 - `selectors` — `tests/repository/browser-support.test.ts`
 - `sentence` — `tests/tools/preview-page.test.ts`
 - `session` — `tests/fake-window.ts`, `tests/runtime/panel-frame.test.ts`
@@ -13765,7 +13769,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `won` — `tests/ui/panel-words.test.ts`
 - `wonNames` — `tests/core/fight-statistics.test.ts`
 - `worded` — `tests/repository/comment-share.test.ts`
-- `words` — `tests/tools/preview-page.test.ts`, `tests/ui/card-window.test.ts`
+- `words` — `tests/e2e/panel-card.spec.ts`, `tests/tools/preview-page.test.ts`,
+  `tests/ui/card-window.test.ts`
 - `world` — in 8 files: `tests/`
 - `woundsActor` — `tests/repository/protocol-keys.test.ts`
 - `wpisy` — `tests/tools/capture-intake.test.ts`
@@ -13922,8 +13927,7 @@ Each `as const` object of a module, by its keys.
 - `SIZED_METER_VARIABLES` — `src/ui/panel-look.ts`: `listBasis`, `listRowsLeast`, `share`
 - `SIZE_GRIP` — `src/ui/panel-look.ts`: `sizePixels`
 - `SPACE_PIXELS` — `src/ui/panel-look.ts`: `half`, `small`, `regionDown`, `regionAcross`, `wide`
-- `STANDING_CARD` — `src/ui/panel-element.ts`: `options`, `shelf`, `save`, `fold`, `unfold`,
-  `helperFold`, `helperUnfold`, `pinSet`, `pinUnset`
+- `STANDING_CARD` — `src/ui/panel-element.ts`: `options`, `shelf`, `save`
 - `STANDING_TURN_STATE` — `src/ui/panel-helper.ts`: `held`, `unread`, `afterFight`, `onAuto`
 - `STORAGE_CHOICE` — `src/ui/panel-choice.ts`: `local`, `session`, `memory`
 - `SURFACE` — `src/ui/panel-look.ts`: `panel`, `raised`, `track`, `border`
@@ -14964,11 +14968,10 @@ suite's material.
 - `"+"` — `UNFOLD_MARK`
 - `"MargoMeter-Panel"` — `HOST_NAME`
 - `"auto"` — `EDGE_RELEASED`
-- `"bar:fold"` — `STANDING_CARD`
+- `"bar:fold"` — `FOLD_CARD_KEY`
 - `"bar:options"` — `STANDING_CARD`
 - `"bar:save"` — `STANDING_CARD`
 - `"bar:shelf"` — `STANDING_CARD`
-- `"bar:unfold"` — `STANDING_CARD`
 - `"caveat"` — `CARD_NOTE_TONE`
 - `"crumb:back"` — `CRUMB_CARD_KEY`
 - `"crumb:here"` — `CRUMB_HERE_CARD_KEY`
@@ -14978,13 +14981,10 @@ suite's material.
 - `"fight"` — `FIGHT_CARD_KEY`
 - `"heading"` — `CARD_LINE`
 - `"helper:"` — `HELPER_CARD_PREFIX`
-- `"helper:bar:fold"` — `STANDING_CARD`
-- `"helper:bar:unfold"` — `STANDING_CARD`
 - `"note"` — `CARD_LINE`
 - `"pair"` — `CARD_KEY_PLACE`
 - `"pair-kinds"` — `CARD_KEY_PLACE`
-- `"pin:set"` — `STANDING_CARD`
-- `"pin:unset"` — `STANDING_CARD`
+- `"pin:"` — `PIN_CARD_PREFIX`
 - `"plain"` — `CARD_NOTE_TONE`
 - `"skill"` — `CARD_KEY_PLACE`
 - `"stat"` — `CARD_LINE`

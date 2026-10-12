@@ -24,6 +24,18 @@ const BACK_NOTE = "LPM tutaj — wróć o krok";
 const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
 /** What the shelf's control says on its own card (ADR 0056). */
 const SHELF_CONTROL_NAME = "Pokaż albo schowaj zapisane walki";
+/**
+ * What a pin and the two folds say on their cards, either way they would go (ADR 0056): the words
+ * of `getWordsForPin`, `PANEL_WORDS` and `HELPER_WORDS` in `src/ui/panel-words.ts`.
+ */
+const PRESSED_CONTROLS = [
+    {
+        selector: ".row-pin[data-pin]",
+        words: ["Przypnij, żeby nie zniknęła", "Odepnij — będzie mogła zniknąć"],
+    },
+    { selector: "[data-fold]", words: ["Zwiń okno", "Rozwiń okno"] },
+    { selector: "[data-helper-fold]", words: ["Zwiń Pomocnika", "Rozwiń Pomocnika"] },
+];
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
 /**
@@ -202,6 +214,30 @@ test("a redraw that drops the row takes its card with it", async ({ panel }) => 
         panel.at(`${CARD_OPEN} .card-name`),
         "and the control's own card outlives the draw",
     ).toHaveText(SHELF_CONTROL_NAME);
+});
+
+/**
+ * ⚠️ **A press redraws the control under a pointer that has not moved**, so no move asks for its
+ * card again: the card the draw puts back up has to be the one for what a press would do now.
+ */
+test("a control pressed in place says on its card what the next press would do", async ({ panel }) => {
+    await panel.at("[data-shelf]").click();
+    for (const { selector, words } of PRESSED_CONTROLS) {
+        const [before, after] = words;
+        await panel.at(selector).first().hover();
+        await expect(panel.at(`${CARD_OPEN} .card-name`), `${selector}: names its press`)
+            .toHaveText(before ?? "");
+        await panel.page.mouse.down();
+        await panel.page.mouse.up();
+        await expect(
+            panel.at(`${CARD_OPEN} .card-name`),
+            `${selector}: and pressed, the next one, with the pointer where it was`,
+        ).toHaveText(after ?? "");
+        await panel.page.mouse.down();
+        await panel.page.mouse.up();
+        await expect(panel.at(`${CARD_OPEN} .card-name`), `${selector}: and back`)
+            .toHaveText(before ?? "");
+    }
 });
 
 /**
