@@ -52,7 +52,11 @@ export async function openPanelPage(
     for (const gesture of gestures) {
         const target = page.locator(`${HOST_SELECTOR} [${gesture.mark}]`).nth(gesture.at);
         if (gesture.doesHover) await target.hover();
-        else await target.click();
+        else {
+            await target.click();
+            // A pointer left still on the control it pressed keeps that control's card up.
+            await page.mouse.move(0, 0);
+        }
         await waitForFrame(page);
     }
     return page;
