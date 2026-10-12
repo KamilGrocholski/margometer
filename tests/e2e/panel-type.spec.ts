@@ -1,9 +1,10 @@
 /**
  * The three sizes of type as a browser lays them out: each one is the size a row counts, every
- * control stays on the bar at one size, and the window beside the panel is drawn in the same type
- * (ADR 0013, ADR 0036).
+ * control stays on the bar at one size, the window beside the panel is drawn in the same type, and
+ * every icon drawn stands in the middle of its square (ADR 0013, ADR 0036, ADR 0057).
  */
 
+import type { Locator } from "@playwright/test";
 import { expect, test } from "./panel-fixture.ts";
 
 /** Named as `STORE_KEY` in `src/ports/browser-store.ts` names it. */
@@ -70,43 +71,88 @@ test("every bar icon is drawn about the middle of its square, folded and not", a
     for (const isFolded of [false, true]) {
         const selectors = [...CONTROLS, "[data-helper-fold]"];
         for (const selector of selectors) {
-            // ⚠️ Waited for and measured in one read: the fold redraws on the next frame, and a
-            // mask read apart from the wait that found it may no longer be a drawing.
-            let middle = { unread: "", across: Number.NaN, down: Number.NaN };
-            await expect.poll(async () => {
-                middle = await panel.at(selector).evaluate((control, opener) => {
-                    const mask = getComputedStyle(control, "::before").maskImage;
-                    const start = mask.indexOf(opener);
-                    const end = mask.lastIndexOf('")');
-                    const unread = {
-                        unread: `mask-image: ${mask}`,
-                        across: Number.NaN,
-                        down: Number.NaN,
-                    };
-                    if (start < 0) return unread;
-                    if (end < start) return unread;
-                    const drawing = decodeURIComponent(mask.slice(start + opener.length, end));
-                    const parsed = new DOMParser().parseFromString(drawing, "image/svg+xml");
-                    const svg = document.importNode(parsed.documentElement, true);
-                    if (!(svg instanceof SVGSVGElement)) return unread;
-                    document.body.append(svg);
-                    const box = svg.getBBox();
-                    svg.remove();
-                    const view = svg.viewBox.baseVal;
-                    return {
-                        unread: "",
-                        across: box.x + box.width / 2 - view.width / 2,
-                        down: box.y + box.height / 2 - view.height / 2,
-                    };
-                }, SVG_MASK_OPENER);
-                return middle.unread;
-            }, { message: `${selector}: wears a drawing that parses` }).toBe("");
-            expect(Math.abs(middle.across), `${selector}: centred across`).toBeLessThan(0.01);
-            expect(Math.abs(middle.down), `${selector}: and down`).toBeLessThan(0.01);
+            await expectDrawnAboutMiddle(panel.at(selector), selector);
         }
         if (!isFolded) {
             await panel.at("[data-fold]").click();
             await panel.at("[data-helper-fold]").click();
         }
+    }
+});
+
+/**
+ * The drawing a mark wears, measured about the middle of its square. ⚠️ Waited for and measured in
+ * one read: a redraw lands on the next frame, and a mask read apart from the wait that found it may
+ * no longer be a drawing.
+ */
+async function expectDrawnAboutMiddle(mark: Locator, named: string): Promise<void> {
+    let middle = { unread: "", across: Number.NaN, down: Number.NaN };
+    await expect.poll(async () => {
+        middle = await mark.evaluate((drawn, opener) => {
+            const mask = getComputedStyle(drawn, "::before").maskImage;
+            const start = mask.indexOf(opener);
+            const end = mask.lastIndexOf('")');
+            const unread = {
+                unread: `mask-image: ${mask}`,
+                across: Number.NaN,
+                down: Number.NaN,
+            };
+            if (start < 0) return unread;
+            if (end < start) return unread;
+            const drawing = decodeURIComponent(mask.slice(start + opener.length, end));
+            const parsed = new DOMParser().parseFromString(drawing, "image/svg+xml");
+            const svg = document.importNode(parsed.documentElement, true);
+            if (!(svg instanceof SVGSVGElement)) return unread;
+            document.body.append(svg);
+            const box = svg.getBBox();
+            svg.remove();
+            const view = svg.viewBox.baseVal;
+            return {
+                unread: "",
+                across: box.x + box.width / 2 - view.width / 2,
+                down: box.y + box.height / 2 - view.height / 2,
+            };
+        }, SVG_MASK_OPENER);
+        return middle.unread;
+    }, { message: `${named}: wears a drawing that parses` }).toBe("");
+    expect(Math.abs(middle.across), `${named}: centred across`).toBeLessThan(0.01);
+    expect(Math.abs(middle.down), `${named}: and down`).toBeLessThan(0.01);
+}
+
+/**
+ * The pin's star is drawn for the reason the bar's icons are, and larger than the row's type,
+ * because the glyph it replaced inked 10px of a 27px box (ADR 0057).
+ */
+test("the pin's star is drawn about its middle and larger than its row's type, either way pressed", async ({ panel }) => {
+    for (const { step, font } of STEPS) {
+        await panel.at("[data-options]").click();
+        await panel.at(`[data-type-step="${step}"]`).click();
+        await panel.at("[data-options]").click();
+        await panel.at("[data-shelf]").click();
+        const states = [
+            { state: "outlined", glyph: "☆", isPressed: false },
+            { state: "filled", glyph: "★", isPressed: true },
+            { state: "outlined again", glyph: "☆", isPressed: true },
+        ];
+        for (const { state, glyph, isPressed } of states) {
+            const pin = panel.at(".row-pin[data-pin]").first();
+            if (isPressed) await pin.click();
+            // ⚠️ A press redraws the shelf on the next frame, and a pin read before it lands has
+            // no star to measure: the glyph says which pin stands, and the size is waited for.
+            await expect(pin, `${step}: the ${state} star stands`).toHaveText(glyph);
+            await expectDrawnAboutMiddle(pin, `${step}: the ${state} star`);
+            const readStarRoom = () =>
+                pin.evaluate((mark) => {
+                    const star = Number.parseFloat(getComputedStyle(mark, "::before").width);
+                    return { star, spare: mark.getBoundingClientRect().height - star };
+                });
+            await expect.poll(async () => (await readStarRoom()).star, {
+                message: `${step}: the ${state} star is larger than ${font} type`,
+            }).toBeGreaterThan(Number.parseFloat(font));
+            await expect.poll(async () => (await readStarRoom()).spare, {
+                message: `${step}: and inside its box`,
+            }).toBeGreaterThan(0);
+        }
+        await panel.at("[data-shelf]").click();
     }
 });

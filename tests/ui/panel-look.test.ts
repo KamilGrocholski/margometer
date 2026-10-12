@@ -10,6 +10,7 @@ import {
     assertArrayIncludes,
     assertEquals,
     assertExists,
+    assertGreater,
     assertGreaterOrEqual,
     AssertionError,
     assertNotStrictEquals,
@@ -278,7 +279,14 @@ const SHEET_DEPARTURES: readonly SheetDeparture[] = [
     { develop: ".helper-bar", here: ".helper-bar", moved: ["padding"] },
     { develop: ".strip", here: ".strip", moved: ["padding", "line-height"] },
     { develop: ".crumb-back", here: ".crumb-back", moved: ["line-height"] },
-    { develop: ".row-pin", here: ".row-pin", moved: ["margin-right", "margin", "padding-top"] },
+    {
+        develop: ".row-pin",
+        here: ".row-pin",
+        moved: ["margin-right", "margin", "padding-top", "font-size"],
+    },
+    // The pin's star drawn, outlined and filled, rather than spelled (ADR 0057).
+    { develop: null, here: `.${CLASS.rowPin}::before` },
+    { develop: null, here: `.${CLASS.rowPin}.${CLASS.rowPinSet}::before` },
 ];
 const BLACK: Colour = [0, 0, 0];
 const WHITE: Colour = [255, 255, 255];
@@ -1838,5 +1846,47 @@ Deno.test("the caveat mark's letter is drawn in the middle of its ring, at every
             inside - stemTop - stemHeight,
             `${step}: as much air under the letter as over it`,
         );
+    }
+});
+
+/**
+ * ⚠️ **The pin was a glyph at the row's own type**, and its ink stood 10px tall in a 27px box
+ * in Chrome (ADR 0057). The star is drawn instead, larger than the type beside it, in the middle of
+ * the box between its drop and its foot, filled where a fight is pinned and outlined where not.
+ */
+Deno.test("the pin's star is drawn larger than the row's type and in the middle of its box", () => {
+    for (const step of TYPE_STEPS) {
+        const sheet = composeStyleSheet(step);
+        const pin = getRuleBody(sheet, `.${CLASS.rowPin}`);
+        assertStrictEquals(
+            getDeclaration(pin, "font-size"),
+            UNSHOWN_SIZE,
+            `${step}: the glyph is kept and not shown`,
+        );
+        const star = getRuleBody(sheet, `.${CLASS.rowPin}::before`);
+        const size = getPixels(getDeclaration(star, "width") ?? "");
+        assertStrictEquals(
+            getPixels(getDeclaration(star, "height") ?? ""),
+            size,
+            `${step}: the star stands in a square`,
+        );
+        assertGreater(size, TYPE_TOKENS[step].fontPixels, `${step}: larger than the row's type`);
+        const inside = TYPE_TOKENS[step].rowHeightPixels -
+            getPixels(getDeclaration(pin, "padding-top") ?? "");
+        const air = (inside - size) / 2;
+        assertGreater(air, 0, `${step}: and clear of the row's edges`);
+        assert(Number.isInteger(air), `${step}: ${size}px stands in ${inside}px on whole pixels`);
+        const pinned = getRuleBody(sheet, `.${CLASS.rowPin}.${CLASS.rowPinSet}::before`);
+        for (
+            const [body, paint] of [[star, "fill%3D'none'"], [pinned, "fill%3D'black'"]] as const
+        ) {
+            const mask = getDeclaration(body, "mask-image");
+            assertStringIncludes(mask ?? "", paint, `${step}: the star is ${paint}`);
+            assertStrictEquals(
+                getDeclaration(body, "-webkit-mask-image"),
+                mask,
+                `${step}: and drawn where only the prefix is read`,
+            );
+        }
     }
 });

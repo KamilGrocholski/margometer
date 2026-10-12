@@ -378,9 +378,11 @@ sits in, and it does so structurally: a press lands on the innermost element, an
 out of what carries the row's own mark. It is a box of the row's own height rather than a glyph: ★
 and ☆ measured one width in Firefox on 2026-08-26, no version recorded, and the row still walked
 sideways under the hand that had just pressed it (`src/ui/panel-look.ts`, at the pin's rule), and a
-box is what fixes that. A pin is drawn only where there is something to pin — a fight nothing has
-written down yet is not in the rotation, and a control that does nothing is worse than one that is
-not there.
+box is what fixes that. **The star in the box is drawn, larger than the row's type**, outlined and
+filled, and the glyph stays its text at no size: a glyph's ink is the reader's face's, which is why
+the bar's icons are drawn too. **ADR 0057.** A pin is drawn only where there is something to pin — a
+fight nothing has written down yet is not in the rotation, and a control that does nothing is worse
+than one that is not there.
 
 **The options cover the screens as the shelf does**, and never stand open beside it (ADR 0013). They
 are reached before any fight has come, because nothing in them is a fight's. Under the way back,

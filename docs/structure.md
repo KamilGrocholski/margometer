@@ -125,6 +125,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0054-the-steps-of-type-are-12-13-and-14-pixels.md`                                           | the steps of type are 12, 13 and 14 pixels, each panel two past what its bar asks                                                                               |
 | `docs/adr/0055-the-bar-states-no-version-and-a-panel-is-as-wide-as-its-rows-ask.md`                    | the bar states no version, the options do, and a panel is as wide as its rows ask                                                                               |
 | `docs/adr/0056-every-hint-the-panel-gives-is-its-own-card.md`                                          | a control, a pin and the crumb's name open the panel's own card, nothing drawn carries `title`, and the drag hint is the grip                                   |
+| `docs/adr/0057-the-pins-star-is-drawn-larger-than-its-rows-type.md`                                    | the shelf's pin draws its star, outlined or filled, at 14, 16 and 18px, and keeps the glyph as text at no size                                                  |
 
 | Path                        | For                                                                                        |
 | --------------------------- | ------------------------------------------------------------------------------------------ |

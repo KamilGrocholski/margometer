@@ -46,6 +46,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Przyciski na paskach, pinezki na liście walk i nazwa otwartego poziomu podpowiadają w
   dymku panelu zamiast w szarym podpisie przeglądarki, a paski i narożniki okien nie mają już
   podpowiedzi o przeciąganiu.
+- **Zmiana** — Gwiazdka przypinająca walkę na liście walk jest większa.
 - **Poprawka** — Opcje kończą się z odstępem od dolnej krawędzi okna, a nie tuż przy niej.
 - **Poprawka** — Walka, której początku nie dało się odczytać, nie skleja się już w panelu z walką
   przed nią, tylko zaczyna się od zera.

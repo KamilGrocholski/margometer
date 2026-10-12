@@ -386,6 +386,15 @@ const BAR_ICONS = Object.values(BAR_ICON);
 /** The air between a bar icon and its control's rule, above and below. */
 const BAR_ICON_INSET_PIXELS = 2;
 /**
+ * The pin's star on the bar icons' ten-unit square, its frame about the middle: five points, the
+ * inner ones at cos 72° over cos 36° of the outer, which stand 4.5 from a centre set 0.43 low,
+ * because the star's foot is at sin 54° of its reach and its top at the whole of it (ADR 0057).
+ */
+const PIN_STAR_PATH = "M5 0.93L6.01 4.04H9.28L6.63 5.96L7.65 9.07L5 7.15L2.35 9.07L3.37 5.96" +
+    "L0.72 4.04H3.99Z";
+/** The air between the pin's star and its row's edge, above and below. */
+const PIN_INSET_PIXELS = 6;
+/**
  * The corner a window is sized by, drawn inside the window's own corner. Inside, because a box
  * standing past the window is overflow the window then reports, measured in Chrome 154 on
  * 2026-09-28; and at twelve it covers the air under the sides' figures at the panel's foot, and in
@@ -679,13 +688,18 @@ function composeBarIconRules(tokens: TypeTokens): string {
     let rules = `.${CLASS.control}::before{content:"";flex:none;` +
         `width:${size}px;height:${size}px;background:currentColor;}`;
     for (const icon of BAR_ICONS) {
-        const svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' fill='none' " +
-            `stroke='black'>${BAR_ICON_DRAWINGS[icon]}</svg>`;
-        const url = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-        rules += `.${composeBarIconClass(icon)}::before{-webkit-mask-image:${url};` +
-            `mask-image:${url};}`;
+        rules += `.${composeBarIconClass(icon)}::before{` +
+            `${composeMaskImage("fill='none'", BAR_ICON_DRAWINGS[icon])}}`;
     }
     return rules;
+}
+
+/** A drawing on the ten-unit square, inked in black, as the mask an icon's box wears. */
+function composeMaskImage(paint: string, drawing: string): string {
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' ${paint} ` +
+        `stroke='black'>${drawing}</svg>`;
+    const url = `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+    return `-webkit-mask-image:${url};mask-image:${url};`;
 }
 
 function composeFontBody(tokens: TypeTokens): string {
@@ -973,16 +987,18 @@ function composeRowRules(tokens: TypeTokens): string {
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset ${CAP_WIDTH_PIXELS}px 0 0 ` +
         `var(${VARIABLE_PREFIX}text);}` +
         // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, no version recorded, and the row
-        // walked sideways under the hand that pressed it.
+        // walked sideways under the hand that pressed it. The star is drawn and the glyph kept at
+        // no size, as on the bar (ADR 0057).
         `.${CLASS.rowPin}{position:relative;cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
         `width:var(${VARIABLE_PREFIX}row-height);flex:none;align-self:stretch;display:flex;` +
-        `align-items:center;justify-content:center;` +
+        `align-items:center;justify-content:center;font-size:0;` +
         // The row's whole height, the drop over its contents included: a pin a pixel short of
         // the row is a target under the least, standing inside another (ADR 0053).
         `margin:-${ROW_INK_DROP_PIXELS}px var(${VARIABLE_PREFIX}small) 0 0;` +
         `padding-top:${ROW_INK_DROP_PIXELS}px;}` +
         `.${CLASS.rowPin}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowPin}.${CLASS.rowPinSet}{color:var(${VARIABLE_PREFIX}text);}` +
+        composePinStarRules(tokens) +
         `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;flex:none;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
         // A letter rather than the word, in a box of the row's own height like the pin opposite,
@@ -1006,6 +1022,24 @@ function composeRowRules(tokens: TypeTokens): string {
         `-45deg,var(${VARIABLE_PREFIX}mask) 0 ${MASK_STRIPE_PIXELS}px,` +
         `transparent ${MASK_STRIPE_PIXELS}px ${2 * MASK_STRIPE_PIXELS}px);}` +
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.barCap}{opacity:0.7;}`;
+}
+
+/**
+ * The pin's star, outlined where nothing is pinned and filled where something is, in the pin's own
+ * ink so it follows the hover. Round joins, because a mitre on a point of 36° reaches 1.62 units
+ * past it, out of the square.
+ */
+function composePinStarRules(tokens: TypeTokens): string {
+    // As tall as the row less its air, and even as the pin's inside under the drop is, so the star
+    // stands on whole pixels down. Across, the box is the row's odd height and the star sits on a
+    // half pixel, where none of its points meets a pixel's edge either way.
+    const lined = tokens.rowHeightPixels - 2 * PIN_INSET_PIXELS;
+    const size = lined + lined % 2;
+    const star = `<path stroke-width='1' stroke-linejoin='round' d='${PIN_STAR_PATH}'/>`;
+    return `.${CLASS.rowPin}::before{content:"";flex:none;width:${size}px;height:${size}px;` +
+        `background:currentColor;${composeMaskImage("fill='none'", star)}}` +
+        `.${CLASS.rowPin}.${CLASS.rowPinSet}::before{` +
+        `${composeMaskImage("fill='black'", star)}}`;
 }
 
 /**
