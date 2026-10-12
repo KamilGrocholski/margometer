@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.24.0] — 2026-10-13
 
 - **Zmiana** — Tekst panelu jest o piksel większy na każdym z trzech rozmiarów w Opcjach: 12, 13
   albo 14 pikseli, domyślnie 13, a panel jest odpowiednio szerszy.
