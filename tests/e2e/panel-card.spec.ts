@@ -125,7 +125,7 @@ test("crossing inside a row keeps the card, and leaving takes it away", async ({
     await expect(panel.at(CARD_OPEN), "and the figure beside it keeps it open").toHaveCount(1);
     await expect(panel.at(`${CARD} .card-name`), "still describing the same row").toHaveText(named);
 
-    // ⚠️ Dispatched, and this is the one place in the suite that dispatches. A real crossing is a
+    // ⚠️ Dispatched, and the one move in the suite that is. A real crossing is a
     // `pointerout` **and** a `pointermove`, and the move would reopen a card the out had wrongly
     // closed — so the two together cannot tell a listener that reads `relatedTarget` from one
     // that hides on anything. The leaving is delivered on its own for that reason.
@@ -186,12 +186,21 @@ test("a redraw that drops the row takes its card with it", async ({ panel }) => 
     await panel.at(".list .row").first().hover();
     await expect(panel.at(CARD_OPEN), "a card is open").toHaveCount(1);
 
-    await panel.at("[data-shelf]").click();
+    // ⚠️ Pressed where the pointer is not. A click moves the pointer onto the control first, and
+    // that move alone changes the card (ADR 0056) before anything is redrawn, so a click cannot
+    // tell a redraw that drops the row's card from one that leaves it standing.
+    const shelf = panel.at("[data-shelf]");
+    await shelf.dispatchEvent("pointerdown", { button: 0 });
+    await shelf.dispatchEvent("pointerup", { button: 0 });
 
-    // The pointer stays on the control, whose own card is the one left open (ADR 0056).
+    await expect(panel.at(".list .row[data-fight]"), "the shelf is drawn").not.toHaveCount(0);
+    await expect(panel.at(CARD_OPEN), "the shelf drew rows the card knew nothing of").toHaveCount(
+        0,
+    );
+    await shelf.hover();
     await expect(
         panel.at(`${CARD_OPEN} .card-name`),
-        "the shelf drew rows the card knew nothing of, so only the control's card stands",
+        "and the control's own card outlives the draw",
     ).toHaveText(SHELF_CONTROL_NAME);
 });
 

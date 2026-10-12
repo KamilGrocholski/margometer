@@ -8655,7 +8655,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `shares` — in 8 files: `tests/`
 - `sheet` — in 4 files: `tests/`
 - `sheets` — `tests/ui/card-window.test.ts`
-- `shelf` — in 6 files: `tests/`
+- `shelf` — in 7 files: `tests/`
 - `shelfRow` — `tests/ui/panel-element.test.ts`
 - `shelved` — `tests/runtime/shelf-keeper.test.ts`, `tests/tools/capture-intake.test.ts`,
   `tests/tools/decoding-status.test.ts`
@@ -12752,7 +12752,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `built` — `tests/e2e/panel-fixture.ts`
 - `bundlePath` — `tests/tools/margonem-client-source.test.ts`,
   `tests/tools/margonem-readings.test.ts`
-- `button` — in 4 files: `tests/`
+- `button` — in 5 files: `tests/`
 - `by` — `tests/e2e/panel-drag.spec.ts`
 - `byCombatantId` — in 4 files: `tests/`
 - `byElement` — `tests/ui/panel-element.test.ts`
