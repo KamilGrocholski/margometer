@@ -33,6 +33,7 @@ Deno.test("a number no reading holds exactly is refused rather than neighboured"
 
 Deno.test("an integer writes as the text of its value, which holds no sign on a zero", () => {
     assertStrictEquals(formatInteger(0), "0", "zero writes as one character");
+    assertStrictEquals(formatInteger(1), "1", "and so does its neighbour");
     assertStrictEquals(formatInteger(-0), "0", "and so does the zero with a sign on it");
     assertStrictEquals(formatInteger(-161518), "-161518", "an id below nothing keeps its sign");
     assertStrictEquals(parseInteger("-0"), -0, "though a zero read with a sign holds it");
@@ -85,6 +86,12 @@ Deno.test("a decimal is written in digits up to where the platform turns to an e
     assertThrows(() => formatDecimal(1e21, 0), AssertionError, message);
     assertThrows(() => formatDecimal(-1e21, 0), AssertionError, message);
     assertStrictEquals(formatDecimal(-0, 1), "0.0", "and the zero with a sign writes none");
+});
+
+Deno.test("a value that is no number is refused as that, before its size is asked", () => {
+    const message = "a number written is a number";
+    assertThrows(() => formatDecimal(Number.NaN, 1), AssertionError, message);
+    assertThrows(() => formatDecimal(Number.POSITIVE_INFINITY, 1), AssertionError, message);
 });
 
 Deno.test("a decimal is written to as many places as the platform writes, and no more", () => {

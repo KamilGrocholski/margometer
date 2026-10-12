@@ -444,7 +444,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupProvokedIds` — `src/core/aura-standing.ts`
 - `lookupPurityBreaches` — `tests/repository/purity.test.ts`
 - `lookupQuotedLiteral` — `libs/text-walk.ts`
-- `lookupRawTextClosing` — `libs/html-text.ts`
+- `lookupRawTextEnd` — `libs/html-text.ts`
 - `lookupRawTextOpening` — `libs/html-text.ts`
 - `lookupReachOfEffects` — `src/core/aura-standing.ts`
 - `lookupReaderAsserts` — `tests/repository/reader-layer.test.ts`
@@ -7402,7 +7402,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `border` — `tests/ui/panel-look.test.ts`
 - `both` — in 14 files: `tests/`
 - `bothIds` — `tests/core/fight-decoder.test.ts`
-- `bottom` — `tests/e2e/panel-targets.spec.ts`
+- `bottom` — `tests/e2e/panel-targets.spec.ts`, `tests/libs/number-range.test.ts`
 - `bound` — in 4 files: `tests/`
 - `boundNode` — `tests/repository/purity.test.ts`
 - `boundaries` — `tests/tools/turn-count.test.ts`
@@ -8065,8 +8065,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `landed` — `tests/core/carried-figure.test.ts`, `tests/e2e/panel-drag.spec.ts`,
   `tests/e2e/panel-tooltip.spec.ts`
 - `large` — `tests/runtime/margometer-runtime.test.ts`, `tests/ui/panel-element.test.ts`
-- `largest` — `tests/core/combatant-roster.test.ts`, `tests/libs/number-text.test.ts`,
-  `tests/ui/panel-element.test.ts`
+- `largest` — in 4 files: `tests/`
 - `lastLine` — `tests/e2e/panel-options.spec.ts`
 - `lastMember` — `tests/core/last-heal-rule.test.ts`
 - `lastPort` — `tests/tools/panel-giving-way.test.ts`
@@ -8104,7 +8103,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lineHeights` — `tests/ui/panel-look.test.ts`
 - `lines` — in 22 files: `tests/`
 - `linkAt` — `tests/tools/preview-site.test.ts`
-- `list` — in 9 files: `tests/`
+- `list` — in 10 files: `tests/`
 - `listEnd` — `tests/repository/name-shapes.test.ts`
 - `listStart` — `tests/repository/name-shapes.test.ts`
 - `listed` — in 12 files: `tests/`
@@ -8521,6 +8520,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `recursive` — `tests/repository/control-flow.test.ts`
 - `red` — `tests/ui/panel-look.test.ts`
 - `reduced` — `tests/core/combatant-health.test.ts`
+- `reference` — `tests/libs/html-text.test.ts`
 - `refreshed` — `tests/core/aura-standing.test.ts`
 - `refusal` — `tests/tools/margonem-client-source.test.ts`, `tests/tools/recorded-material.test.ts`,
   `tests/ui/view-failure.test.ts`
@@ -8896,7 +8896,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tooMany` — `tests/runtime/margometer-runtime.test.ts`
 - `tooNarrow` — `tests/ui/card-window.test.ts`
 - `tool` — `tests/repository/documents.test.ts`
-- `top` — `tests/repository/nesting-depth.test.ts`
+- `top` — `tests/libs/number-range.test.ts`, `tests/repository/nesting-depth.test.ts`
 - `topItem` — `tests/repository/declaration-order.test.ts`
 - `topRow` — `tests/ui/panel-content.test.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/panel-look.test.ts`

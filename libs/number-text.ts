@@ -9,9 +9,15 @@ import { assert } from "@std/assert/assert";
 import { isDigitRun } from "./text-walk.ts";
 
 const MINUS = "-";
-/** What `toFixed` writes at most, and throws a `RangeError` past (ECMA-262 §21.1.3.3). */
+/**
+ * What `toFixed` writes at most, and throws a `RangeError` past (ECMA-262 2025 §21.1.3.3, read
+ * 2026-10-12).
+ */
 const PLACES_MAXIMUM = 100;
-/** Below it `toFixed` writes digits, and from it an exponent (ECMA-262 §21.1.3.3). */
+/**
+ * Below it `toFixed` writes digits, and from it an exponent (ECMA-262 2025 §21.1.3.3, read
+ * 2026-10-12).
+ */
 const FIXED_MAGNITUDE_MAXIMUM = 1e21;
 const POINT = ".";
 

@@ -38,3 +38,14 @@ Deno.test("a value that is no finite number is a broken call, at either end of t
     assertThrows(() => clampNumber(Number.NEGATIVE_INFINITY, 0, 10), AssertionError, message);
     assertThrows(() => clampNumber(Number.NaN, 0, 10), AssertionError, message);
 });
+
+Deno.test("an end that is no finite number is a broken call, at either end of the range", () => {
+    const largest = Number.MAX_VALUE;
+    assertStrictEquals(clampNumber(5, -largest, largest), 5, "the widest finite ends hold a value");
+    const bottom = "and so is the bottom";
+    assertThrows(() => clampNumber(5, Number.NaN, 10), AssertionError, bottom);
+    assertThrows(() => clampNumber(5, Number.NEGATIVE_INFINITY, 10), AssertionError, bottom);
+    const top = "and the top";
+    assertThrows(() => clampNumber(5, 0, Number.NaN), AssertionError, top);
+    assertThrows(() => clampNumber(5, 0, Number.POSITIVE_INFINITY), AssertionError, top);
+});

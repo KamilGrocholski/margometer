@@ -132,6 +132,7 @@ Deno.test("a `<` a browser opens no tag at is text, and one it does is not", () 
     assertStrictEquals(decodeHtmlText("a<Zb>c"), "a c", "a tag opens on a letter of either case");
     assertStrictEquals(decodeHtmlText("a<A>c"), "a c", "from the first capital");
     assertStrictEquals(decodeHtmlText("a<@>c"), "a<@>c", "and not the sign before it");
+    assertStrictEquals(decodeHtmlText("a<[>c"), "a<[>c", "nor the sign after the last");
     assertStrictEquals(decodeHtmlText("a<a>c"), "a c", "from the first small letter");
     assertStrictEquals(decodeHtmlText("a<`>c"), "a<`>c", "and not the sign before it");
     assertStrictEquals(decodeHtmlText("a<z>c"), "a c", "to the last small letter");
@@ -181,6 +182,30 @@ Deno.test("an unclosed comment is kept as text, and a tag inside a word parts it
         "\u00a0a\u00a0b\u00a0",
         "and where it shows a no-break space written as itself",
     );
+    assertStrictEquals(decodeHtmlText("a <b c"), "a <b c", "where a browser drops a tag left open");
+    assertStrictEquals(decodeHtmlText("a <!b"), "a <!b", "and a `<!` left open");
+    assertStrictEquals(
+        decodeHtmlText('a</ b="1>2">c'),
+        "a c",
+        'where a browser closes `</ ` at its first `>`, and shows `2">c`',
+    );
+    assertStrictEquals(
+        decodeHtmlText("<title>a</title><p>b</p>"),
+        "a b",
+        "where a browser shows a title nowhere on the page",
+    );
+    assertStrictEquals(
+        decodeHtmlText("<textarea>a<b>c</textarea>"),
+        "a c",
+        "and a textarea's tags as text",
+    );
+    for (const reference of ["&#129;", "&#x8D;", "&#143;", "&#x90;", "&#157;"]) {
+        assertStrictEquals(
+            decodeHtmlText(reference),
+            reference,
+            "where a browser shows a C1 control windows-1252 leaves out as itself",
+        );
+    }
 });
 
 Deno.test("a page is read up to the bound on its length, and a page past it is a broken call", () => {

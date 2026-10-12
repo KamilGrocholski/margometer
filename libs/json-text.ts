@@ -36,13 +36,14 @@ export class JsonUnwritable extends Error {
     }
 }
 
-/** What `JSON.stringify` clamps a larger indent to (ECMA-262 §25.5.2). */
+/** What `JSON.stringify` clamps a larger indent to (ECMA-262 2025 §25.5.2, read 2026-10-12). */
 const INDENT_SPACES_MAXIMUM = 10;
 
 export function parseJson(text: string): JsonValue | JsonUnreadable {
     const parsed = errors.attempt((): JsonValue => {
         const parsedText: unknown = JSON.parse(text);
-        // Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 §25.5.1).
+        // Without a reviver, `JSON.parse` answers nothing but these (ECMA-262 2025 §25.5.1, read
+        // 2026-10-12).
         if (parsedText === null) return parsedText;
         if (typeof parsedText === "boolean") return parsedText;
         if (typeof parsedText === "number") return parsedText;

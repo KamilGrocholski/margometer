@@ -1,8 +1,9 @@
 /**
  * A number held between two ends.
  *
- * `@std/math`'s `clamp` answers the top where the top is below the bottom. Here the bottom wins:
- * that is the case a caller meets when the space it is clamping into has run out entirely.
+ * `@std/math`'s `clamp` (0.0.0, read 2026-10-12) throws a `RangeError` where the top is below the
+ * bottom (C17). Here the bottom wins: that is the case a caller meets when the space it is clamping
+ * into has run out entirely.
  */
 
 import { assert } from "@std/assert/assert";

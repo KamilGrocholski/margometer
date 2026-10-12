@@ -16,15 +16,27 @@ interface CharacterReference {
 const TAG_OPEN = "<";
 const TAG_CLOSE = ">";
 const TAG_TERMINATOR = "/";
-/** What may follow `<` for a browser to open a tag there: a letter, `/`, `!` or `?` (WHATWG). */
+/**
+ * What may follow `<` for a browser to open a tag there: a letter, `/`, `!` or `?` (WHATWG HTML
+ * §13.2.5.6, read 2026-10-12).
+ */
 const TAG_NAME_OPENERS = "/!?";
-/** `<!…>` and `<?…>` close at their first `>`, quotes and all (WHATWG, bogus comment). */
+/**
+ * `<!…>` and `<?…>` close at their first `>`, quotes and all, as a bogus comment or a processing
+ * instruction (WHATWG HTML §13.2.5.41, §13.2.5.75, read 2026-10-12).
+ */
 const BOGUS_COMMENT_OPENERS = "!?";
 const COMMENT_OPEN = "<!--";
 const COMMENT_CLOSE = "-->";
-/** From the first dash, because `<!-->` and `<!--->` are comments closed already (WHATWG). */
+/**
+ * From the first dash, because `<!-->` and `<!--->` are comments closed already (WHATWG HTML
+ * §13.2.5.43–44, read 2026-10-12).
+ */
 const COMMENT_CLOSE_FROM = 2;
-/** Only a value after `=` is quoted, and a `>` inside one closes nothing (WHATWG). */
+/**
+ * Only a value after `=` is quoted, and a `>` inside one closes nothing (WHATWG HTML
+ * §13.2.5.33–37, read 2026-10-12).
+ */
 const ATTRIBUTE_EQUALS = "=";
 const ATTRIBUTE_QUOTES = "\"'";
 const LOWER_CASE_OFFSET = 32;
@@ -62,7 +74,7 @@ const NO_BREAK_SPACE_CODE_POINT = 160;
 const CODE_POINT_MAXIMUM = 0x10ffff;
 const SURROGATE_FIRST = 0xd800;
 const SURROGATE_LAST = 0xdfff;
-/** The C1 controls, which a browser reads through windows-1252 rather than as themselves. */
+/** The C1 controls, all but five of which a browser reads through windows-1252. */
 const CONTROLS_C1_FIRST = 0x80;
 const CONTROLS_C1_LAST = 0x9f;
 /** Past `1114111`, the most digits that name a character once the zeros in front are passed. */
@@ -90,7 +102,7 @@ export function decodeHtmlText(html: string): string {
             const opening = lookupRawTextOpening(html, open);
             const elementEnd = opening === null
                 ? null
-                : lookupRawTextClosing(html, opening.end, opening.name);
+                : lookupRawTextEnd(html, opening.end, opening.name);
             // An opening with no closing loses only its tag: a departure from a browser, listed
             // over `decodeCharacterReferences`.
             const end = elementEnd === null ? lookupTagEnd(html, open) : elementEnd;
@@ -146,7 +158,10 @@ function isAsciiUpperCase(character: string): boolean {
     return character <= "Z";
 }
 
-/** What ends a tag's name, so `<styled-note>` is not `<style>`: a space, `/` or `>` (WHATWG). */
+/**
+ * What ends a tag's name, so `<styled-note>` is not `<style>`: a space, `/` or `>` (WHATWG HTML
+ * §13.2.5.8, read 2026-10-12).
+ */
 function isTagNameEndAt(html: string, index: number): boolean {
     assert(Number.isSafeInteger(index), "a name is ended at a whole position");
     assert(index > 0, "after the `<` that opened it");
@@ -185,8 +200,11 @@ function lookupTagClose(html: string, from: number): number | null {
     return null;
 }
 
-/** A closing tag carrying attributes closes the element as a bare one does (WHATWG). */
-function lookupRawTextClosing(html: string, from: number, name: string): number | null {
+/**
+ * Past the closing tag, which may carry attributes and closes the element as a bare one does
+ * (WHATWG HTML §13.2.5.14, §13.2.5.17, read 2026-10-12).
+ */
+function lookupRawTextEnd(html: string, from: number, name: string): number | null {
     assert(
         html.length <= HTML_CHARACTERS_MAXIMUM,
         "a page stays inside the length it is walked to",
@@ -238,11 +256,15 @@ function isTagOpeningAt(html: string, index: number): boolean {
 
 /**
  * ⚠️ Where a browser shows U+FFFD for a reference naming no character, reads one with no `;` other
- * than `&nbsp`, or reads `&#128;`–`&#159;` through windows-1252, this keeps what was written; so it
- * does an unclosed comment, which a browser hides to the end of the page, one closed by `--!>`, and
- * the body of an unclosed `<script>` or `<style>`, which a browser runs to the end as code. A `=`
- * after an unquoted value opens a quoted one, where a browser reads it into the value. Every tag
- * reads as a space, one inside a word included, where a browser joins the word across an inline
+ * than `&nbsp`, reads `&#128;`–`&#159;` through windows-1252, or shows the five that table leaves
+ * out as themselves, this keeps what was written; so it does an unclosed comment, which a browser
+ * hides to the end of the page, one closed by `--!>`, a tag, `<!` or `<?` the page ends inside,
+ * which a browser drops, and the body of an unclosed `<script>` or `<style>`, which a browser runs
+ * to the end as code. A `=` after an unquoted value opens a quoted one, where a browser reads it
+ * into the value, and `</` before anything but a letter closes as a tag does, where a browser
+ * closes it at its first `>`. A `<title>` and a `<textarea>` are read as words with their tags
+ * taken out, where a browser shows a title nowhere on the page and a textarea's tags as text. Every
+ * tag reads as a space, one inside a word included, where a browser joins the word across an inline
  * one. A no-break space written as a reference reads as a space; one written as itself stays.
  */
 function decodeCharacterReferences(text: string): string {
@@ -311,7 +333,7 @@ function isHexadecimalDigitAt(text: string, index: number): boolean {
 
 /**
  * A surrogate half names no character on its own, and the platform would write one anyway; a C1
- * control is not the character a browser shows for it.
+ * control is, all but five, not the character a browser shows for it.
  */
 function parseReferencedCodePoint(digits: string, isHexadecimal: boolean): number | null {
     assert(digits.length < REFERENCE_DIGITS_MAXIMUM, "digits past the longest name are not read");
@@ -340,7 +362,8 @@ function lookupNamedReference(text: string, open: number): CharacterReference | 
 
 /**
  * ⚠️ It trims as well: a run at either end leaves no space, not one. Not by `trim`, which takes a
- * no-break space too (C17): a run at the start adds nothing, and one at the end adds one space.
+ * no-break space too (C17): a run at the start adds nothing, and the space one at the end adds is
+ * cut on the way out.
  */
 function composeCollapsedWhitespace(text: string): string {
     assert(text.length <= HTML_CHARACTERS_MAXIMUM, "text stays inside the length it is walked to");
