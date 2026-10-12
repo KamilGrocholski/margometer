@@ -36,7 +36,7 @@ import {
     CLASS,
     TYPE_TOKENS,
 } from "#/src/ui/panel-look.ts";
-import { TYPE_STEP } from "#/src/ui/panel-choice.ts";
+import { TYPE_STEP, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import type { CardLinesExceeded } from "#/src/ui/view-failure.ts";
 import {
@@ -778,9 +778,10 @@ function composeHandleUnderTest() {
         document,
         (key) => register.lookup(key),
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
-        undefined,
-        undefined,
+        () => null,
+        () => null,
         () => STEP,
+        () => {},
     );
     return { register, handle, first: handle.element as FakeElement };
 }
@@ -821,16 +822,24 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
     const document = composeFakeDocument();
     const register = createCardRegister();
     let willFail = false;
-    const handle = initCardHandle(document, (key) => register.lookup(key), (standing, compose) => {
-        // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
-        if (willFail) {
-            setCardHidden(standing, true);
-            return standing;
-        }
-        const composed = compose();
-        standing.replaceWith(composed);
-        return composed;
-    });
+    const handle = initCardHandle(
+        document,
+        (key) => register.lookup(key),
+        (standing, compose) => {
+            // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
+            if (willFail) {
+                setCardHidden(standing, true);
+                return standing;
+            }
+            const composed = compose();
+            standing.replaceWith(composed);
+            return composed;
+        },
+        () => null,
+        () => null,
+        () => TYPE_STEP_DEFAULT,
+        () => {},
+    );
     const firstCard = handle.element as FakeElement;
 
     register.add("row:7", () => HILDUR);
@@ -858,18 +867,26 @@ Deno.test("a card that will not compose takes the last row's card down with it",
     const document = composeFakeDocument();
     const register = createCardRegister();
     const failures: errors.Caught[] = [];
-    const handle = initCardHandle(document, (key) => register.lookup(key), (standing, compose) => {
-        // The panel's own swap: a throw is told, and the card hidden where it stands.
-        const rendered = errors.attempt(() => {
-            const composed = compose();
-            standing.replaceWith(composed);
-            return composed;
-        });
-        if (!(rendered instanceof errors.Caught)) return rendered;
-        failures.push(rendered);
-        setCardHidden(standing, true);
-        return standing;
-    });
+    const handle = initCardHandle(
+        document,
+        (key) => register.lookup(key),
+        (standing, compose) => {
+            // The panel's own swap: a throw is told, and the card hidden where it stands.
+            const rendered = errors.attempt(() => {
+                const composed = compose();
+                standing.replaceWith(composed);
+                return composed;
+            });
+            if (!(rendered instanceof errors.Caught)) return rendered;
+            failures.push(rendered);
+            setCardHidden(standing, true);
+            return standing;
+        },
+        () => null,
+        () => null,
+        () => TYPE_STEP_DEFAULT,
+        () => {},
+    );
     const firstCard = handle.element as FakeElement;
     register.add("row:7", () => HILDUR);
     register.add("row:8", () => {
@@ -916,6 +933,9 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
             const distance = key === "helper:12" ? 255 : 507;
             return { edge: "left", offsetPixels: distance };
         },
+        () => null,
+        () => TYPE_STEP_DEFAULT,
+        () => {},
     );
     const firstCard = handle.element as FakeElement;
 
@@ -965,6 +985,7 @@ Deno.test("the card asks where it may stand with the columns it is drawn in", ()
         },
         () => ({ width: WIDTH_ROOM, height: viewportHeight }),
         () => STEP,
+        () => {},
     );
     register.add("row:7", () => LONG);
     handle.onHover("row:7", 300);
@@ -988,8 +1009,8 @@ Deno.test("a card counted past its line bound is placed at it, and the handle sa
         document,
         (key) => register.lookup(key),
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
-        undefined,
-        undefined,
+        () => null,
+        () => null,
         () => STEP,
         (failure) => reported.push(failure),
     );

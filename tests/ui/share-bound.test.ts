@@ -23,29 +23,30 @@ const HUNDRED = 100;
  * would not give a row to, and what no announcement covered at all (`develop ADR 0055`).
  */
 const WIDEST_SECTION = SKILLS_MAXIMUM + CUT_PARTS_MAXIMUM + 2;
-/** What a section costs a draw beyond its rows: the row named for nobody, and its heading. */
-const SECTION_EXTRAS = 2;
+/** What a section registers beyond its rows: the row named for nobody. A heading registers none. */
+const SECTION_UNNAMED_ROW = 1;
 /**
- * What the panel's window registers beside its list, one card each: the crumb over an open level,
- * the fight's line in the header, and the row of what no row holds under the list.
+ * What the panel's window registers beside its list, one card each: the fold on its bar, the
+ * fight's line in the header, the crumb's way back and its name over an open level, and the row of
+ * what no row holds under the list.
  */
-const AROUND_LIST_CARDS = 3;
+const AROUND_LIST_CARDS = 5;
 /**
- * And the widest screen: an opened row's three sections and their extras, the two pinned, and
- * what stands around the list. The cut by key carries a third row of its own — what no kind was
- * stated for — and a fold there is bounded too (`develop ADR 0055`).
+ * And the widest screen: an opened row's three sections — whom it reached and the row of nobody,
+ * the skills, and the kinds with the row the bound summed and the row no kind was stated for
+ * (`develop ADR 0055`) — the two pinned, and what stands around the list.
  */
-const WIDEST_SCREEN = COMBATANTS_MAXIMUM + SECTION_EXTRAS +
-    (WIDEST_SECTION + 1) +
-    (CUT_PARTS_MAXIMUM + SECTION_EXTRAS + 1) + 2 + AROUND_LIST_CARDS;
+const WIDEST_SCREEN = COMBATANTS_MAXIMUM + SECTION_UNNAMED_ROW + WIDEST_SECTION +
+    (CUT_PARTS_MAXIMUM + 2) + 2 + AROUND_LIST_CARDS;
 
 /**
- * And the widest the window beside the panel draws: the row the turn is numbered for, the charge
- * band, and the provocation section — a held character and the cast holding them, because the
- * clamp is over the pairs and the widest is one cast each (`develop ADR 0098`). The band is counted
- * because every row that window draws carries a card (`develop ADR 0100`).
+ * And the widest the window beside the panel draws: the fold on its bar, the row the turn is
+ * numbered for, the charge band, and the provocation section — a held character and the cast
+ * holding them, because the clamp is over the pairs and the widest is one cast each
+ * (`develop ADR 0098`). The band is counted because every row that window draws carries a card
+ * (`develop ADR 0100`).
  */
-const WIDEST_HELPER_WINDOW = 1 + CHARGED_ROWS_MAXIMUM + PROVOKED_MAXIMUM * 2;
+const WIDEST_HELPER_WINDOW = 2 + CHARGED_ROWS_MAXIMUM + PROVOKED_MAXIMUM * 2;
 
 Deno.test("the share writer holds every row the widest section can draw", () => {
     assert(

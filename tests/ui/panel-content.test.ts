@@ -69,9 +69,9 @@ import {
     UNNAMED_END,
 } from "#/src/ui/panel-content.ts";
 import {
+    formatDamageKind,
     formatNoParameterRowSuspicion,
     formatUnknownKeyRowSuspicion,
-    getWordsForDamageKind,
     HEALTH_LOSS_WORD_BY_KEY,
 } from "#/src/ui/panel-words.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
@@ -809,7 +809,7 @@ Deno.test("every kind is worded from a source, or registered as one nobody names
     for (const kind of kinds) {
         if (UNNAMED_KINDS.includes(kind)) continue;
         assertNotStrictEquals(
-            getWordsForDamageKind(kind),
+            formatDamageKind(kind),
             kind,
             `${kind} reaches a reader as a bare token and no register says it may`,
         );
@@ -818,7 +818,7 @@ Deno.test("every kind is worded from a source, or registered as one nobody names
     for (const kind of UNNAMED_KINDS) {
         assert(kinds.has(kind), `${kind} is registered as unnamed and no recording states it`);
         assertStrictEquals(
-            getWordsForDamageKind(kind),
+            formatDamageKind(kind),
             kind,
             `${kind} has a word now and belongs in the table rather than the register`,
         );

@@ -67,7 +67,7 @@ export interface PanelRow {
 
 /**
  * **Numbers, and not one word.** A card is composed when a pointer opens it, so a fight redrawing
- * every few seconds pays for the twenty it draws rather than for twenty cards nobody looks at.
+ * every few seconds pays for the rows it draws rather than for a card per row nobody looks at.
  *
  * Raw stands beside what was dealt and taken and is never taken from it: their difference is not
  * what a defence stopped, and the protocol reports neither armour nor resistance
@@ -1488,10 +1488,9 @@ export function getOutcomeForReaderSide(
     roster: CombatantRoster,
     readerSide: number | null,
 ): OutcomeResult | null {
-    // An escape ends the fight for everybody with health and position kept, so nobody won it —
-    // the published help, article 372, read 2026-09-06. It is read before a side the protocol
-    // named: no recording carries the two together, and until one does the interruption is what
-    // the fight came to.
+    // An escape ends the fight for everybody, so nobody won it, and it is read before a side the
+    // protocol named: `docs/protocol-keys.md` (`flee`) carries the evidence, and
+    // `develop ADR 0056` the order.
     if (outcome.isFled) return OUTCOME_RESULT.fled;
     if (outcome.isDrawn) return OUTCOME_RESULT.drawn;
     if (readerSide === null) return null;
@@ -1936,7 +1935,7 @@ export function presentPartLevel(
     if (figures === undefined) return null;
     const cut = composePeopleForPart(statistics, figures, metric, combatantId, openedPart);
     if (cut === null) return null;
-    const total = getPartTotal(figures, metric, openedPart, cut);
+    const total = tallyPartTotal(figures, metric, openedPart, cut);
     const byOtherEnd = composeOpponentCut(
         cut,
         statistics,
@@ -2056,7 +2055,7 @@ function composePeopleForKey(
  * and the difference is the row `composeOpponentCut` draws for nobody. Read off the same field
  * the section read, so a level cannot open under a figure the reader never saw.
  */
-function getPartTotal(
+function tallyPartTotal(
     figures: CombatantFigures,
     metric: PanelMetric,
     openedPart: OpenedPart,
@@ -2197,7 +2196,7 @@ export function presentPairLevel(
 ): PairLevelContent | null {
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
-    const total = getPairTotal(figures, metric, otherId);
+    const total = tallyPairTotal(figures, metric, otherId);
     if (total === null) return null;
     const kinds = getPairKinds(figures, metric, otherId);
     const otherCombatant = roster.byId.get(otherId);
@@ -2230,7 +2229,7 @@ export function presentPairLevel(
  * cut was missing an opponent the flat cut holds would answer with a figure off the healing maps,
  * and a figure under the wrong noun is the one thing a drill must never state.
  */
-function getPairTotal(
+function tallyPairTotal(
     figures: CombatantFigures,
     metric: PanelMetric,
     otherId: number,
@@ -2426,7 +2425,7 @@ export function presentOpenedLevel(
         statistics,
         roster,
         { figure: total, unnamedOpened },
-        (otherId) => getPairTotal(figures, metric, otherId) !== null,
+        (otherId) => tallyPairTotal(figures, metric, otherId) !== null,
     );
     const byElement = cuts.byElement === null
         ? { rows: [], rest: null, noKind: null }
@@ -2713,8 +2712,9 @@ function tallyGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest:
     let rest = 0;
     for (const cut of figures.healthGivenWithoutSkillByReceiverAndKey.values()) {
         // The fold runs over every receiver, so its own bound is the panel's (**S11**): what
-        // `core/` holds is one receiver's cut and not the union of twenty. What it will not hold
-        // travels out with it, because the section below owes it a row (`develop ADR 0055`).
+        // `core/` holds is one receiver's cut and not the union of every receiver's. What it will
+        // not hold travels out with it, because the section below owes it a row
+        // (`develop ADR 0055`).
         rest += addFoldedCut(folded, cut);
     }
     return { cut: folded, rest };

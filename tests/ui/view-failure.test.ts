@@ -13,7 +13,13 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
-import { CARD_LINES_MAXIMUM, DEFECTS_MAXIMUM, type PanelDefect } from "#/src/ui/panel-element.ts";
+import {
+    CARD_LINES_MAXIMUM,
+    DEFECTS_MAXIMUM,
+    initUndrawnReport,
+    type PanelDefect,
+    UNDRAWN_MAXIMUM,
+} from "#/src/ui/panel-element.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { DEFECT_KIND, initDefectLedger, ROWS_MAXIMUM } from "#/src/runtime/defect-ledger.ts";
 import { SIDE_RELATION } from "#/src/ui/panel-content.ts";
@@ -132,6 +138,34 @@ Deno.test("a sink that throws is not the browser's to hear", () => {
     const host = panel.element as FakeElement;
     clickElement(host, findMarked(host, PANEL_MARK.fold));
     pointAtElement(host, "contextmenu", null, 10);
+});
+
+/**
+ * **W5: the bound is a boundary.** A render past every region the panel has is a render that went
+ * wrong in a way nobody measured, so what it holds is cut at the bound, and what is past it reaches
+ * the sink rather than nowhere (**E9**).
+ */
+Deno.test("a render holds its regions undrawn up to the bound, and the sink is told the rest", () => {
+    const fill = (count: number) => {
+        const told: ViewFailure[] = [];
+        const report = initUndrawnReport({ onFailure: (failure) => told.push(failure) });
+        const { undrawn } = report.collect(() => {
+            for (let index = 0; index < count; index += 1) {
+                report.add(PANEL_REGION.sides, new CardRefused(`row-${index}`));
+            }
+        });
+        return { held: undrawn.length, told: told.length };
+    };
+    assertEquals(
+        fill(UNDRAWN_MAXIMUM),
+        { held: UNDRAWN_MAXIMUM, told: 0 },
+        "at the bound the render holds every one",
+    );
+    assertEquals(
+        fill(UNDRAWN_MAXIMUM + 1),
+        { held: UNDRAWN_MAXIMUM, told: 1 },
+        "and one past it reaches the sink",
+    );
 });
 
 Deno.test("a render reports every region it left undrawn, and nothing where all stood", () => {

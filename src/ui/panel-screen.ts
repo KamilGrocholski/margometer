@@ -7,12 +7,7 @@
  */
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
-import {
-    NO_WINDOW_SIZES,
-    TYPE_STEP_DEFAULT,
-    type TypeStep,
-    type WindowSizes,
-} from "./panel-choice.ts";
+import type { TypeStep, WindowSizes } from "./panel-choice.ts";
 import type { OpenedPart, PanelUnnamedEnd } from "./panel-content.ts";
 import {
     getDirectionWordsForMetric,
@@ -90,6 +85,11 @@ const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
     healthGiven: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.given },
     healthRestored: { noun: PANEL_NOUN.healing, direction: PANEL_DIRECTION.received },
 };
+/** The same four the other way round, so every noun answers both directions by its type. */
+const SCREEN_BY_AXES: Record<PanelNoun, Record<PanelDirection, PanelMetric>> = {
+    damage: { given: PANEL_METRIC.damageDealt, received: PANEL_METRIC.damageTaken },
+    healing: { given: PANEL_METRIC.healthGiven, received: PANEL_METRIC.healthRestored },
+};
 
 /** The kinds of part a reader can open: the three a game names, and the row closing a section. */
 export const OPENED_PART = {
@@ -124,9 +124,9 @@ const KIND_WORDS: Record<PanelMetric, string> = {
 
 export function createScreenState(
     isMeterCollapsed: boolean,
-    isHelperCollapsed = false,
-    typeStep: TypeStep = TYPE_STEP_DEFAULT,
-    windowSizes: WindowSizes = NO_WINDOW_SIZES,
+    isHelperCollapsed: boolean,
+    typeStep: TypeStep,
+    windowSizes: WindowSizes,
 ): ScreenState {
     const state: ScreenState = {
         metric: PANEL_METRIC.damageDealt,
@@ -219,19 +219,10 @@ export function presentNounStrips(metricShown: PanelMetric): ScreenStrip[] {
 
 /**
  * Keeps the direction already being read, so crossing between the nouns never silently turns a
- * figure round. Where the new noun has no such direction, its first is the honest answer.
+ * figure round.
  */
 function getScreenAfterNoun(noun: PanelNoun, metricShown: PanelMetric): PanelMetric {
-    const wanted = SCREEN_AXES[metricShown].direction;
-    const screens = getScreensForNoun(noun);
-    const kept = screens.find((screen) => SCREEN_AXES[screen].direction === wanted);
-    const reached = kept ?? screens[0] ?? metricShown;
-    return reached;
-}
-
-function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
-    const screens = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
-    return screens;
+    return SCREEN_BY_AXES[noun][SCREEN_AXES[metricShown].direction];
 }
 
 export function presentDirectionStrips(metricShown: PanelMetric): ScreenStrip[] {
@@ -241,6 +232,11 @@ export function presentDirectionStrips(metricShown: PanelMetric): ScreenStrip[] 
         isCurrent: screen === metricShown,
     }));
     return strips;
+}
+
+function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
+    const screens = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
+    return screens;
 }
 
 export function presentSideStrips(sideShown: PanelSideChoice): ScreenStrip[] {

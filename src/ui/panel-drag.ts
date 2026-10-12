@@ -328,8 +328,8 @@ export function clampSize(size: WindowSize, bounds: SizeBounds): WindowSize {
  * ⚠️ **The side is decided by the widest a card may be, never by the width of this one.** A card
  * is drawn at `max-content` and a short one would find room on the left where the card before it
  * found none — so the side a card opens on would change with what it happens to say, and a reader
- * crossing two rows would watch it jump the window. The bound is what every card was placed by
- * before `develop ADR 0091`, so this half of the answer does not move.
+ * crossing two rows would watch it jump the window. This half of the answer is the bound's
+ * alone (`develop ADR 0091`).
  */
 export function composeCardAcross(
     anchor: CardWindowPlace | null,
@@ -438,12 +438,12 @@ export function initPanelDrag(
             return state.position;
         });
         if (opened instanceof Error) {
-            addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, opened));
+            addViewFailureGuarded(new WindowUnplaced(options.window, opened), options.onFailure);
             state.position = null;
             // A size the reader gave stands on the sheet's corner too, where the page takes it.
             const sized = errors.attempt(writeHostStyle);
             if (sized instanceof Error) {
-                addViewFailureGuarded(options.onFailure, new WindowUnplaced(options.window, sized));
+                addViewFailureGuarded(new WindowUnplaced(options.window, sized), options.onFailure);
             }
         }
     }
@@ -458,7 +458,7 @@ export function initPanelDrag(
                 // A grab left standing after a failure moves the window under the next pointer that
                 // crosses it, with nobody having pressed the bar.
                 state.grab = null;
-                addViewFailureGuarded(options.onFailure, failure);
+                addViewFailureGuarded(failure, options.onFailure);
             });
         };
         const getGrabbedElement = (grab: PanelGrab): PanelElement => {
@@ -685,7 +685,7 @@ function writePointerCapture(
         else grabbed.releasePointerCapture?.(pointerId);
     });
     if (!(captured instanceof Error)) return;
-    addViewFailureGuarded(options.onFailure, new GestureDropped(PANEL_LISTENER.capture, captured));
+    addViewFailureGuarded(new GestureDropped(PANEL_LISTENER.capture, captured), options.onFailure);
 }
 
 function composeDraggedPosition(

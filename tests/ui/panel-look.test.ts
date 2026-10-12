@@ -25,13 +25,13 @@ import {
     calculateCardWidthForColumns,
     calculateContrastRatio,
     calculateControlHeightPixels,
+    calculateInkForBar,
     CLASS,
     composeBarColour,
     composeBarIconClass,
     composeOptionsStepClass,
     composeStyleSheet,
     composeStyleSheetForTokens,
-    getInkForBar,
     LAYER,
     PLACE,
     SIZE_VARIABLES,
@@ -914,7 +914,7 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
     let lightest = 21;
     for (const hue of hues) {
         const bar = composeBarColour(hue);
-        const ratio = calculateContrastRatio(getInkForBar(hue), bar);
+        const ratio = calculateContrastRatio(calculateInkForBar(hue), bar);
         const named = `${formatColour(hue)}: ${ratio.toFixed(2)} on ${formatColour(bar)}`;
         assert(ratio >= AA_TEXT_RATIO, named);
         lightest = Math.min(lightest, ratio);
@@ -924,7 +924,7 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
-    const inks = new Set(PALETTE_COLOURS.map((hue) => getInkForBar(hue)));
+    const inks = new Set(PALETTE_COLOURS.map((hue) => calculateInkForBar(hue)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
     // dark ink, which is why that token is reachable only by a lighter bar than the panel draws.
     assertEquals([...inks], [TEXT.inkLight], "every bar the panel draws takes the light ink");

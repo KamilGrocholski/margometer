@@ -9,6 +9,7 @@ import { composeFightView } from "#/src/core/fight-session.ts";
 import { tallyFightState } from "#/src/runtime/fight-state.ts";
 import { presentOpenedLevels } from "#/src/runtime/panel-frame.ts";
 import { lookupPinnedCase, presentOpenedLevel, UNNAMED_END } from "#/src/ui/panel-content.ts";
+import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { createScreenState, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 import { lookupRecordedFight, replayRecordedFight } from "#/tests/recorded-fights.ts";
 
@@ -27,7 +28,10 @@ Deno.test("a person's row and the end their figure left out open at once are the
             ?.doesOpenPair
     );
     assertExists(person, "and somebody whose figure left that end out");
-    const screen = { ...createScreenState(false), metric: metric };
+    const screen = {
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
+        metric: metric,
+    };
 
     const pinned = presentOpenedLevels(reading, { ...screen, openUnnamedEnd: end });
     assert(pinned.unnamed !== null, "a pinned row alone opens");
@@ -81,7 +85,10 @@ Deno.test("an end left out whose keys fall short of it opens nothing", () => {
     figures.damageTakenFromNobody -= 1;
     const drill = presentOpenedLevel(statistics, view.roster, metric, person);
     assertStrictEquals(drill?.byOtherEnd.halfNamed?.doesOpenPair, false, "the row no longer opens");
-    const screen = { ...createScreenState(false), metric: metric };
+    const screen = {
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
+        metric: metric,
+    };
     const both = presentOpenedLevels(reading, {
         ...screen,
         openUnnamedEnd: UNNAMED_END.actor,

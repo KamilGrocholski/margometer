@@ -7,13 +7,17 @@ import { AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import { executeScreenIntent } from "#/src/runtime/margometer-runtime.ts";
 import { PANEL_INTENT } from "#/src/ui/panel-intent.ts";
 import { UNNAMED_END } from "#/src/ui/panel-content.ts";
+import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { createScreenState, OPENED_PART, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
 
 const PERSON = 469658;
 const OTHER = 469659;
 
 Deno.test("the end a person's figure left out opens under them, and closes before they do", () => {
-    const screen = { ...createScreenState(false), metric: PANEL_METRIC.damageTaken };
+    const screen = {
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
+        metric: PANEL_METRIC.damageTaken,
+    };
     executeScreenIntent(screen, { kind: PANEL_INTENT.openRow, combatantId: PERSON });
     const opened = executeScreenIntent(screen, {
         kind: PANEL_INTENT.openUnnamed,
@@ -41,7 +45,7 @@ Deno.test("the end a person's figure left out opens under them, and closes befor
 });
 
 Deno.test("a pinned row still opens from the ranking and closes in one step", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     executeScreenIntent(screen, { kind: PANEL_INTENT.openUnnamed, end: UNNAMED_END.actor });
     assertStrictEquals(screen.openedCombatantId, null, "nobody's row is open under a pinned one");
     assertStrictEquals(screen.openUnnamedEnd, UNNAMED_END.actor, "the pinned row is");
@@ -51,7 +55,7 @@ Deno.test("a pinned row still opens from the ranking and closes in one step", ()
 
 Deno.test("an end left out is pressed from the level over it, never beside a pair or a part", () => {
     const paired = {
-        ...createScreenState(false),
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
         openedCombatantId: PERSON,
         pairCombatantId: OTHER,
     };
@@ -62,7 +66,7 @@ Deno.test("an end left out is pressed from the level over it, never beside a pai
         "pressed from the level over it",
     );
     const parted = {
-        ...createScreenState(false),
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
         openedCombatantId: PERSON,
         openPart: { kind: OPENED_PART.plain },
     };
@@ -73,7 +77,7 @@ Deno.test("an end left out is pressed from the level over it, never beside a pai
         "never from a part's level",
     );
     const opened = {
-        ...createScreenState(false),
+        ...createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
         openedCombatantId: PERSON,
         openUnnamedEnd: UNNAMED_END.actor,
     };

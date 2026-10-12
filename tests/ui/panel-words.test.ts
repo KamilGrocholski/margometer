@@ -22,6 +22,7 @@ import {
     CAVEAT,
     CAVEATS,
     CHOICE_REFUSED_ANSWER,
+    CLIENT_LABEL_CHARACTERS_MAXIMUM,
     COUNTED_NOUN_WORDS,
     DEFENCE_WORD_BY_KEY,
     DESTROYED_WORD_BY_KEY,
@@ -31,6 +32,7 @@ import {
     formatCardSubtitle,
     formatChargedSkillSubtitle,
     formatCountedNoun,
+    formatDamageKind,
     formatDefect,
     formatDestroyed,
     formatFigure,
@@ -66,7 +68,6 @@ import {
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
     getWordsForChargedSkill,
-    getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForHelperAbsence,
     getWordsForNothing,
@@ -963,6 +964,29 @@ Deno.test("a fighter carrying nothing composes no row at all", () => {
     );
 });
 
+/**
+ * **W5: the client's word for a status is taken between its two bounds**, and outside them the key
+ * stands: an empty word says nothing, and one past the bound is external data gone wrong.
+ */
+Deno.test("a status takes the client's word from one character to the bound, and the key outside", () => {
+    const sayStatus = (label: string) =>
+        presentTooltipRows(
+            { ...NOTHING_CARRIED, statuses: [{ bit: 6, percent: null }] },
+            () => label,
+            FROZEN_STATUS_BITS.bits,
+        )[1];
+    const key = FROZEN_STATUS_BITS.bits[6];
+    const fitting = "x".repeat(CLIENT_LABEL_CHARACTERS_MAXIMUM);
+    assertStrictEquals(sayStatus(fitting), fitting, "a word at the bound is the client's");
+    assertStrictEquals(
+        sayStatus(`${fitting}x`),
+        key,
+        "and one character past it is the key",
+    );
+    assertStrictEquals(sayStatus("x"), "x", "a word of one character is the client's");
+    assertStrictEquals(sayStatus(""), key, "and an empty one is the key");
+});
+
 Deno.test("no sentence carries our vocabulary", () => {
     assertEquals(
         getVocabularyFaults(getSentences()),
@@ -1428,6 +1452,11 @@ Deno.test("a figure is spaced the way the game spaces one, from three digits up"
         "a sign never joins the digits behind it",
     );
     assertStrictEquals(formatFigure(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
+    assertStrictEquals(
+        formatFigure(Number.MAX_SAFE_INTEGER),
+        "9\u00a0007\u00a0199\u00a0254\u00a0740\u00a0991",
+        "the largest figure the panel draws takes every group the walk allows",
+    );
 });
 
 /**
@@ -1738,7 +1767,7 @@ Deno.test("a kind the help does not name is left out rather than invented", () =
         "the one kind no source names carries no word",
     );
     assertStrictEquals(
-        getWordsForDamageKind("dmgg"),
+        formatDamageKind("dmgg"),
         "dmgg",
         "and reaches a reader as the game's token",
     );
@@ -1766,22 +1795,22 @@ Deno.test("a kind naming several elements owes the sentence, and one naming one 
 
 Deno.test("a pool's part the blow does not place is said as one kind or another", () => {
     assertStrictEquals(
-        getWordsForDamageKind("dmgc|dmgl"),
+        formatDamageKind("dmgc|dmgl"),
         "zimno lub błyskawice",
         "two elements",
     );
     assertStrictEquals(
-        getWordsForDamageKind("dmgf|dmgc|dmgl"),
+        formatDamageKind("dmgf|dmgc|dmgl"),
         "ogień, zimno lub błyskawice",
         "and three",
     );
     assertStrictEquals(
-        getWordsForDamageKind("dmgc|dmgg"),
+        formatDamageKind("dmgc|dmgg"),
         "zimno lub dmgg",
         "an element without a word reaches a reader as the game's token",
     );
     assertStrictEquals(
-        getWordsForDamageKind("absorb"),
+        formatDamageKind("absorb"),
         "absorb",
         "and a pool is no kind of damage at all",
     );

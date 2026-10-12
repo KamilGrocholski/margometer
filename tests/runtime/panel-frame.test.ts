@@ -27,7 +27,7 @@ import {
     renderFrame,
 } from "#/src/runtime/panel-frame.ts";
 import type { KeptFight } from "#/src/runtime/shelf.ts";
-import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
+import { NO_WINDOW_SIZES, STORAGE_CHOICE, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen, WaitingContent } from "#/src/ui/panel-element.ts";
 import {
     createScreenState,
@@ -102,7 +102,7 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
     // The ledger keeps the first failure of a kind, so every one added is kept here as well.
     const added: Defect[] = [];
     const parts: FrameParts = {
-        screen: createScreenState(false),
+        screen: createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES),
         keeper: {
             getFights: () => [fight],
             getChoice: () => STORAGE_CHOICE.local,

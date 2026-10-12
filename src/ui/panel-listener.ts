@@ -23,6 +23,6 @@ export function addGuardedListener(
     root.addEventListener(type, (event) => {
         const handled = errors.attempt(() => handle(event));
         if (!(handled instanceof Error)) return;
-        addViewFailureGuarded(onFailure, new GestureDropped(listener, handled));
+        addViewFailureGuarded(new GestureDropped(listener, handled), onFailure);
     });
 }

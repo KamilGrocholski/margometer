@@ -230,7 +230,7 @@ Deno.test("a key nothing here has placed is not put to the client either", () =>
  * raw key at a reader whose own client had the words. The bound below is still a bound: past it
  * the answer is external data that has gone wrong, and the key is the honest fallback.
  */
-Deno.test("a client label longer than the bound is refused, and one that fits is taken", () => {
+Deno.test("a client label empty or longer than the bound is refused, and one that fits is taken", () => {
     const fitting = "x".repeat(CLIENT_LABEL_CHARACTERS_MAXIMUM);
     const overlong = "x".repeat(CLIENT_LABEL_CHARACTERS_MAXIMUM + 1);
     assertStrictEquals(
@@ -242,6 +242,16 @@ Deno.test("a client label longer than the bound is refused, and one that fits is
         getWordsForBlowKey("-tenacity", () => overlong),
         "-tenacity",
         "and one past it falls back on the key rather than taking anything a dictionary says",
+    );
+    assertStrictEquals(
+        getWordsForBlowKey("-tenacity", () => "x"),
+        "x",
+        "a label of one character is taken",
+    );
+    assertStrictEquals(
+        getWordsForBlowKey("-tenacity", () => ""),
+        "-tenacity",
+        "and an empty one says nothing, so the key stands",
     );
 });
 
@@ -287,35 +297,28 @@ function lookupProcEnd(key: string): ProcEnd | undefined {
 }
 
 Deno.test("no label a card draws is longer than the column it is drawn in", () => {
-    const overlong: string[] = [];
-    for (const [key, words] of PROC_WORD_BY_KEY) {
-        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
-    }
-    for (const [key, words] of PROC_SUB_WORD_BY_KEY) {
-        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
-    }
-    for (const [key, words] of DEFENCE_WORD_BY_KEY) {
-        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
-    }
-    for (const [key, held] of DESTROYED_WORD_BY_KEY) {
-        if (held.name.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${held.name}"`);
-    }
+    const labels: (readonly [string, string])[] = [];
+    for (const [key, words] of PROC_WORD_BY_KEY) labels.push([key, words]);
+    for (const [key, words] of PROC_SUB_WORD_BY_KEY) labels.push([key, words]);
+    for (const [key, words] of DEFENCE_WORD_BY_KEY) labels.push([key, words]);
+    for (const [key, held] of DESTROYED_WORD_BY_KEY) labels.push([key, held.name]);
     // A bonus held for the whole fight is named in a sentence, which wraps; one that fired is a
     // label in the cut column, and held like any other (ADR 0029).
     for (const [key, words] of LEGENDARY_BONUS_WORD_BY_KEY) {
         if (lookupLegendaryBonus(key)?.showing !== LEGENDARY_BONUS_SHOWING.fired) continue;
-        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
+        labels.push([key, words]);
     }
     // ⚠️ **The table the name of this test always covered and the walk never reached.** Until
     // 2026-09-14 `CARD_WORDS.blowLargestTaken` stood at 24 characters against a bound of 22, cut
     // by the sheet on every card that drew it, while the docblock over `LABEL_CHARACTERS_MAXIMUM`
     // said every word in the module was inside it. Only the entries drawn in the cut column are
     // held: a sentence is a note and wraps to the width of the window instead.
-    for (const key of CARD_LABEL_KEYS) {
-        const words = CARD_WORDS[key];
-        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
-    }
-    assertEquals(overlong, [], "a label this long is cut by the sheet rather than read");
+    for (const key of CARD_LABEL_KEYS) labels.push([key, CARD_WORDS[key]]);
+    assertEquals(
+        composeOverlongLabels(labels),
+        [],
+        "a label this long is cut by the sheet rather than read",
+    );
     // Both ways: an entry in neither list is an entry nothing above holds.
     assertEquals(
         Object.keys(CARD_WORDS).filter((key) =>
@@ -325,13 +328,29 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
         [],
         "every word the card table holds is either a label in the cut column or a sentence",
     );
-    // The sample that must flag, so the reader is known to be looking: the bound is real and a
-    // word one character over it is over it.
-    assert(
-        "absorpcja magiczna!!!!!".length > LABEL_CHARACTERS_MAXIMUM,
-        "and the measure is the characters, not the entry",
+    // The sample that must flag, so the reader is known to be looking, and its neighbour that
+    // must not: the measure is the characters, and the bound itself is inside it.
+    const overBound = "a".repeat(LABEL_CHARACTERS_MAXIMUM + 1);
+    assertEquals(
+        composeOverlongLabels([["sample", overBound]]),
+        [`sample "${overBound}"`],
+        "a label one character over the bound is flagged",
+    );
+    assertEquals(
+        composeOverlongLabels([["sample", "a".repeat(LABEL_CHARACTERS_MAXIMUM)]]),
+        [],
+        "and one at the bound is not",
     );
 });
+
+/** Each label longer than the column the sheet cuts, as its key and its words. */
+function composeOverlongLabels(labels: readonly (readonly [string, string])[]): string[] {
+    const overlong: string[] = [];
+    for (const [key, words] of labels) {
+        if (words.length > LABEL_CHARACTERS_MAXIMUM) overlong.push(`${key} "${words}"`);
+    }
+    return overlong;
+}
 
 /**
  * A sub-line narrows the row above it, so the key drawing one has to be a key that reaches a row at

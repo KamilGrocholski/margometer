@@ -194,8 +194,8 @@ function composeFromLeft(distance: number): CardAcross {
  * ⚠️ **The side is the bound's answer, not this card's.** A card is drawn at `max-content` since
  * `develop ADR 0091`, so a short one would find room where the card before it found none — and a
  * reader crossing two rows of one list would watch the card jump from one side of the window to the
- * other. Two cards, one narrow enough to fit on the left and one not, at a place where the bound
- * says there is no room: both flip, and the panel stays still.
+ * other. At a place where the bound finds no room on the left, a width of 200px would have found
+ * some: the side is the answer of the width asked, and the panel asks the bound for every card.
  */
 Deno.test("the side a card opens on is the same for every card the window holds", () => {
     const anchor = composeCardWindowPlace(253);
@@ -205,9 +205,33 @@ Deno.test("the side a card opens on is the same for every card the window holds"
         "the bound says there is no room on the left",
     );
     assertEquals(
-        composeCardAcross(anchor, WINDOW, CARD_WIDTH_MAXIMUM),
-        composeCardAcross(anchor, WINDOW, CARD_WIDTH_MAXIMUM),
-        "and nothing about the card the reader is pointing at reaches this answer",
+        composeCardAcross(anchor, WINDOW, 200),
+        composeFromRight(WINDOW.width, 253),
+        "where a card 200px wide, measured by its own width, would have stood on the left",
+    );
+});
+
+Deno.test("a card with no width to be placed by opens nowhere", () => {
+    const anchor = composeCardWindowPlace(253);
+    assertStrictEquals(
+        composeCardAcross(anchor, WINDOW, 0),
+        null,
+        "a bound of no width places no card",
+    );
+    assertEquals(
+        composeCardAcross(anchor, WINDOW, 1),
+        composeFromRight(WINDOW.width, 253),
+        "and one pixel of it is a card, placed",
+    );
+    assertStrictEquals(
+        composeCardAcross(anchor, WINDOW, Number.NaN),
+        null,
+        "a bound the sheet could not read places none",
+    );
+    assertStrictEquals(
+        composeCardAcross(anchor, WINDOW, Number.POSITIVE_INFINITY),
+        null,
+        "and neither does one with no end",
     );
 });
 

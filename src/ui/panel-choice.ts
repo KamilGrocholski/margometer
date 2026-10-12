@@ -7,8 +7,8 @@ export const STORAGE_CHOICE = { local: "local", session: "session", memory: "mem
 export type StorageChoice = VocabularyWord<typeof STORAGE_CHOICE>;
 
 export interface PanelPosition {
-    left: number;
-    top: number;
+    readonly left: number;
+    readonly top: number;
 }
 
 /** The meter, and the helper beside it, which `develop` calls the standing window. */
@@ -20,8 +20,8 @@ export type PanelWindow = VocabularyWord<typeof PANEL_WINDOW>;
  * under the bar, which is what a fold takes away (ADR 0013).
  */
 export interface WindowSize {
-    width: number;
-    height: number;
+    readonly width: number;
+    readonly height: number;
 }
 
 /** Null is a window nobody sized, which stands as wide as its type and as tall as its rows. */

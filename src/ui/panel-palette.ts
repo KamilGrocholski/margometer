@@ -23,34 +23,32 @@ export const SIGNAL = {
 
 const HEX_BASE = 16;
 
-export const PALETTE_COLOURS: readonly Colour[] = [
+export const PALETTE_COLOURS = [
     [0x15, 0x7c, 0xd0],
     [0x3f, 0x8e, 0x2b],
     [0xbb, 0x4a, 0x7f],
     [0x9d, 0x6f, 0x00],
     [0x00, 0x8e, 0x71],
     [0xc2, 0x50, 0x2b],
-];
+] as const satisfies readonly Colour[];
 
 /**
  * The codes are the game's own letters. Every one of the six is stated in `captures/`: 262
  * combatants over the corpus as it stood on 2026-08-29, none without a profession, `w` 91 of them
  * and `b` 17.
  */
-const PALETTE_INDEX_BY_PROFESSION: ReadonlyMap<string, number> = new Map([
-    ["m", 0],
-    ["h", 1],
-    ["p", 2],
-    ["t", 3],
-    ["b", 4],
-    ["w", 5],
+const PALETTE_COLOUR_BY_PROFESSION: ReadonlyMap<string, Colour> = new Map<string, Colour>([
+    ["m", PALETTE_COLOURS[0]],
+    ["h", PALETTE_COLOURS[1]],
+    ["p", PALETTE_COLOURS[2]],
+    ["t", PALETTE_COLOURS[3]],
+    ["b", PALETTE_COLOURS[4]],
+    ["w", PALETTE_COLOURS[5]],
 ]);
 
 export function lookupColourForProfession(profession: string | null): Colour {
     if (profession === null) return SIGNAL.unknown;
-    const stated = PALETTE_INDEX_BY_PROFESSION.get(profession);
-    if (stated === undefined) return SIGNAL.unknown;
-    return PALETTE_COLOURS[stated] ?? SIGNAL.unknown;
+    return PALETTE_COLOUR_BY_PROFESSION.get(profession) ?? SIGNAL.unknown;
 }
 
 /** The spelling a rule and a style attribute take: a hash and two lower-case digits a channel. */

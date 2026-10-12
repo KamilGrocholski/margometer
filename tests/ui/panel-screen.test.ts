@@ -10,6 +10,7 @@ import { assert, assertArrayIncludes, assertEquals, assertStrictEquals } from "@
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import { tallyFightStatistics } from "#/src/core/fight-statistics.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
+import { NO_WINDOW_SIZES, TYPE_STEP_DEFAULT } from "#/src/ui/panel-choice.ts";
 import { NOTHING_SUSPECT, presentScreen, UNNAMED_END } from "#/src/ui/panel-content.ts";
 import {
     composeListName,
@@ -63,7 +64,7 @@ Deno.test("a name no screen answers to moves nothing", () => {
 });
 
 Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
-    const state = createScreenState(false);
+    const state = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     assertArrayIncludes(SCREEN_ORDER, [state.metric], "the opening screen is one of them");
     assertStrictEquals(state.metric, PANEL_METRIC.damageDealt, "and it is what the reader did");
     assertStrictEquals(
@@ -77,7 +78,7 @@ Deno.test("a panel opens on a screen it can draw, folded as the reader last left
         "and a reader who folded nothing away opens unfolded",
     );
     assertStrictEquals(
-        createScreenState(true).isMeterCollapsed,
+        createScreenState(true, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES).isMeterCollapsed,
         true,
         "while one who did opens folded",
     );
@@ -117,6 +118,8 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
         );
         const marked = directions.find((strip) => strip.isCurrent);
         assertStrictEquals(marked?.name, screen, "and the marked direction is the screen itself");
+        const markedNoun = nouns.find((strip) => strip.isCurrent);
+        assertStrictEquals(markedNoun?.name, screen, "and so is the marked noun");
     }
 });
 
@@ -124,7 +127,7 @@ Deno.test("one strip is marked on each row, and it is the screen the panel is on
  * The whole reason the two axes are named apart: healing given had nowhere to go while healing
  * was a noun with no direction. Crossing the nouns keeps the direction the reader is reading in.
  */
-Deno.test("crossing between the nouns keeps the direction, or says there is none to keep", () => {
+Deno.test("crossing between the nouns keeps the direction", () => {
     const fromDealt = presentNounStrips(PANEL_METRIC.damageDealt).find((strip) => !strip.isCurrent);
     assertStrictEquals(
         fromDealt?.name,
@@ -142,6 +145,14 @@ Deno.test("crossing between the nouns keeps the direction, or says there is none
         back?.name,
         PANEL_METRIC.damageDealt,
         "and the crossing goes back the way it came",
+    );
+    const backTaken = presentNounStrips(PANEL_METRIC.healthRestored).find((strip) =>
+        !strip.isCurrent
+    );
+    assertStrictEquals(
+        backTaken?.name,
+        PANEL_METRIC.damageTaken,
+        "both ways round",
     );
 });
 
@@ -184,7 +195,7 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
 });
 
 Deno.test("a place a reader stands in is named, and every field of it counts", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     const placeName = composeListName(screen, FIGHT);
     assertStrictEquals(
         composeListName(screen, FIGHT),
@@ -211,7 +222,7 @@ Deno.test("a place a reader stands in is named, and every field of it counts", (
 });
 
 Deno.test("a part names its own kind, so two of them never share a place", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     screen.openPart = { kind: OPENED_PART.skill, name: "Cios" };
     const skill = composeListName(screen, FIGHT);
     screen.openPart = { kind: OPENED_PART.source, source: "Cios" };
@@ -222,7 +233,7 @@ Deno.test("a part names its own kind, so two of them never share a place", () =>
 });
 
 Deno.test("the ends the protocol leaves out are places of their own", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     const ranking = composeListName(screen, FIGHT);
     screen.openUnnamedEnd = UNNAMED_END.actor;
     const actor = composeListName(screen, FIGHT);
@@ -232,7 +243,7 @@ Deno.test("the ends the protocol leaves out are places of their own", () => {
 });
 
 Deno.test("the shelf is a place of its own, whatever screen stands under it", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     screen.isOnShelf = true;
     const shelf = composeListName(screen, FIGHT);
     screen.metric = PANEL_METRIC.healthGiven;
@@ -248,7 +259,7 @@ Deno.test("the shelf is a place of its own, whatever screen stands under it", ()
 });
 
 Deno.test("the options are a place of their own, and not the shelf's", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     screen.isOnShelf = true;
     const shelf = composeListName(screen, FIGHT);
     screen.isOnShelf = false;
@@ -265,7 +276,7 @@ Deno.test("the options are a place of their own, and not the shelf's", () => {
 });
 
 Deno.test("a fight is part of the place, so a new one is nobody's position", () => {
-    const screen = createScreenState(false);
+    const screen = createScreenState(false, false, TYPE_STEP_DEFAULT, NO_WINDOW_SIZES);
     const placeName = composeListName(screen, FIGHT);
     assert(composeListName(screen, FIGHT + 1) !== placeName, "another fight is another place");
     assertStrictEquals(

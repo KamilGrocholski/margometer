@@ -396,8 +396,8 @@ export const CARD_WORDS = {
     /**
      * **Two labels, because the card states one figure or two**: which one is whether a lost turn
      * was heard anywhere in this fight, and where none was the second half is unread, not nought.
-     * At 22 characters the longer one is `LABEL_CHARACTERS_MAXIMUM` exactly, which is why its
-     * slash carries no space where the figures beside it do. `develop ADR 0110`.
+     * The longer one is exactly `LABEL_CHARACTERS_MAXIMUM` long, which is why its slash carries
+     * no space where the figures beside it do. `develop ADR 0110`.
      */
     turns: "Tury wykonane",
     turnsWithLost: "Tury wykonane/utracone",
@@ -463,7 +463,7 @@ export const CARD_WORDS = {
  * **L3**: what the game does not report, never what this reader summed; each said once at the foot
  * of the card. ⚠️ `reduction` names no pair: told not to subtract, a reader points at the nearest
  * two numbers, and `z tych liczb` voids every subtraction instead of forbidding one. `turns` is
- * written to 60 characters, so it wraps to two lines of the card and not three. ⚠️ `unannounced`
+ * written short enough to wrap to two lines of the card and not three. ⚠️ `unannounced`
  * says the game names no skill there, and not whether our reading missed one: that half is ours,
  * and `develop:docs/unannounced-damage.md` carries it. `undivided` says the game states one figure
  * for the whole blow, which is why the row names more than one kind (`docs/protocol-keys.md`).
@@ -608,8 +608,8 @@ export const DESTROYED_WORD_BY_KEY: ReadonlyMap<string, { name: string; unit: st
         critpierce: { name: "pancerz z przebicia", unit: "pkt" },
         resdmg: { name: "odporność", unit: "p.p." },
         // The element rides after a colon rather than after "na", which the bound decides:
-        // `odporność na błyskawice` is 23 characters against LABEL_CHARACTERS_MAXIMUM above,
-        // and a label past it is cut by the column with nothing saying it was cut.
+        // `odporność na błyskawice` runs one character past LABEL_CHARACTERS_MAXIMUM above, and
+        // a label past it is cut by the column with nothing saying it was cut.
         resdmgf: { name: "odporność: ogień", unit: "p.p." },
         resdmgc: { name: "odporność: zimno", unit: "p.p." },
         resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
@@ -793,10 +793,11 @@ const MARKUP_ENTITY = "&";
  * one row per status the client registers.
  *
  * ⚠️ **A figure taken off the corpus is the wrong figure here.** The tallest block over
- * `captures/` is seven (`develop:design/dziesiec/measured.json`), and a fabricated ten-a-side
- * stands eleven — a bound set at what has been seen falls short of what happens. It clamps rather
- * than asserts, because a fighter with one thing more to say is not a reason to stop drawing
- * (**A11**, `develop ADR 0051`).
+ * `captures/` as it stood on 2026-09-21, 35 recordings, is seven
+ * (`develop:design/dziesiec/measured.json`), and a fabricated ten-a-side stands eleven — a bound
+ * set at what has been seen falls short of what happens. It clamps rather than asserts, because a
+ * fighter with one thing more to say is not a reason to stop drawing (**A11**,
+ * `develop ADR 0051`).
  */
 export const ROWS_BESIDE_THE_STATUSES = 6;
 
@@ -920,7 +921,7 @@ const MONTH_WORDS = [
 const MINUS_SIGN = "-";
 const THOUSAND_DIGITS = 3;
 const THOUSAND_SEPARATOR = "\u00a0";
-/** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
+/** The largest safe integer is sixteen digits, which is five groups behind its first. */
 const THOUSAND_GROUPS_MAXIMUM = 5;
 
 /** Three names is what fits beside a count; past that the sentence says how many instead. */
@@ -1134,7 +1135,7 @@ export function getWordsForHealthSource(source: string): string {
  * What a figure was made of: an element, a key health went out under, or the elements a pool's
  * part stands under together, which is said as one of them (ADR 0045).
  */
-export function getWordsForDamageKind(kind: string): string {
+export function formatDamageKind(kind: string): string {
     const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind);
     if (words !== undefined) return words;
     if (!kind.includes(KIND_ELEMENTS_SEPARATOR)) return kind;

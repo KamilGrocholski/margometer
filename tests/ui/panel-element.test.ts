@@ -65,6 +65,7 @@ import {
     DEFECT_MARK,
     FIGHT_CARD_WORDS,
     formatCardSubtitle,
+    formatDamageKind,
     formatFigure,
     formatSideCounts,
     formatUndrawn,
@@ -74,7 +75,6 @@ import {
     getNoteForOpenedUnnamedStanding,
     getNoteForUnnamedEnd,
     getWordsForCardMetric,
-    getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForNoun,
@@ -632,7 +632,7 @@ Deno.test("a pinned row says what its figure was dealt with, before anybody pres
     const said = held.card.stated.filter((line) => line.isSub);
     assertEquals(
         said.map((line) => line.label),
-        kinds.map((kind) => getWordsForDamageKind(kind.element)),
+        kinds.map((kind) => formatDamageKind(kind.element)),
         "one line per kind, in the order the level under the row draws them",
     );
     assertEquals(
@@ -793,7 +793,7 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
         named,
         [
             ...halfNamed.rows.map((row) => row.name ?? PANEL_WORDS.unknown),
-            ...halfNamed.kinds.rows.map((kind) => getWordsForDamageKind(kind.element)),
+            ...halfNamed.kinds.rows.map((kind) => formatDamageKind(kind.element)),
         ],
         "and lists both, each in the order the reading ranked it",
     );
@@ -840,7 +840,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and w
     });
     const host = panel.element as FakeElement;
     const unnamedCell = getElementsWithin(host).find(
-        (drawn) => drawn.attributes.get("data-card") === "to:nobody",
+        (drawn) => drawn.attributes.get("data-card") === "to/nobody",
     );
     assertExists(unnamedCell, "the row for the end nobody was named at is drawn");
     assertStringIncludes(
@@ -902,7 +902,7 @@ Deno.test("an end left out inside an opened figure states its kinds where the le
     const document = composeFakeDocument();
     const panel = initTestView(document);
     panel.render({ ...composeShownScreen(reading, "damageTaken"), opened });
-    const card = readCardByKey(panel.element as FakeElement, "to:nobody");
+    const card = readCardByKey(panel.element as FakeElement, "to/nobody");
     assertEquals(card.headings, [PANEL_WORDS.damageKind], "the card heads the run it draws");
     assertStrictEquals(card.groups, 3, "the figure, what it was made of, and the sentences");
     const standing = getNoteForOpenedUnnamedStanding("damageTaken");
@@ -914,7 +914,7 @@ Deno.test("an end left out inside an opened figure states its kinds where the le
     const said = card.stated.filter((line) => line.isSub);
     assertEquals(
         said.map((line) => line.label),
-        kinds.map((kind) => getWordsForDamageKind(kind.element)),
+        kinds.map((kind) => formatDamageKind(kind.element)),
         "one line per kind, in the order the level under the row draws them",
     );
     assertEquals(
@@ -959,7 +959,7 @@ Deno.test("an end left out under an opened part says where it stands, and states
             hasFiguresDisagreed: false,
         },
     });
-    const card = readCardByKey(panel.element as FakeElement, "reached:nobody");
+    const card = readCardByKey(panel.element as FakeElement, "reached/nobody");
     const standing = getNoteForOpenedUnnamedStanding("damageDealt");
     assertExists(standing, "a dealing screen says which row under the list holds it");
     assertEquals(
@@ -997,7 +997,7 @@ Deno.test("an end left out inside an opened figure is pressed by that end, from 
     });
     const host = panel.element as FakeElement;
     const row = getElementsWithin(host).find(
-        (drawn) => drawn.attributes.get("data-card") === "to:nobody",
+        (drawn) => drawn.attributes.get("data-card") === "to/nobody",
     );
     assertExists(row, "the row for the end nobody was named at is drawn");
     assertStringIncludes(row.className, "drillable", "and wears the cursor of a row that opens");
@@ -1043,7 +1043,7 @@ Deno.test("an end left out inside an opened figure opens onto its keys, and back
     const host = panel.element as FakeElement;
     assertEquals(
         getTextsByClass(host, "row-name"),
-        under.kinds.rows.map((kind) => getWordsForDamageKind(kind.element)),
+        under.kinds.rows.map((kind) => formatDamageKind(kind.element)),
         "the level lists the keys, each in the order the reading ranked it",
     );
     assertEquals(
@@ -1106,7 +1106,7 @@ Deno.test("every row under a pinned row says which end the game left out", () =>
         "a key says it, and that it opens",
     );
     assertEquals(
-        readCardByKey(host, "kind:rest").notes,
+        readCardByKey(host, "kind/rest").notes,
         [PANEL_WORDS.restNote, note],
         "and the keys summed past the bound say it after what they are",
     );
@@ -1946,7 +1946,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
     const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
     assertStrictEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
     assertEquals(
-        readCardByKey(host, "kind:nobody").notes,
+        readCardByKey(host, "kind/nobody").notes,
         [getNoteForNoKind("damage")],
         "its card says the game named no kind, and nothing about an end it did name",
     );
@@ -1974,7 +1974,7 @@ Deno.test("a part of healing no key was stated for says so in the healing's word
         },
     });
     assertEquals(
-        readCardByKey(panel.element as FakeElement, "kind:nobody").notes,
+        readCardByKey(panel.element as FakeElement, "kind/nobody").notes,
         [getNoteForNoKind("healing")],
         "the healing sentence, never the damage one",
     );
@@ -1982,6 +1982,42 @@ Deno.test("a part of healing no key was stated for says so in the healing's word
         getNoteForNoKind("healing"),
         getWordsForNoun("healing").toLowerCase(),
         "in the words of healing",
+    );
+});
+
+/**
+ * A key is the game's to name, and it may name one the way the panel names a row of its own. The
+ * register refuses the second of two rows under one key without a word, and that row then wears its
+ * neighbour's card — so a key spelled `nobody` keeps a card of its own beside the row of no key.
+ */
+Deno.test("a key the game spells as a word of ours keeps a card of its own", () => {
+    const { reading, drill } = openFirstRow();
+    const [kind] = drill.byElement.rows;
+    assertExists(kind, "the opened row cuts by key");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const report = panel.render({
+        ...composeShownScreen(reading),
+        opened: {
+            ...drill,
+            byElement: {
+                rows: [{ ...kind, element: "nobody" }],
+                rest: null,
+                noKind: { figure: 140, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    assertEquals(report.undrawn, [], "no card is refused");
+    const host = panel.element as FakeElement;
+    assertEquals(
+        readCardByKey(host, "kind:nobody").name,
+        ["nobody"],
+        "the key's row opens the key's card",
+    );
+    assertEquals(
+        readCardByKey(host, "kind/nobody").notes,
+        [getNoteForNoKind("damage")],
+        "and the row of no key opens its own",
     );
 });
 
@@ -2529,7 +2565,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
     assertEquals(
         readCard(host).lines,
         [
-            getWordsForDamageKind(kind.element),
+            formatDamageKind(kind.element),
             getWordsForMetric("damageDealt"),
             PANEL_WORDS.shareOfFigure,
             formatFigure(kind.figure),
@@ -4142,7 +4178,7 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
         panel.render({ ...composeShownScreen(reading, metric), opened: drill });
         const host = panel.element as FakeElement;
         const row = getElementsWithin(host).find(
-            (drawn) => drawn.attributes.get("data-card") === "skill:plain",
+            (drawn) => drawn.attributes.get("data-card") === "skill/plain",
         );
         const caveat = getCaveatForUnannounced(getNounForMetric(metric));
         if (row === undefined) {
@@ -4203,7 +4239,7 @@ Deno.test("a row closing a pair says what it says one level up, and its neighbou
         const rows = getElementsWithin(host).filter(
             (row) => row.attributes.get("data-card")?.startsWith("pair-") === true,
         );
-        const closing = rows.find((row) => row.attributes.get("data-card") === "pair-skill:plain");
+        const closing = rows.find((row) => row.attributes.get("data-card") === "pair-skill/plain");
         // Every other part of a pair names what it was, so a mark on one would point at nothing,
         // but for a kind naming several elements, which owes a sentence of its own.
         for (const row of rows) {

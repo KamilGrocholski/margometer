@@ -38,7 +38,7 @@ export interface StandingProvoked {
 /**
  * Whoever is holding somebody, and whom. **It states no length of its own**: one cast holding two
  * characters is two counts, on two clocks, so the figure sits on the row of whoever is carrying it
- * — `develop ADR 0103`, superseding `develop ADR 0067` on the half that put it here.
+ * — `develop ADR 0103`.
  *
  * The shout is named here because the two of them are not one state: the table dates their
  * side-wide halves apart, so which one holds somebody is something a reader acts on.
@@ -122,8 +122,8 @@ export interface HelperContent {
     /** What is being made ready, and what became of it. Empty draws no section at all. */
     chargedSkills: StandingChargedSkill[];
     /**
-     * A charge the band cannot draw as the game states it, carried out so the entry turns it into a
-     * defect (**E12**): `isChargedSkillUndrawable` says which.
+     * What the window cannot draw as the game states it, carried out so the entry turns it into a
+     * defect (**E12**): `hasHelperFiguresDisagreed` says which.
      */
     hasFiguresDisagreed: boolean;
 }
@@ -131,7 +131,8 @@ export interface HelperContent {
 /**
  * Every character on the board, because **both sides may be shouting and nobody is held twice**:
  * a later shout replaces whatever held somebody (`develop ADR 0062`), so the most that can stand at
- * once is one row each. The corpus cannot show it, and a fabricated ten-a-side stands 20 at once.
+ * once is one row each. `captures/` as it stood on 2026-09-22 cannot show it, and a fabricated
+ * ten-a-side stands every combatant `COMBATANTS_MAXIMUM` counts at once.
  */
 export const PROVOKED_MAXIMUM = COMBATANTS_MAXIMUM;
 /**
@@ -172,8 +173,22 @@ export function presentHelper(
         },
         provocations: presentStandingProvocations(provocationsBounded, roster, readerSide),
         chargedSkills: presentStandingChargedSkills(chargedSkills, roster, readerSide),
-        hasFiguresDisagreed: chargedSkills.some((standing) => isChargedSkillUndrawable(standing)),
+        hasFiguresDisagreed: hasHelperFiguresDisagreed(provocations, chargedSkills),
     };
+}
+
+/**
+ * Whether the window draws less than the fight states: more held than the section's bound, more
+ * charges than the band's, or a charge `isChargedSkillUndrawable` names. A clamp that binds is a
+ * defect, never a silence (**S11**).
+ */
+function hasHelperFiguresDisagreed(
+    provocations: readonly ProvocationStanding[],
+    chargedSkills: readonly ChargedSkillStanding[],
+): boolean {
+    if (provocations.length > PROVOKED_MAXIMUM) return true;
+    if (chargedSkills.length > CHARGED_ROWS_MAXIMUM) return true;
+    return chargedSkills.some((standing) => isChargedSkillUndrawable(standing));
 }
 
 /**
@@ -219,8 +234,9 @@ function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingT
  *
  * ⚠️ **The fold takes the cast and not the caster**, because the group is drawn under the shout's
  * name: one caster shouting both of them would otherwise be one group under one name, and the name
- * would be wrong for half of it. No moment in `captures/` shows that, so what this holds is
- * the label rather than a reading anything has seen go wrong. `develop ADR 0097`.
+ * would be wrong for half of it. No moment in `captures/` as it stood on 2026-09-18 shows that,
+ * so what this holds is the label rather than a reading anything has seen go wrong.
+ * `develop ADR 0097`.
  */
 function presentStandingProvocations(
     provocations: readonly ProvocationStanding[],

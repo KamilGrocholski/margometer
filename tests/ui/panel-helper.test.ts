@@ -286,8 +286,24 @@ Deno.test("the provoked stop at their stated maximum, and one under it is stated
     // on the people the section draws however few casts they arrive under (`develop ADR 0067`).
     const countHeld = (reading: ReturnType<typeof presentHelper>) =>
         reading.provocations.reduce((sum, provocation) => sum + provocation.provoked.length, 0);
-    const over = presentHelper(many, [], ROSTER, READER_SIDE, composeTurn(null));
+    const over = presentHelper(
+        many.slice(0, PROVOKED_MAXIMUM + 1),
+        [],
+        ROSTER,
+        READER_SIDE,
+        composeTurn(null),
+    );
     assertStrictEquals(countHeld(over), PROVOKED_MAXIMUM, "past it, the rest are dropped");
+    assert(over.hasFiguresDisagreed, "and the clamp binding is carried out to be said");
+    const atMaximum = presentHelper(
+        many.slice(0, PROVOKED_MAXIMUM),
+        [],
+        ROSTER,
+        READER_SIDE,
+        composeTurn(null),
+    );
+    assertStrictEquals(countHeld(atMaximum), PROVOKED_MAXIMUM, "at it, all of them");
+    assert(!atMaximum.hasFiguresDisagreed, "with nothing carried out");
     const under = presentHelper(
         many.slice(0, PROVOKED_MAXIMUM - 1),
         [],
@@ -410,6 +426,7 @@ Deno.test("the band stops at its stated maximum, and one at it is stated whole",
     assertEquals(nameless.chargedSkills, [], "and a charge naming no blow is not a row");
     assert(nameless.hasFiguresDisagreed, "but a broken invariant, carried out to be said");
     assert(!atMaximum.hasFiguresDisagreed, "while charges core named carry nothing out");
+    assert(over.hasFiguresDisagreed, "and the band's clamp binding is carried out as well");
 });
 
 /**

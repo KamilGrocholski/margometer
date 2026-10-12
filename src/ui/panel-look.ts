@@ -35,7 +35,7 @@ export interface TypeTokens {
     fontSmallPixels: number;
     /** What a row carries over its line, less the drop, is even: its ink lands mid-row. */
     rowHeightPixels: number;
-    /** Two digits and a stop, and a fight holds twenty. */
+    /** Two digits and a stop, which every rank up to `COMBATANTS_MAXIMUM` fits in. */
     rankWidthPixels: number;
     /** A dot small enough that four of them and a figure fit the window's own width. */
     pipSizePixels: number;
@@ -498,7 +498,7 @@ function composeColourOverChannel(above: number, below: number, share: number): 
     return Math.round(share * above + (1 - share) * below);
 }
 
-export function getInkForBar(hue: Colour): Colour {
+export function calculateInkForBar(hue: Colour): Colour {
     const bar = composeBarColour(hue);
     const onDark = calculateContrastRatio(bar, TEXT.inkDark);
     const onLight = calculateContrastRatio(bar, TEXT.inkLight);
@@ -948,9 +948,9 @@ function composeRowRules(tokens: TypeTokens): string {
         `border-radius:${cap};}` +
         `.${CLASS.rowRank},.${CLASS.rowName},.${CLASS.rowValue}{position:relative;}` +
         // ⚠️ **A bar reaches every cell of a ranking row, and the quiet ink clears AA over none of
-        // them**: 2.84 over the palette's worst bar, 2.25 over the colourless one (ADR 0048). So
-        // the rank, the turn mark and the share are in the plain ink, and the two signal marks,
-        // whose ink is their meaning, stand on a ground of their own.
+        // them** (ADR 0048 carries the figures). So the rank, the turn mark and the share are in
+        // the plain ink, and the two signal marks, whose ink is their meaning, stand on a ground
+        // of their own.
         `.${CLASS.rowRank}{color:var(${VARIABLE_PREFIX}text);` +
         `font-variant-numeric:tabular-nums;flex:none;box-sizing:border-box;` +
         `width:${tokens.rankWidthPixels}px;text-align:right;` +
@@ -1159,7 +1159,7 @@ function composeCardTop(): string {
  * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
  *
  * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
- * to 5.5px against 8.67 for `O` at the panel's own 11px. No family this machine offers carries
+ * to 5.5px against 8.67 for `O` at `develop`'s 11px. No family this machine offers carries
  * U+24D8, so every one falls back to a single condensed face, and `develop ADR 0092` carries that
  * sweep and the nine it was taken over. A ring with a border is a circle wherever the panel is
  * opened, which a codepoint is not.
