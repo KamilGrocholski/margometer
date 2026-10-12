@@ -169,7 +169,7 @@ export class SkillsExceeded extends Error {
 }
 
 /** A fight past a bound the options or the figures state. What stands is left whole. */
-export type PayloadRejected =
+export type PayloadFailure =
     | CombatantsExceeded
     | CutKeysExceeded
     | EventsExceeded
@@ -272,7 +272,7 @@ export function preparePayload(
     session: FightSession,
     record: PayloadRecord,
     tables: DecoderTables,
-): PreparedPayload | PayloadRejected {
+): PreparedPayload | PayloadFailure {
     const stateBefore = record.isInit ? null : session.state;
     const eventsBefore = stateBefore === null ? 0 : session.events.length;
     const payloadsApplied = (stateBefore?.payloadsApplied ?? 0) + 1;

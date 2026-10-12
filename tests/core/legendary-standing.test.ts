@@ -214,7 +214,7 @@ Deno.test("the walk handed in is left as it was, and the same input prepares the
 
 function copyWalk(walk: LegendaryWalk) {
     return {
-        heals: [...walk.holytouchHealsByBearerId],
+        heals: [...walk.holytouchHealsByHolderId],
         spent: [...walk.lastHealSpentCombatantIds],
     };
 }

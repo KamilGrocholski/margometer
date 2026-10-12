@@ -27,11 +27,14 @@ import {
     decodePayloadMessages,
     type DecoderTables,
     EndUnreadable,
+    FIGURE_MAXIMUM,
     HEALTH_CHANGE_MEMBERS_MAXIMUM,
+    indexBlowsGrantedBySkillId,
     MESSAGE_END,
     MESSAGE_PARTS_MAXIMUM,
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
+    SKILLS_GRANTING_MAXIMUM,
     UnreadMessage,
 } from "#/src/core/fight-decoder.ts";
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "#/src/core/turn-clock.ts";
@@ -1157,6 +1160,55 @@ function getOnlyUnread(events: readonly BattleEvent[]): readonly string[] {
 }
 
 /**
+ * Probes: the largest figure over `captures/` sits far inside the bound (`FIGURE_MAXIMUM`). Past
+ * it, a figure read whole would carry a total past what a number holds exactly into the assertion
+ * that says it never does, and a share past everything would carry one into the health it sizes.
+ */
+Deno.test("a figure or a share is read up to its bound, and one past it goes unread", () => {
+    const blow = (amount: number) => `1=50.00;2=50.00;-dmg=${amount}`;
+    const struck = getOnlyAttack(decode([blow(FIGURE_MAXIMUM)]));
+    assert(struck.kind === BATTLE_EVENT.attack, "a blow at the bound is read");
+    assertEquals(struck.applied, [{ element: "dmg", amount: FIGURE_MAXIMUM }], "whole");
+    assertEquals(getOnlyUnread(decode([blow(FIGURE_MAXIMUM + 1)])), ["-dmg"], "one past it");
+    const tick = (amount: number) => `1=50.00;0;poison=${amount}`;
+    const [moved] = decode([tick(FIGURE_MAXIMUM)]);
+    assertStrictEquals(moved?.kind, BATTLE_EVENT.healthChange, "health moved at the bound");
+    assertStrictEquals(moved.amount, -FIGURE_MAXIMUM, "is read whole");
+    assertEquals(getOnlyUnread(decode([tick(FIGURE_MAXIMUM + 1)])), ["poison"], "past it");
+    const [stated] = decode([`1=50.00;0;heal=-${FIGURE_MAXIMUM}`]);
+    assertStrictEquals(stated?.kind, BATTLE_EVENT.healthChange, "a stated loss at the bound");
+    assertStrictEquals(stated.amount, -FIGURE_MAXIMUM, "is read whole too");
+    assertEquals(
+        getOnlyUnread(decode([`1=50.00;0;heal=-${FIGURE_MAXIMUM + 1}`])),
+        ["heal"],
+        "and past it, whichever sign the figure carries",
+    );
+    const named = (amount: number) => `1=50.00;2=50.00;+oth_dmg=${amount},,Gracz 3(40.00%)`;
+    const [hit] = decode([named(FIGURE_MAXIMUM)]);
+    assertStrictEquals(hit?.kind, BATTLE_EVENT.damageToNamedCombatant, "damage by name");
+    assertStrictEquals(hit.damage.amount, FIGURE_MAXIMUM, "is read at the bound");
+    assertEquals(getOnlyUnread(decode([named(FIGURE_MAXIMUM + 1)])), ["+oth_dmg"], "not past");
+    const healed = (amount: number) => `1=50.00;0;legbon_lastheal=${amount},Gracz 3(40.00%)`;
+    const [restored] = decode([healed(FIGURE_MAXIMUM)]);
+    assertStrictEquals(restored?.kind, BATTLE_EVENT.healingToNamedCombatant, "healing by name");
+    assertStrictEquals(restored.amount, FIGURE_MAXIMUM, "is read at the bound");
+    assertEquals(
+        getOnlyUnread(decode([healed(FIGURE_MAXIMUM + 1)])),
+        ["legbon_lastheal"],
+        "and not past it",
+    );
+    const share = (text: string) => `1=50.00;1=50.00;tcustom=Kołysanka;healall_per=${text}`;
+    const cast = decode([share("100")]).find((event) =>
+        event.kind === BATTLE_EVENT.unaccountedHealth
+    );
+    assertStrictEquals(cast?.kind, BATTLE_EVENT.unaccountedHealth, "a share of everything");
+    assertStrictEquals(cast.declaredShare, 100, "is read");
+    const past = decode([share("100.01")]).at(-1);
+    assertStrictEquals(past?.kind, BATTLE_EVENT.unknownMessage, "and one past it");
+    assertEquals(past.unreadKeys, ["healall_per"], "goes unread");
+});
+
+/**
  * A key spelled like a member every object carries. Indexed straight, the tables answered with
  * the language's own `constructor` for a key they never held, and the decoder invented an event.
  */
@@ -1471,4 +1523,21 @@ Deno.test("a share past the whole of a pool is unread, at an end and against a n
     const past = decode(["1=50.00;2=50.00;+oth_dmg=5,,Gracz 3(100.01%)"])[0];
     assertStrictEquals(past?.kind, BATTLE_EVENT.damageToNamedCombatant, "and one past it");
     assertStrictEquals(past.targetHealthPercent, null, "keeps its figure and no share");
+});
+
+Deno.test("a table granting as many skills as its bound is indexed, and one more is refused", () => {
+    const skills = Array.from(
+        { length: SKILLS_GRANTING_MAXIMUM + 1 },
+        (_, skillIndex) => ({ id: skillIndex + 1, blowsGrantedMinimum: 1 }),
+    );
+    assertStrictEquals(
+        indexBlowsGrantedBySkillId(skills.slice(0, SKILLS_GRANTING_MAXIMUM)).size,
+        SKILLS_GRANTING_MAXIMUM,
+        "a table at the bound is indexed whole",
+    );
+    assertThrows(
+        () => indexBlowsGrantedBySkillId(skills),
+        AssertionError,
+        "the table grants a bounded few skills",
+    );
 });

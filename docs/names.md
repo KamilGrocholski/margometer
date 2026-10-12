@@ -2393,6 +2393,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `heads` — `tests/tools/protocol-key-table.test.ts`, `tests/ui/panel-element.test.ts`
 
+### `healed` — not in N2's table
+
+- `healed` — `tests/core/fight-decoder.test.ts`
+
 ### `held` — not in N2's table
 
 - `held` — `tests/ui/panel-element.test.ts`
@@ -2525,8 +2529,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `named` — not in N2's table
 
-- `named` — `tests/core/last-heal-rule.test.ts`, `tests/ports/margonem-client-build.test.ts`,
-  `tests/ui/panel-card.test.ts`
+- `named` — in 4 files: `tests/`
 
 ### `names` — not in N2's table
 
@@ -2755,6 +2758,10 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 - `settle` — `src/ui/panel-element.ts`
 
+### `share` — not in N2's table
+
+- `share` — `tests/core/fight-decoder.test.ts`
+
 ### `sheet` — not in N2's table
 
 - `sheet` — `tests/runtime/margometer-runtime.test.ts`
@@ -2944,7 +2951,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 
 ### `writing` — not in N2's table
 
-- `writing` — `tests/tools/capture-intake.test.ts`
+- `writing` — `tests/core/message-grammar.test.ts`, `tests/tools/capture-intake.test.ts`
 
 ## Types
 
@@ -3003,7 +3010,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `FightTotals` — `src/core/fight-statistics.ts`
 - `FightView` — `src/core/fight-session.ts`
 - `FigureCut` — `src/core/fight-statistics.ts`
-- `GrammarRefusal` — `src/core/fight-decoder.ts`
+- `GrammarFailure` — `src/core/fight-decoder.ts`
 - `HealingToNamedCombatantEvent` — `src/core/battle-event.ts`
 - `HealthChangeDecoded` — `src/core/fight-decoder.ts`
 - `HealthChangeEvent` — `src/core/battle-event.ts`
@@ -3024,8 +3031,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ParametersDecoded` — `src/core/fight-decoder.ts`
 - `PayloadCommitted` — `src/core/fight-session.ts`
 - `PayloadDecoded` — `src/core/fight-decoder.ts`
+- `PayloadFailure` — `src/core/fight-session.ts`
 - `PayloadRecord` — `src/core/fight-session.ts`
-- `PayloadRejected` — `src/core/fight-session.ts`
 - `PreparedPayload` — `src/core/fight-session.ts`
 - `PreparedStanding` — `src/core/fight-session.ts`
 - `PreventedDamage` — `src/core/battle-event.ts`
@@ -3770,6 +3777,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `DESTROYED_KEYS` — `src/core/protocol-key.ts`
 - `ENDS_MAXIMUM` — `src/core/fight-decoder.ts`
 - `FACADE_KEY` — `src/core/protocol-key.ts`
+- `FIGURE_MAXIMUM` — `src/core/fight-decoder.ts`
 - `GLARE_KEY` — `src/core/protocol-key.ts`
 - `HALF_PLACE` — `src/core/combatant-health.ts`
 - `HALVED_FOR_THE_CASTER` — `src/core/carried-figure.ts`
@@ -3833,6 +3841,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `SIDE_WIDE_KEYS` — `src/core/protocol-key.ts`
 - `SIDE_WIDE_OPENING` — `src/core/protocol-key.ts`
 - `SKILLS_DATED_MAXIMUM` — `src/core/aura-standing.ts`
+- `SKILLS_GRANTING_MAXIMUM` — `src/core/fight-decoder.ts`
 - `SKILLS_MAXIMUM` — `src/core/fight-statistics.ts`
 - `SKILL_EFFECTS_MAXIMUM` — `src/core/aura-standing.ts`
 - `SKILL_ID_KEY` — `src/core/protocol-key.ts`
@@ -5626,7 +5635,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `highest` — `src/core/carried-figure.ts`
 - `highestByCasterId` — `src/core/carried-figure.ts`
 - `holderId` — `src/core/legendary-standing.ts`
-- `holytouchHealsByBearerId` — `src/core/legendary-standing.ts`
+- `holytouchHealsByHolderId` — `src/core/legendary-standing.ts`
 - `idByName` — `src/core/combatant-roster.ts`
 - `idText` — `src/core/fight-decoder.ts`
 - `imbalance` — `src/core/fight-statistics.ts`
@@ -7467,7 +7476,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `carries` — `tests/core/anguish-rule.test.ts`
 - `carrying` — in 5 files: `tests/`
 - `cases` — in 5 files: `tests/`
-- `cast` — in 9 files: `tests/`
+- `cast` — in 10 files: `tests/`
 - `castPast` — `tests/core/aura-standing.test.ts`
 - `caster` — `tests/core/absorption-destruction-rule.test.ts`, `tests/ui/panel-content.test.ts`
 - `casterUnknown` — `tests/core/combatant-health.test.ts`
@@ -7791,6 +7800,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `figureCell` — `tests/ui/panel-element.test.ts`
 - `figured` — `tests/runtime/carried-tooltip.test.ts`, `tests/ui/panel-words.test.ts`
 - `figures` — in 19 files: `tests/`
+- `figuresPerEvent` — `tests/core/fight-statistics.test.ts`
 - `file` — in 12 files: `tests/`
 - `fileNames` — `tests/repository/name-register.test.ts`
 - `fileSaid` — `tests/runtime/margometer-runtime.test.ts`
@@ -8729,7 +8739,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skillNumber` — `tests/ui/panel-content.test.ts`
 - `skillPart` — `tests/ui/panel-content.test.ts`
 - `skillPastId` — `tests/core/aura-standing.test.ts`
-- `skills` — in 7 files: `tests/`
+- `skills` — in 8 files: `tests/`
 - `slash` — `tests/repository/design-tokens.test.ts`, `tests/ui/panel-element.test.ts`,
   `tests/ui/panel-look.test.ts`
 - `slashIndex` — `tests/repository/name-register.test.ts`
@@ -10084,7 +10094,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `after` — `tests/runtime/live-fight.test.ts`
 - `all` — `tests/e2e/panel-options.spec.ts`, `tests/ui/panel-content.test.ts`
 - `alpha` — `tests/ui/panel-look.test.ts`
-- `amount` — in 4 files: `tests/`
+- `amount` — in 5 files: `tests/`
 - `announced` — `tests/core/injure-rule.test.ts`, `tests/ui/panel-content.test.ts`
 - `announcementPosition` — `tests/core/granted-blow-rule.test.ts`
 - `answer` — in 11 files: `tests/`
@@ -10300,6 +10310,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `heals` — `tests/core/fight-statistics.test.ts`
 - `healsGiven` — `tests/ui/panel-words.test.ts`
 - `health` — `tests/ports/warrior-entries.test.ts`
+- `healthPercent` — `tests/core/message-grammar.test.ts`
 - `height` — `tests/e2e/panel-scroll.spec.ts`, `tests/tools/card-height.test.ts`,
   `tests/ui/panel-look.test.ts`
 - `held` — in 9 files: `tests/`
@@ -10561,7 +10572,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skill` — `tests/repository/skill-durations.test.ts`, `tests/tools/aura-standing.test.ts`,
   `tests/tools/skill-table.test.ts`
 - `skillId` — `tests/core/aura-standing.test.ts`
-- `skillIndex` — `tests/core/aura-standing.test.ts`
+- `skillIndex` — `tests/core/aura-standing.test.ts`, `tests/core/fight-decoder.test.ts`
 - `skillName` — `tests/core/charged-skill.test.ts`, `tests/ui/view-failure.test.ts`
 - `skillRow` — in 4 files: `tests/`
 - `skills` — `tests/core/aura-standing.test.ts`
@@ -10607,7 +10618,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `task` — `tests/repository/name-register.test.ts`
 - `team` — `tests/runtime/margometer-runtime.test.ts`
 - `term` — `tests/ui/panel-look.test.ts`
-- `text` — in 37 files: `tests/`
+- `text` — in 38 files: `tests/`
 - `texts` — `tests/ui/panel-words.test.ts`
 - `theirs` — `tests/core/aura-standing.test.ts`
 - `this` — `tests/ports/margonem-engine-battle.test.ts`
@@ -10836,7 +10847,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `healthRestoredToNobody` — `src/core/fight-statistics.ts`
 - `healthRestoredWithoutSkillByKey` — `src/core/fight-statistics.ts`
 - `held` — `src/core/protocol-key.ts`
-- `holytouchHealsByBearerId` — `src/core/legendary-standing.ts`
+- `holytouchHealsByHolderId` — `src/core/legendary-standing.ts`
 - `holytouchHealsReceived` — `src/core/legendary-standing.ts`
 - `id` — `src/core/aura-standing.ts`, `src/core/combatant-roster.ts`, `src/core/fight-decoder.ts`
 - `idByName` — `src/core/combatant-roster.ts`
@@ -12696,6 +12707,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `ac` — `tests/ports/fight-capture.test.ts`, `tests/ports/margonem-engine-warriors.test.ts`
 - `across` — `tests/e2e/panel-type.spec.ts`
 - `actions/setup-node` — `tests/repository/workflows.test.ts`
+- `actor` — `tests/core/message-grammar.test.ts`
 - `actorHealthPercent` — in 8 files: `tests/`
 - `actorId` — in 9 files: `tests/`
 - `addEventListener` — `tests/repository/handed-callbacks.test.ts`
@@ -12763,7 +12775,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `blowsCriticalOffhand` — `tests/ui/panel-words.test.ts`
 - `blowsGrantedBySkillId` — `tests/core/fight-decoder.test.ts`,
   `tests/core/granted-blow-rule.test.ts`, `tests/runtime/live-fight.test.ts`
-- `blowsGrantedMinimum` — `tests/tools/skill-table.test.ts`
+- `blowsGrantedMinimum` — `tests/core/fight-decoder.test.ts`, `tests/tools/skill-table.test.ts`
 - `blowsStruck` — `tests/ui/panel-card.test.ts`
 - `blowsWithoutSkill` — `tests/ui/panel-card.test.ts`, `tests/ui/panel-words.test.ts`
 - `body` — in 6 files: `tests/`
@@ -13374,6 +13386,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `panelLeft` — `tests/e2e/panel-helper.spec.ts`
 - `param` — `tests/source-tree.ts`
 - `parameter` — `tests/repository/name-register.test.ts`, `tests/source-tree.ts`
+- `parameters` — `tests/core/message-grammar.test.ts`
 - `params` — `tests/source-tree.ts`
 - `parent` — `tests/source-tree.ts`
 - `parsed` — `tests/core/absorption-destruction-rule.test.ts`,
@@ -13647,8 +13660,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tag` — `tests/fake-document.ts`
 - `taken` — `tests/tools/turn-count.test.ts`
 - `takenFrom` — `tests/ui/panel-words.test.ts`
-- `target` — `tests/fake-document.ts`, `tests/ui/panel-gesture.test.ts`,
-  `tests/ui/view-failure.test.ts`
+- `target` — in 4 files: `tests/`
 - `targetHealthPercent` — in 10 files: `tests/`
 - `targetId` — in 10 files: `tests/`
 - `targetName` — `tests/core/legendary-standing.test.ts`, `tests/repository/redacted-names.test.ts`,

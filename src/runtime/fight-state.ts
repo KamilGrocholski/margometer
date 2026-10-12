@@ -17,7 +17,7 @@ import {
     composeFightView,
     createFightSession,
     type FightView,
-    type PayloadRejected,
+    type PayloadFailure,
     preparePayload,
     type SessionOptions,
 } from "#/src/core/fight-session.ts";
@@ -36,7 +36,7 @@ export interface KeptFightState extends FightState {
 }
 
 /** A kept payload the chain will not read costs the whole fight: a gap mid-fight reads as whole. */
-export type ReplayFailure = EnvelopeFailure | PayloadRejected;
+export type ReplayFailure = EnvelopeFailure | PayloadFailure;
 
 /** The fight the panel stands on, and the kept one it was read off where that is what it is. */
 export type ShownFight =

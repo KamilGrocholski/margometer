@@ -10,7 +10,7 @@
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { HTML_CHARACTERS_MAXIMUM } from "#/libs/html-text.ts";
 import { SKILL_EFFECTS_MAXIMUM, SKILLS_DATED_MAXIMUM } from "#/src/core/aura-standing.ts";
-import { BLOWS_GRANTED_MAXIMUM } from "#/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED_MAXIMUM, SKILLS_GRANTING_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import { SkillTableError } from "#/tools/margometer-tool-error.ts";
 import {
     CACHE_ROOT,
@@ -280,6 +280,24 @@ Deno.test("a shout or a grant the add-on could not hold is refused, and the leas
         "as many as an announcement reaches",
     );
     assertThrows(() => granting(BLOWS_GRANTED_MAXIMUM), SkillTableError, "past the");
+});
+
+Deno.test("the skills granting a blow are carried up to their bound and refused one past it", () => {
+    const granting = (count: number) =>
+        requireSkillsOfMargonemApi(
+            Array.from({ length: count }, (_, rowIndex) =>
+                composeRow(String(rowIndex + 1), "add_attacks=1")).join(""),
+        );
+    assertStrictEquals(
+        composeGrantedBlows(granting(SKILLS_GRANTING_MAXIMUM)).length,
+        SKILLS_GRANTING_MAXIMUM,
+        "at the bound, every one",
+    );
+    assertThrows(
+        () => composeGrantedBlows(granting(SKILLS_GRANTING_MAXIMUM + 1)),
+        SkillTableError,
+        "more than",
+    );
 });
 
 /** The tool reads as many effects as the add-on does, so no row it freezes asserts there. */

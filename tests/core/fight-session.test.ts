@@ -130,6 +130,10 @@ Deno.test("a payload says how many messages it carried, and the count is held to
     assertStrictEquals(view(session).messagesLost, 2, "a count nobody stated loses nothing");
     apply(session, { ...NOTHING, messagesStated: 0, messages: [] });
     assertStrictEquals(view(session).messagesRead, 4, "and a payload with none adds none");
+    apply(session, { ...NOTHING, messagesStated: 2, messages: ["0;0;txt=e", "0;0;txt=f"] });
+    assertStrictEquals(view(session).messagesLost, 2, "a count read exactly loses nothing");
+    apply(session, { ...NOTHING, messagesStated: 1, messages: ["0;0;txt=g", "0;0;txt=h"] });
+    assertStrictEquals(view(session).messagesLost, 2, "and nor does one read past what was stated");
 });
 
 Deno.test("what a payload could not read is counted by why", () => {

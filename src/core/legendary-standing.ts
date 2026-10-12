@@ -22,7 +22,7 @@ import {
 /** What one fight's bonuses have come to so far, carried payload to payload. */
 export interface LegendaryWalk {
     /** The heals the holder's current run has given them so far. */
-    readonly holytouchHealsByBearerId: ReadonlyMap<number, number>;
+    readonly holytouchHealsByHolderId: ReadonlyMap<number, number>;
     readonly lastHealSpentCombatantIds: ReadonlySet<number>;
 }
 
@@ -56,7 +56,7 @@ const HOLDERS_MAXIMUM = COMBATANTS_MAXIMUM;
 const BONUSES_PER_HOLDER_MAXIMUM = 16;
 
 export const NO_LEGENDARY_WALK: LegendaryWalk = {
-    holytouchHealsByBearerId: new Map(),
+    holytouchHealsByHolderId: new Map(),
     lastHealSpentCombatantIds: new Set(),
 };
 
@@ -70,7 +70,7 @@ export function prepareLegendaryWalk(
     walk: LegendaryWalk,
     events: readonly BattleEvent[],
 ): LegendaryWalk {
-    const holytouchHealsByBearerId = new Map(walk.holytouchHealsByBearerId);
+    const holytouchHealsByHolderId = new Map(walk.holytouchHealsByHolderId);
     const lastHealSpentCombatantIds = new Set(walk.lastHealSpentCombatantIds);
     for (const event of events) {
         if (event.kind === BATTLE_EVENT.attack) {
@@ -78,7 +78,7 @@ export function prepareLegendaryWalk(
                 declaredEffect.effect === HOLYTOUCH_DECLARATION_KEY
             );
             if (isLit) {
-                if (event.actorId !== null) holytouchHealsByBearerId.set(event.actorId, 0);
+                if (event.actorId !== null) holytouchHealsByHolderId.set(event.actorId, 0);
             }
         }
         if (event.kind === BATTLE_EVENT.healingToNamedCombatant) {
@@ -91,17 +91,17 @@ export function prepareLegendaryWalk(
         // Count the heal onto the run open on its holder.
         const holderId = event.combatantId;
         if (holderId === null) continue;
-        const heals = holytouchHealsByBearerId.get(holderId);
+        const heals = holytouchHealsByHolderId.get(holderId);
         if (heals === undefined) continue;
         assert(heals >= 0, "a run open on a holder has given none or more");
-        holytouchHealsByBearerId.set(holderId, heals + 1);
+        holytouchHealsByHolderId.set(holderId, heals + 1);
     }
-    assert(holytouchHealsByBearerId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");
+    assert(holytouchHealsByHolderId.size <= HOLDERS_MAXIMUM, "a board holds a bounded cast");
     assert(
         lastHealSpentCombatantIds.size <= HOLDERS_MAXIMUM,
         "and so does what has been spent on it",
     );
-    return { holytouchHealsByBearerId, lastHealSpentCombatantIds };
+    return { holytouchHealsByHolderId, lastHealSpentCombatantIds };
 }
 
 /**
@@ -113,7 +113,7 @@ export function prepareLegendaryWalk(
  */
 export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStanding[] {
     const standingByCombatantId = new Map<number, LegendaryStanding>();
-    for (const [combatantId, heals] of walk.holytouchHealsByBearerId) {
+    for (const [combatantId, heals] of walk.holytouchHealsByHolderId) {
         assert(heals >= 0, "a run has given no fewer heals than none");
         if (heals >= HOLYTOUCH_HEALS_STATED) continue;
         const hasSpentLastheal = walk.lastHealSpentCombatantIds.has(combatantId);
@@ -132,8 +132,8 @@ export function composeLegendaryStandings(walk: LegendaryWalk): LegendaryStandin
         });
     }
     assert(
-        standingByCombatantId.size <= HOLDERS_MAXIMUM * 2,
-        "no more rows than the two bonuses can put up",
+        standingByCombatantId.size <= HOLDERS_MAXIMUM,
+        "a row for a combatant, whichever bonus it is for",
     );
     return [...standingByCombatantId.values()].sort((leftStanding, rightStanding) =>
         leftStanding.combatantId - rightStanding.combatantId

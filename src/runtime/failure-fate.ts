@@ -10,7 +10,7 @@
 import type * as errors from "#/libs/errors.ts";
 import type { VocabularyWord } from "#/libs/vocabulary.ts";
 import type { UnreadMessage } from "#/src/core/fight-decoder.ts";
-import type { PayloadRejected } from "#/src/core/fight-session.ts";
+import type { PayloadFailure } from "#/src/core/fight-session.ts";
 import type { StoreFailure } from "#/src/ports/browser-store.ts";
 import type { MargonemEngineFailure } from "#/src/ports/margonem-engine-battle.ts";
 import type { MargonemReadFailure } from "#/src/ports/margonem-value.ts";
@@ -27,7 +27,7 @@ import type { ShelfFailure } from "./shelf.ts";
 export type RuntimeFailure =
     | MargonemEngineFailure
     | EnvelopeFailure
-    | PayloadRejected
+    | PayloadFailure
     | CaptureCallsExceeded
     | UnreadMessage
     | StoreFailure

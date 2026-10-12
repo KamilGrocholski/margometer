@@ -21,7 +21,7 @@ import {
     type SkillEffectTurns,
     SKILLS_DATED_MAXIMUM,
 } from "#/src/core/aura-standing.ts";
-import { BLOWS_GRANTED_MAXIMUM } from "#/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED_MAXIMUM, SKILLS_GRANTING_MAXIMUM } from "#/src/core/fight-decoder.ts";
 import { PROVOCATION_KEY } from "#/src/core/protocol-key.ts";
 import { type FrozenFiles, readFrozenFiles, writeFrozenFiles } from "./frozen-files.ts";
 import { readMargonemAnswerText } from "./margonem-client-source.ts";
@@ -435,6 +435,11 @@ export function composeGrantedBlows(
             );
         }
         grantedBlows.push({ id: skill.id, blowsGrantedMinimum });
+    }
+    if (grantedBlows.length > SKILLS_GRANTING_MAXIMUM) {
+        throw new SkillTableError(
+            `more than ${SKILLS_GRANTING_MAXIMUM} skills grant a blow, past what the add-on reads`,
+        );
     }
     return grantedBlows;
 }

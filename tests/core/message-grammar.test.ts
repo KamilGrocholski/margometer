@@ -5,7 +5,14 @@
  * the protocol's own text would be a claim about the game.
  */
 
-import { assert, assertEquals, assertInstanceOf, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertInstanceOf,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import {
     encodeProtocolMessage,
     EndUnreadable,
@@ -46,6 +53,25 @@ Deno.test("a health of nothing is a reading, and nobody is not", () => {
     assertStrictEquals(parseOrFail(STEP).target, null, "`0` is nobody, not a combatant");
     const announcement = parseOrFail(ANNOUNCEMENT);
     assertEquals(announcement.actor, { combatantId: -10000249, healthPercent: null }, "no health");
+});
+
+Deno.test("an end is written as somebody, with a health or without one", () => {
+    const writing = (healthPercent: number | null) =>
+        encodeProtocolMessage({
+            actor: { combatantId: 0, healthPercent },
+            target: null,
+            parameters: [],
+        });
+    assertStrictEquals(
+        encodeProtocolMessage({
+            ...parseOrFail(STEP),
+            actor: { combatantId: 7, healthPercent: null },
+        }),
+        "7;0;step",
+        "somebody bare is written by id",
+    );
+    assertThrows(() => writing(null), AssertionError, "an end written is somebody");
+    assertThrows(() => writing(50), AssertionError, "an end written is somebody");
 });
 
 Deno.test("a message naming neither end still parses", () => {

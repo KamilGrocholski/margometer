@@ -13,7 +13,7 @@ import { isDigitRun } from "#/libs/text-walk.ts";
 export const HEALTH_PERCENT_PLACES = 2;
 
 /** Everything left: a share of a pool is never more than the pool, and one past it is unread. */
-const HEALTH_PERCENT_MAXIMUM = 100;
+export const HEALTH_PERCENT_MAXIMUM = 100;
 
 const POINT = ".";
 
@@ -35,6 +35,7 @@ export function parseHealthPercent(text: string): number | null {
 export function encodeHealthPercent(healthPercent: number): string {
     assert(Number.isFinite(healthPercent), "a percentage written is a number");
     assert(healthPercent >= 0, "and never below nothing");
+    assert(healthPercent <= HEALTH_PERCENT_MAXIMUM, "nor past everything");
     const text = formatDecimal(healthPercent, HEALTH_PERCENT_PLACES);
     assert(parseHealthPercent(text) !== null, "what is written is what the reader reads");
     return text;

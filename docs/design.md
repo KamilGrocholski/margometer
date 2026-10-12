@@ -368,8 +368,8 @@ export interface BrowserConsolePort {
 ### 6.1 Grammar
 
 ```ts
-export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRefusal;
-export type GrammarRefusal =
+export function parseProtocolMessage(text: string): ProtocolMessage | GrammarFailure;
+export type GrammarFailure =
     | SegmentsExceeded // `segments` and `maximum`
     | EndUnreadable // `end`: "actor" or "target"
     | ParameterKeyEmpty; // `index`
@@ -429,7 +429,7 @@ export interface PayloadDecoded {
 An `UnreadMessage` is one message's failure, a class of its own like any other, and its fate differs
 from a defect's (`shown-as-suspect`, §10.5): the session records it as a fact — counted, and shown
 as a suspect — so the payload as a whole succeeds. A message with too many segments is one of them
-(`GrammarRefusal`), because the count comes off the game's text. `UnknownMessageEvent` stays in
+(`GrammarFailure`), because the count comes off the game's text. `UnknownMessageEvent` stays in
 `BattleEvent`, and `decodePayloadMessages` puts one after the events an `UnreadMessage` carries,
 which is where `develop` puts it.
 
@@ -469,7 +469,7 @@ export function preparePayload(
     session: FightSession,
     record: PayloadRecord,
     tables: DecoderTables,
-): PreparedPayload | PayloadRejected;
+): PreparedPayload | PayloadFailure;
 /** Phase two: the write alone. Nothing here can fail but an assertion. */
 export function commitPayload(session: FightSession, prepared: PreparedPayload): PayloadCommitted;
 
@@ -493,7 +493,7 @@ export interface PayloadCommitted {
  * `SkillsExceeded` every skill announced, against the figures' own `CUT_MAXIMUM` and
  * `SKILLS_MAXIMUM`: the game may spell a new element or a new skill in any message.
  */
-export type PayloadRejected =
+export type PayloadFailure =
     | CombatantsExceeded
     | CutKeysExceeded
     | EventsExceeded
@@ -826,7 +826,7 @@ export interface RuntimePorts {
 export type RuntimeFailure =
     | MargonemEngineFailure
     | EnvelopeFailure
-    | PayloadRejected
+    | PayloadFailure
     | CaptureCallsExceeded // a capture stopped at its ceiling: `maximum`
     | UnreadMessage
     | StoreFailure
@@ -1056,10 +1056,10 @@ goes without a mark.
 | Failure                                         | Fate                   | What the reader sees                                         |
 | ----------------------------------------------- | ---------------------- | ------------------------------------------------------------ |
 | `UnreadMessage` (grammar, unknown key, none)    | `shown-as-suspect`     | a count beside the figure, a suspicion sentence              |
-| `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands            |
+| `PayloadFailure`                                | `defect` "reading"     | the defects section; the fight read so far stands            |
 | `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                         |
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often       |
-| `EnvelopeFailure`, `PayloadRejected` at a close | `defect` "keeping"     | the fight read on live, and not kept                         |
+| `EnvelopeFailure`, `PayloadFailure` at a close  | `defect` "keeping"     | the fight read on live, and not kept                         |
 | `Caught` reading or capturing, at a close       | `defect` "keeping"     | as above                                                     |
 | `CaptureCallsExceeded`                          | `defect` "keeping"     | as above: a capture holding no close is not kept             |
 | `Caught`                                        | `defect` of its step   | as above; one console line per kind                          |

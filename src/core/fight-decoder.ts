@@ -30,7 +30,11 @@ import {
     COMBATANTS_MAXIMUM,
     lookupCombatantIdByName,
 } from "./combatant-roster.ts";
-import { encodeHealthPercent, parseHealthPercent } from "./protocol-number.ts";
+import {
+    encodeHealthPercent,
+    HEALTH_PERCENT_MAXIMUM,
+    parseHealthPercent,
+} from "./protocol-number.ts";
 import {
     APPLIED_SIGN,
     DAMAGE_HALF,
@@ -89,7 +93,7 @@ export class UnreadMessage extends Error implements UnreadDetails {
     readonly announcementStanding: AnnouncementStanding;
 
     /** A message the grammar refused carries the refusal as its `cause`. */
-    constructor(details: UnreadDetails, options?: { cause: GrammarRefusal }) {
+    constructor(details: UnreadDetails, options?: { cause: GrammarFailure }) {
         super(undefined, options);
         this.unreadCause = details.unreadCause;
         this.keys = details.keys;
@@ -194,7 +198,7 @@ export class ParameterKeyEmpty extends Error {
     }
 }
 
-export type GrammarRefusal = SegmentsExceeded | EndUnreadable | ParameterKeyEmpty;
+export type GrammarFailure = SegmentsExceeded | EndUnreadable | ParameterKeyEmpty;
 
 /**
  * ⚠️ **One payload can carry a whole fight**: a fight joined underway delivers its log in the
@@ -204,9 +208,10 @@ export type GrammarRefusal = SegmentsExceeded | EndUnreadable | ParameterKeyEmpt
  */
 export const MESSAGES_MAXIMUM = 32768;
 /**
- * Past every count the published table states (2 at its highest), and how far an announcement
- * carrying no id reaches. Four rather than eight because the two ways of being wrong do not cost
- * the same: too high and a combatant's plain blows are charged to what it announced before them.
+ * Past every count the published table states (2 at its highest in `frozen/blows-granted.ts`,
+ * fetched 2026-10-02), and how far an announcement carrying no id reaches. Four rather than eight
+ * because the two ways of being wrong do not cost the same: too high and a combatant's plain blows
+ * are charged to what it announced before them.
  * `develop:docs/unannounced-damage.md` carries the measurement, `develop ADR 0078` the rule.
  */
 export const BLOWS_GRANTED_MAXIMUM = 4;
@@ -252,6 +257,16 @@ export const SEGMENTS_MAXIMUM = 512;
  * 2026-10-04.
  */
 export const MESSAGE_PARTS_MAXIMUM = 32;
+/**
+ * A figure past it is unread, as one below nothing is, so that no total leaves what a number holds
+ * exactly: every event a fight holds (`SESSION_OPTIONS` in `src/core/fight-session.ts`), each
+ * totalling two lists of a message's parts at most, at this, stays under 2^53, which
+ * `tests/core/fight-statistics.test.ts` holds. The largest figure stated over the 37 recordings in
+ * `captures/` is 29631, 2026-10-12.
+ */
+export const FIGURE_MAXIMUM = 2 ** 30;
+/** Past the 3 skills `frozen/blows-granted.ts` states, fetched 2026-10-02. */
+export const SKILLS_GRANTING_MAXIMUM = 16;
 /** One name and one id: a second of either is unread. */
 const SKILL_KEYS_READ_MAXIMUM = 2;
 
@@ -264,6 +279,7 @@ const SIDE_SEGMENTS = 2;
 export function indexBlowsGrantedBySkillId(
     skills: readonly { id: number; blowsGrantedMinimum: number }[],
 ): Map<number, number> {
+    assert(skills.length <= SKILLS_GRANTING_MAXIMUM, "the table grants a bounded few skills");
     const blowsGrantedBySkillId = new Map<number, number>();
     for (const skill of skills) {
         assert(skill.blowsGrantedMinimum > 0, "a skill in the table grants at least one blow");
@@ -395,7 +411,7 @@ function composeAnnouncementStanding(
     const attack = events.find((event): event is AttackEvent => event.kind === BATTLE_EVENT.attack);
     if (attack === undefined) {
         // The game numbers one turn for the announcement, the heal and the blow after it
-        // (`2026-10-04-tempest-grupa-vs-umibozu`, ordinals 52 → 54 and 219 → 225).
+        // (`2026-10-04-tempest-grupa-vs-umibozu`, ordinals 52 → 54 and 219 → 225, 2026-10-05).
         if (!announcementStanding.isGlued) return null;
         if (!isHealingAnnouncerOnly(events, announcementStanding.announced)) return null;
         return { ...announcementStanding, isGlued: false };
@@ -531,12 +547,13 @@ function addValuedKey(
         case KEY_FAMILY.damage:
         case KEY_FAMILY.prevented:
         case KEY_FAMILY.destroyed: {
-            // Read a figure of the blow: no number, or one below nothing, goes unread. No key of
-            // these families has stated one below nothing over `captures/` (0 of every value,
-            // 2026-09-21), and a total taking it would go down.
+            // Read a figure of the blow: no number, one below nothing or one past the bound goes
+            // unread. No key of these families has stated one below nothing over `captures/` (0 of
+            // every value, 2026-09-21), and a total taking it would go down.
             const amount = parseInteger(valueText);
             if (amount === null) return false;
             if (amount < 0) return false;
+            if (amount > FIGURE_MAXIMUM) return false;
             assert(Number.isSafeInteger(amount), "a figure read from digits is held exactly");
             const token = parseKeyToken(key);
             if (keyMeaning.kind === KEY_FAMILY.prevented) {
@@ -668,6 +685,7 @@ function decodeHealthChange(
     if (members.length > HEALTH_CHANGE_MEMBERS_MAXIMUM) return null;
     const magnitude = parseInteger(members[0] ?? "");
     if (magnitude === null) return null;
+    if (Math.abs(magnitude) > FIGURE_MAXIMUM) return null;
     const declared: DeclaredEffect[] = [];
     for (const member of members.slice(1)) {
         declared.push({ effect: key, amount: parseInteger(member), text: member });
@@ -709,13 +727,18 @@ function decodeFightOutcome(
     return { kind: BATTLE_EVENT.fightOutcome, result: outcomeResult, combatantNames };
 }
 
-/** A share written with or without a fraction: `30` and `22.5` are both in `captures/`. */
+/**
+ * A share written with or without a fraction: `30` and `22.5` are both in `captures/`. It is of each
+ * member's pool, so one past the whole of it is unread: 30 at the most over the 37 recordings there,
+ * 2026-10-12.
+ */
 function decodeUnaccountedShare(
     key: string,
     valueText: string,
 ): { source: string; declaredShare: number } | null {
     const declaredShare = parseDecimal(valueText);
     if (declaredShare === null) return null;
+    if (declaredShare > HEALTH_PERCENT_MAXIMUM) return null;
     assert(declaredShare >= 0, "a share read is never below nothing");
     return { source: key, declaredShare };
 }
@@ -729,6 +752,7 @@ function decodeNamedDamage(
     const amount = parseInteger(amountText);
     if (amount === null) return null;
     if (amount < 0) return null;
+    if (amount > FIGURE_MAXIMUM) return null;
     const named = parseNamedTarget(namedText);
     if (named === null) return null;
     const damage = { element: `${DAMAGE_MARKER}${elementText.trim()}`, amount };
@@ -760,6 +784,7 @@ function decodeNamedHealing(
     const amount = parseInteger(amountText);
     if (amount === null) return null;
     if (amount < 0) return null;
+    if (amount > FIGURE_MAXIMUM) return null;
     const named = parseNamedTarget(namedText);
     if (named === null) return null;
     assert(named.targetName.length > 0, "the healed is named inside the value");
@@ -1025,7 +1050,7 @@ function getNamedCombatantIds(message: ProtocolMessage): number[] {
  * as data (`docs/design.md` §6.1), and `decodeMessage` turns a refusal into a message it could not
  * read.
  */
-export function parseProtocolMessage(text: string): ProtocolMessage | GrammarRefusal {
+export function parseProtocolMessage(text: string): ProtocolMessage | GrammarFailure {
     const segments = parseProtocolMessageSegments(text);
     if (segments instanceof Error) return segments;
     const [actorSegment, targetSegment] = segments;
@@ -1132,10 +1157,8 @@ export function encodeProtocolMessage(message: ProtocolMessage): string {
 function encodeProtocolMessageEnd(statedEnd: StatedEnd | null): string {
     if (statedEnd === null) return NO_COMBATANT;
     const idText = formatInteger(statedEnd.combatantId);
-    if (statedEnd.healthPercent === null) {
-        assert(idText !== NO_COMBATANT, "an end written bare is somebody, or it reads as nobody");
-        return idText;
-    }
+    assert(idText !== NO_COMBATANT, "an end written is somebody, or it reads as nobody");
+    if (statedEnd.healthPercent === null) return idText;
     const percentText = encodeHealthPercent(statedEnd.healthPercent);
     assert(!percentText.includes(SEGMENT_SEPARATOR), "a percentage never ends its segment");
     return `${idText}${VALUE_SEPARATOR}${percentText}`;

@@ -12,13 +12,18 @@ import {
     assertEquals,
     assertExists,
     AssertionError,
+    assertLessOrEqual,
     assertStrictEquals,
     assertThrows,
 } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "#/src/core/battle-event.ts";
 import { indexSideHeals, type SideHeal } from "#/src/core/combatant-health.ts";
 import { type CombatantRoster, indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import { decodePayloadMessages } from "#/src/core/fight-decoder.ts";
+import {
+    decodePayloadMessages,
+    FIGURE_MAXIMUM,
+    MESSAGE_PARTS_MAXIMUM,
+} from "#/src/core/fight-decoder.ts";
 import {
     type CombatantFigures,
     CUT_MAXIMUM,
@@ -27,6 +32,7 @@ import {
     tallyUnreadMessages,
     verifyFightStatistics,
 } from "#/src/core/fight-statistics.ts";
+import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -1753,4 +1759,17 @@ Deno.test("a fight's end holds each side on its own key, and a draw and an escap
     const fled = tally(decode(["500001=94.75;0;flee"], null), new Map()).outcome;
     assertEquals([fled?.isDrawn, fled?.isFled], [false, true], "and an escape is no draw");
     assertStrictEquals(tally([], new Map()).outcome, null, "a fight that never said is not over");
+});
+
+/**
+ * The bound on a figure is what keeps every total exact: one event totals what landed and what a
+ * pool took, two lists of a message's parts, and a fight holds no more events than its options say.
+ */
+Deno.test("a fight at every stated bound still totals inside what a number holds exactly", () => {
+    const figuresPerEvent = 2 * MESSAGE_PARTS_MAXIMUM;
+    assertLessOrEqual(
+        SESSION_OPTIONS.eventsMaximum * figuresPerEvent * FIGURE_MAXIMUM,
+        Number.MAX_SAFE_INTEGER,
+        "a fight's total of figures, each at the bound",
+    );
 });

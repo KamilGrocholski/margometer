@@ -2,8 +2,8 @@
  * Whose turn an event opens, and what is still running when the next one is read. The figures, the
  * carried statuses and the standings all count turns on this one clock.
  *
- * Four things open a turn, two of them the game's own default actions; the two that look like a
- * turn and are not are measured exceptions. `docs/turns-taken.md` names all six.
+ * What opens a turn, and what looks like one and is not, is `docs/turns-taken.md`'s to state, under
+ * "What opens a turn".
  */
 
 import { assert } from "@std/assert/assert";
@@ -11,11 +11,7 @@ import { BATTLE_EVENT, type BattleEvent, type DeclarationEvent } from "./battle-
 import { COMBATANTS_MAXIMUM } from "./combatant-roster.ts";
 import { PREPARE_KEY, STEP_KEY } from "./protocol-key.ts";
 
-/**
- * The extra attacks of one skill are all one turn (published help, article 372 §2.1 and the
- * `add_attacks` effect, read 2026-09-02), and a preparation stated beside its own combatant's
- * action rides it.
- */
+/** What the two exceptions `docs/turns-taken.md` states under "What opens a turn" turn on. */
 export interface TurnStanding {
     announcedStrikerId: number | null;
     lastActorId: number | null;
