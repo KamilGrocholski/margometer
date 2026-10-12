@@ -55,12 +55,20 @@ export const RELEASE_EDITION: UserscriptEdition = {
 const NON_WORLD_HOSTS = ["www", "forum", "commons", "pomoc"];
 const MARGONEM_DOMAINS = ["pl", "com"];
 /** Anything by which a built file could leave the browser, wherever its text spells it. */
-const OUTBOUND_CALLS = ["fetch(", "XMLHttpRequest", "sendBeacon", "new WebSocket", "EventSource"];
+const OUTBOUND_CALLS = [
+    "fetch(",
+    "XMLHttpRequest",
+    "sendBeacon",
+    "new WebSocket",
+    "EventSource",
+    "WebTransport",
+    "RTCPeerConnection",
+];
 /**
  * The same ways out read as names in code. A redirect goes through the ambient `location` and a
  * beacon through the ambient `navigator`, so the object is what is looked for; one behind a dot is
  * a property of the page the entry was handed, which is how the add-on knows its world
- * (`SECURITY.md`).
+ * (`SECURITY.md`), unless what stands before the dot is the global object or a window beside it.
  */
 const AMBIENT_WAYS_OUT = [
     "location",
@@ -79,25 +87,45 @@ const AMBIENT_WAYS_OUT = [
     "Request",
 ];
 /**
+ * Ways out that are read only where they are called: both names stand for a local as well
+ * (`const open = …`), which the bundle holds, and a dynamic `import(` is a request.
+ */
+const AMBIENT_CALLS = ["open", "import"];
+const CALL_OPEN = "(";
+/** What the global object is called by itself: `globalThis.location` is the ambient one. */
+const GLOBAL_OBJECT_NAMES = ["globalThis", "window", "self"];
+/** The windows beside this one, whose ways out leave the browser as its own do. */
+const RELATED_WINDOW_NAMES = ["top", "parent", "frames", "opener"];
+const WINDOW_NAMES = [...GLOBAL_OBJECT_NAMES, ...RELATED_WINDOW_NAMES];
+/** `window["location"]` is any way out at all, and the walk blanks the string that says which. */
+const INDEX_OPEN = "[";
+const OPTIONAL_CHAIN = "?";
+const MEMBER_DOT = ".";
+/**
  * A stylesheet fetches what it names, wherever in the text it is spelled: the panel's own sheet is
- * a string, which the names above are not read in. Only inline data is fetched from nowhere.
+ * a string, which the names above are not read in. Only inline data is fetched from nowhere. CSS
+ * reads both words in any case, and a name it ends (`createObjectURL(`) is another function.
  */
 const STYLE_URL_OPEN = "url(";
 const STYLE_IMPORT = "@import";
 const INLINE_SCHEME = "data:";
+const STYLE_NAME_CHARACTERS = "-";
+const ASCII_UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const ASCII_LOWER = "abcdefghijklmnopqrstuvwxyz";
 /** The tags this add-on builds. One that fetches when it is appended is not among them. */
 const TAGS_BUILT = ["a", "div", "span", "style"];
 /**
  * The tags the HTML Standard's index of attributes (read 2026-10-08) gives a URL fetched unasked —
- * `src`, `data`, `poster`, `srcset`, `link`'s `href` — with `meta`'s refresh and the obsolete
- * `frame`. `source` and `track` fetch only for an `audio`, `video` or `img` around them, which are
- * here, and both are words the bundle spells, so they are left out.
+ * `src`, `data`, `poster`, `srcset`, `link`'s `href` — with `meta`'s refresh, the obsolete `frame`
+ * and SVG's `image`. `source` and `track` fetch only for an `audio`, `video` or `img` around them,
+ * which are here, and both are words the bundle spells, so they are left out.
  */
 const FETCHING_TAGS = [
     "audio",
     "embed",
     "frame",
     "iframe",
+    "image",
     "img",
     "input",
     "link",
@@ -110,6 +138,8 @@ const FETCHING_TAGS = [
 const COMPARISONS = ["==", "!="];
 const COMPARISON_LENGTH = 2;
 const TAG_CALL = "createElement(";
+/** The add-on builds no element in another namespace, where SVG's `image` fetches its `href`. */
+const NAMESPACED_TAG_CALL = "createElementNS(";
 const QUOTES = ['"', "'", "`"];
 const TEMPLATE_QUOTE = "`";
 const TEMPLATE_HOLE = "${";
@@ -303,21 +333,48 @@ export function lookupOutboundCalls(text: string): string[] {
 
 /** Every `url(` naming something other than inline data, and every `@import`, as written. */
 export function lookupStyleFetches(text: string): string[] {
-    const fetched: string[] = text.includes(STYLE_IMPORT) ? [STYLE_IMPORT] : [];
-    let urlAt = text.indexOf(STYLE_URL_OPEN);
+    const folded = composeAsciiLowerCase(text);
+    assertStrictEquals(folded.length, text.length, "folding keeps every offset");
+    const importAt = folded.indexOf(STYLE_IMPORT);
+    const fetched: string[] = importAt === -1
+        ? []
+        : [text.slice(importAt, importAt + STYLE_IMPORT.length)];
+    let urlAt = folded.indexOf(STYLE_URL_OPEN);
     for (let look = 0; look < text.length; look += 1) {
         if (urlAt === -1) break;
+        const named = folded.charAt(urlAt - 1);
         // Past the quote that may open the target, and the escape a string puts before it.
         let targetAt = urlAt + STYLE_URL_OPEN.length;
         if (text.startsWith(ESCAPE, targetAt)) targetAt += ESCAPE.length;
         if (QUOTES.includes(text.charAt(targetAt))) targetAt += 1;
-        if (!text.startsWith(INLINE_SCHEME, targetAt)) {
-            fetched.push(text.slice(urlAt, targetAt + INLINE_SCHEME.length));
+        const isNameTail = isWordCharacter(named) || named === STYLE_NAME_CHARACTERS;
+        if (!isNameTail) {
+            if (!folded.startsWith(INLINE_SCHEME, targetAt)) {
+                fetched.push(text.slice(urlAt, targetAt + INLINE_SCHEME.length));
+            }
         }
-        urlAt = text.indexOf(STYLE_URL_OPEN, urlAt + STYLE_URL_OPEN.length);
+        urlAt = folded.indexOf(STYLE_URL_OPEN, urlAt + STYLE_URL_OPEN.length);
     }
     assertStrictEquals(urlAt, -1, "every reference was walked, which is what the bound is for");
     return fetched;
+}
+
+/** ASCII alone, as CSS folds case: `toLowerCase` lengthens a few letters, which moves offsets. */
+function composeAsciiLowerCase(text: string): string {
+    assertStrictEquals(ASCII_UPPER.length, ASCII_LOWER.length, "every capital has its small");
+    const characters: string[] = [];
+    for (let index = 0; index < text.length; index += 1) {
+        const character = text.charAt(index);
+        const capitalAt = ASCII_UPPER.indexOf(character);
+        characters.push(capitalAt === -1 ? character : ASCII_LOWER.charAt(capitalAt));
+    }
+    return characters.join("");
+}
+
+/** `charAt` past either end answers "", which every string includes, so it is asked first. */
+function isWordCharacter(character: string): boolean {
+    if (character.length === 0) return false;
+    return WORD_CHARACTERS.includes(character);
 }
 
 /**
@@ -327,7 +384,14 @@ export function lookupStyleFetches(text: string): string[] {
 export function lookupAmbientWaysOut(text: string): string[] {
     const code = composeCodeOutsideStrings(text);
     assertStrictEquals(code.length, text.length, "blanking keeps every offset");
-    const reached = AMBIENT_WAYS_OUT.filter((name) => hasAmbientName(code, name));
+    const reached = AMBIENT_WAYS_OUT.filter((name) => hasAmbientName(code, name, ""));
+    for (const name of AMBIENT_CALLS) {
+        if (hasAmbientName(code, name, CALL_OPEN)) reached.push(`${name}${CALL_OPEN}`);
+    }
+    for (const name of GLOBAL_OBJECT_NAMES) {
+        if (hasAmbientName(code, name, INDEX_OPEN)) reached.push(`${name}${INDEX_OPEN}`);
+    }
+    if (code.includes(NAMESPACED_TAG_CALL)) reached.push(NAMESPACED_TAG_CALL);
     for (const tag of lookupTagsCreated(text, code)) {
         if (!TAGS_BUILT.includes(tag)) reached.push(`<${tag}>`);
     }
@@ -408,8 +472,12 @@ function composeCodeOutsideStrings(text: string): string {
     return characters.join("");
 }
 
-/** ⚠️ **A name behind a dot is a property, not the ambient one**, and a longer word is not it. */
-function hasAmbientName(code: string, name: string): boolean {
+/**
+ * ⚠️ **A name behind a dot is a property, not the ambient one**, unless the global object or a
+ * window beside it stands before the dot, and a longer word is not it. A follower handed is what
+ * must come next, past any spacing: `(` for a call.
+ */
+function hasAmbientName(code: string, name: string, follower: string): boolean {
     assert(name.length > 0, "an empty name stands everywhere");
     let from = 0;
     for (let look = 0; look <= code.length; look += 1) {
@@ -417,18 +485,36 @@ function hasAmbientName(code: string, name: string): boolean {
         if (nameAt === -1) return false;
         from = nameAt + 1;
         const before = code.charAt(nameAt - 1);
-        if (before === ".") continue;
         if (isWordCharacter(before)) continue;
-        if (isWordCharacter(code.charAt(nameAt + name.length))) continue;
-        return true;
+        const after = nameAt + name.length;
+        if (isWordCharacter(code.charAt(after))) continue;
+        if (!code.slice(after).trimStart().startsWith(follower)) continue;
+        if (before !== MEMBER_DOT) return true;
+        if (isBehindGlobalObject(code, nameAt - MEMBER_DOT.length)) return true;
     }
     throw new UserscriptBuildError(`the walk for ${name} ran past the text it walks`);
 }
 
-/** `charAt` past either end answers "", which every string includes, so it is asked first. */
-function isWordCharacter(character: string): boolean {
-    if (character.length === 0) return false;
-    return WORD_CHARACTERS.includes(character);
+/**
+ * Whether the object before a dot is the global object or a window beside it, read through a chain
+ * of them (`window.top.location`) and past `?.` and the spacing a chain breaks across lines with.
+ */
+function isBehindGlobalObject(code: string, dotAt: number): boolean {
+    assertStrictEquals(code.charAt(dotAt), MEMBER_DOT, "a member is read behind a dot");
+    let objectEnd = dotAt;
+    for (let look = 0; look <= dotAt; look += 1) {
+        let before = code.slice(0, objectEnd).trimEnd();
+        if (before.endsWith(OPTIONAL_CHAIN)) before = before.slice(0, -OPTIONAL_CHAIN.length);
+        let objectAt = before.length;
+        for (; objectAt > 0; objectAt -= 1) {
+            if (!isWordCharacter(before.charAt(objectAt - 1))) break;
+        }
+        if (!WINDOW_NAMES.includes(before.slice(objectAt))) return false;
+        const outer = before.slice(0, objectAt).trimEnd();
+        if (!outer.endsWith(MEMBER_DOT)) return true;
+        objectEnd = outer.length - MEMBER_DOT.length;
+    }
+    throw new UserscriptBuildError("a chain of members ran past the text it stands in");
 }
 
 /** A tag named by a literal, read off the text where the code holds its quotes. */

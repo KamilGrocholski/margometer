@@ -137,6 +137,13 @@ Deno.test("a stylesheet naming anything but inline data is flagged, and inline d
     );
     assertEquals(lookupStyleFetches("b{mask:url(x.svg)}"), ["url(x.svg"], "and so is a path");
     assertEquals(lookupStyleFetches('@import "x.css";'), ["@import"], "and an import");
+    assertEquals(lookupStyleFetches("b{mask:URL(x.svg)}"), ["URL(x.svg"], "in capitals too");
+    assertEquals(lookupStyleFetches('@IMPORT "x.css";'), ["@IMPORT"], "which CSS reads alike");
+    assertEquals(
+        lookupStyleFetches("const to = downloads.createObjectURL(blob); b{mask:-x-url(y)}"),
+        [],
+        "while a longer name ending in it is another function",
+    );
     assertThrows(
         () => requireBundleInBrowser('const sheet = "b{mask:url(https://host/x.svg)}";'),
         UserscriptBuildError,
@@ -149,6 +156,12 @@ Deno.test("a reader of the built text flags what would leave the browser", () =>
     assertEquals(lookupOutboundCalls("const a = 1;"), [], "ordinary code carries none");
     assertEquals(lookupOutboundCalls("await fetch(url)"), ["fetch("], "a request is one");
     assertEquals(lookupOutboundCalls("new WebSocket(url)"), ["new WebSocket"], "so is this");
+    assertEquals(lookupOutboundCalls("new WebTransport(url)"), ["WebTransport"], "and this");
+    assertEquals(
+        lookupOutboundCalls("new RTCPeerConnection(said)"),
+        ["RTCPeerConnection"],
+        "and a peer",
+    );
     assertStrictEquals(
         requireBundleInBrowser("const a = 1;"),
         "const a = 1;",
@@ -172,8 +185,28 @@ Deno.test("a way out reached through an object is read as a name in code, and no
     );
     assertEquals(lookupAmbientWaysOut("const to = `${location.href}`;"), ["location"], "a hole");
     assertEquals(lookupAmbientWaysOut("const held = new Image();"), ["Image"], "a constructor");
+    const reached: [string, string[]][] = [
+        ["globalThis.location.assign(to);", ["location"]],
+        ["window.navigator.sendBeacon(to);", ["navigator"]],
+        ["self.importScripts(to);", ["importScripts"]],
+        ["window.top.location.href = to;", ["location"]],
+        ["window?.location.reload();", ["location"]],
+        ["window\n    .location.reload();", ["location"]],
+        ['window["location"].href = to;', ["window["]],
+        ["open(to);", ["open("]],
+        ["window.open (to);", ["open("]],
+        ['await import("https://host/x.js");', ["import("]],
+        ['document.createElementNS(namespace, "image");', ["createElementNS(", "<image>"]],
+    ];
+    for (const [code, names] of reached) assertEquals(lookupAmbientWaysOut(code), names, code);
     const staying = [
         "const world = page.location.hostname;",
+        "const world = page.window.location.hostname;",
+        "const said = this.window.location;",
+        "startMargoMeter(window);",
+        "const open = text.indexOf(mark); if (open === -1) return;",
+        "composeColourOver(top[0], bottom[0]); parent.append(group);",
+        "const intent = { window: PANEL_WINDOW.meter };",
         'const LOCATION_FIELD = "location";',
         "// the ambient navigator is somebody else's",
         "/* location */ const relocation = 1;",
