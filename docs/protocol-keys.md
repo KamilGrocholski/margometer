@@ -75,7 +75,9 @@ The line above is where a count of a key lives, because a machine re-earns it. S
 occurrences in prose names the recordings it was counted on.** A recording is evidence and never
 changes, so a count scoped to one cannot go stale; a count over `captures/` goes wrong the day the
 next recording is admitted, and reads exactly as it did the day it was right. A claim about every
-recording says that and drops the figure (**V4**), which is what `every occurrence` is for.
+recording says that and drops the figure, which is what `every occurrence` is for — and where no
+`_Shape:_` line re-earns it, it names the day it was read (**V4**), because such a universal goes
+stale as silently as a count (`+engback` below).
 
 ⚠️ **A count taken by `grep` over `captures/` is doubled every time**: a recording states every
 message twice, in the payload and in the parsed messages both. Both traps were observed on
@@ -132,8 +134,8 @@ while the help documents the key under `holytouch`. A guard re-measuring only wh
 with the bug, which is a guard naming the same wrong thing the code did.
 
 The phrase is stated by a person and never derived. `( freeze )` counts zero where bare `freeze`
-counts four, so a rule that parenthesised the engine name would bless a false silence for a key this
-file cites the help for.
+counts four in article view,372 as fetched 2026-10-06 (read 2026-10-12), so a rule that
+parenthesised the engine name would bless a false silence for a key this file cites the help for.
 
 ---
 
@@ -281,11 +283,11 @@ _Health:_ moves health
 _Cause:_ the message actor
 
 ⚠️ **The middle member can be blank, and blank is the plain element.** A quarter of the occurrences
-write it as a single space: 364 of 1430 over `captures/` on 2026-10-09. The client spends that
-member on one thing — `<b class=dmg"+D[1]+">`, production build `1785244275300` — and a class
-attribute of `"dmg "` is the class `dmg`, so the game makes no distinction there. Read literally it
-made `dmg` a second element beside `dmg`, splitting 107 952 points of physical damage into two rows
-nothing on screen could tell apart (the corpus as it stood on 2026-08-13). Held by
+write it as a single space: 364 over `captures/` on 2026-10-09. The client spends that member on one
+thing — `<b class=dmg"+D[1]+">`, production build `1785244275300` — and a class attribute of
+`"dmg "` is the class `dmg`, so the game makes no distinction there. Read literally it made `dmg` a
+second element beside `dmg`, splitting 107 952 points of physical damage into two rows nothing on
+screen could tell apart (the corpus as it stood on 2026-08-13). Held by
 `tests/core/fight-decoder.test.ts`.
 
 _Shape:_ 1430 occurrences; on a message reporting damage; text
@@ -387,8 +389,7 @@ plain number, and the half that makes it legible is missing.
 _Shape:_ 2834 occurrences; alone in its message; text
 
 _Evidence:_ of the four ways to sign `heal` and `poison`, only healing added and poison subtracted
-closes the stated percentages — the other three leave hundreds of comparisons disagreeing. Applying
-it moved the witness from declining every call that contains it to agreeing on them.
+closes the stated percentages, which `tests/core/health-witness.test.ts` holds over every recording.
 
 ### `poison` — decoded
 
@@ -424,11 +425,11 @@ there as weapons and skills that apply poison, and a weapon doing it is stated n
 protocol.
 
 ⚠️ **The same article states how long an application runs, and the panel draws none of it.** Under
-the weapon attributes `poison1, of_poison1` the article gives an application five turns once a hit
-deals the opponent any damage at all, each firing before the turn of the opponent it was applied to
-— five turns, on the bearer's own clock (read 2026-09-22). A skill's `poisonbon_poison-perw` applies
-the same five, and a weapon's application is announced nowhere, so a hit renewing the poison can be
-invisible; a tooltip row says the poison stands and never for how long (**develop ADR 0112**).
+the weapon attributes `poison1, of_poison1` it gives each tick as firing before the turn of the
+opponent it was applied to (read 2026-09-22); how long, and on whose clock, is
+`docs/auras-standing.md`'s. A weapon's application is announced nowhere, so a hit renewing the
+poison can be invisible; a tooltip row says the poison stands and never for how long (**develop ADR
+0112**).
 
 ### `fire` — decoded
 
@@ -779,8 +780,7 @@ name of the bonus raising each. `ELEMENT_WORD_BY_KEY` in `src/ui/panel-words.ts`
 
 The one member of the family above with an entry of its own, because it is the one the published
 help names. **Obrażenia nieuchronne**: applied damage the ordinary defences do not reach, which is
-the word the panel draws it under — the game's own here, and not this repository's, where develop
-ADR 0011 words the other nine.
+the word the panel draws it under.
 
 _Health:_ moves health
 
@@ -1614,13 +1614,13 @@ _Help:_ names `injure`
 _Evidence:_ the game's published help, article view,372, at the engine name `injure` (read
 2026-08-09), states the rule in its own words — an event applying deep-wound damage over time worth
 15% of the damage dealt, over three turns, not cumulative, overwritten by the freshest application.
-Checked against the group fight, which carries nine applications: the floor of that share reproduces
-all nine announced figures, among them 1638 taken → 245 announced and 658 → 98, where rounding
-instead of flooring would miss the second. Seven of the nine are followed by exactly three ticks of
-their own amount; the two that are not are the ones
-`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` cuts short — call 82 announces
-178, one tick follows, and call 91 replaces it with the smaller 157, which is the overwrite showing
-itself; the last application lands with the target at 0.94% and the fight ends.
+Checked against `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, which carries
+nine applications: the floor of that share reproduces all nine announced figures, among them 1638
+taken → 245 announced and 658 → 98, where rounding instead of flooring would miss the second. Seven
+of the nine are followed by exactly three ticks of their own amount; the two that are not are the
+ones it cuts short — call 82 announces 178, one tick follows, and call 91 replaces it with the
+smaller 157, which is the overwrite showing itself; the last application lands with the target at
+0.94% and the fight ends.
 
 ### `-poison_lowdmg_per` — decoded
 
@@ -1861,9 +1861,9 @@ _Help:_ names `crush`
 _Evidence:_ article view,372 (read 2026-08-09) documents `crush_dmg_per` as raising output damage by
 a share of the damage dealt, once the ratio of dealt to executed damage passes
 `crush_threshold_per`, with the variable being that share. Every occurrence here states 30 and sits
-beside ordinary damage figures. Production build `1786514810315`: the branch is a family —
-`case"+crush_physical"` and `case"+crush_distance"` share a body that switches on the element name
-and composes `eng_game_only_val_+crush %val%`.
+beside ordinary damage figures (re-read over `captures/` 2026-10-12). Production build
+`1786514810315`: the branch is a family — `case"+crush_physical"` and `case"+crush_distance"` share
+a body that switches on the element name and composes `eng_game_only_val_+crush %val%`.
 
 ### `+rage` — decoded
 
@@ -1882,8 +1882,9 @@ the turn count, which is the one thing the two sources say differently and neith
 health. Every occurrence over every recording sits on a message the witness judges and agrees on at
 **either** end (read 2026-09-17) — one of them reads
 `447544=18.54;-10000545=48.21;+rage=340;+dmg=3745;-dmg=3171` — so the key reports no health figure
-the arithmetic has to account for. `-rage` exists in the client and carries no value; the captures
-do not have it, so it has no entry.
+the arithmetic has to account for. `-rage` exists in the client and carries no value — production
+build `DHSqC3Uh` composes it as `msg_-rage` with no figure; the captures do not have it, so it has
+no entry.
 
 ### `+critsa` — decoded
 
@@ -1952,13 +1953,14 @@ message, is damage that pool stopped and is counted as dealt and taken (ADR 0012
 pool being refilled: not damage, not a prevention, and not a statistic destroyed.
 
 ⚠️ **Whose pool refilled is the help's answer, and it gives one.** Every occurrence rides a blow
-where the actor is named on one side and the absorbing combatant on the other, and the slot settles
-nothing — which combatant a figure belongs to comes from the help and never from the sign (this
-section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is generated
-with every blow **performed**, as the effect of a skill (`absagain_per`), and the effect table gives
-that effect as restoring part of the absorption **after an attack that hit**. A blow **performed**
-is the holder's own, so the pool that refills is the **striker's**; the published skill table's
-skills carrying the effect say the same of it (fetched 2026-10-06, `+absorb` below).
+where the actor is named on one side and the absorbing combatant on the other (re-read over
+`captures/` 2026-10-12), and the slot settles nothing — which combatant a figure belongs to comes
+from the help and never from the sign (this section's own preamble). Asked again on 2026-09-22 it
+answers twice over: absorption is generated with every blow **performed**, as the effect of a skill
+(`absagain_per`), and the effect table gives that effect as restoring part of the absorption **after
+an attack that hit**. A blow **performed** is the holder's own, so the pool that refills is the
+**striker's**; the published skill table's skills carrying the effect say the same of it (fetched
+2026-10-06, `+absorb` below).
 
 ⚠️ **The second clause alone would not have settled it.** An attack that hit reads both ways in the
 help's Polish — an attack they landed, or one that landed on them — and the first clause is what
@@ -1980,13 +1982,14 @@ restoring a share of absorption and magical absorption after an attack that land
 pool the fight was entered with (read 2026-08-25). A searched silence is a silence over the names
 that were searched, and an effect the article names something else entirely walks through it.
 
-⚠️ **Three occurrences, two recordings, and the same value on every one of them**, over the corpus
-on 2026-08-25: two sit on the same announced ability, cast by the same combatant, in
+⚠️ **The same value on every occurrence the corpus held on 2026-08-25**, in two recordings: two sit
+on the same announced ability, cast by the same combatant, in
 `captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json`, where each states 15 while
 `-absorbm` beside them states 2 247 and 1 774; the third states 15 as well, in
-`captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`. That is far too little
-material to read a rule off, and none is read: the verdict rests on the unit, the way `-endest`'s
-does, and the unit is what makes the figure safe to show and impossible to total.
+`captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`. Re-read over `captures/`
+on 2026-10-12 the key states 8, 10 and 15, so no value belongs to the skill, and no rule is read:
+the verdict rests on the unit, the way `-endest`'s does, and the unit is what makes the figure safe
+to show and impossible to total.
 
 ### `+absorb` — decoded
 
@@ -2250,7 +2253,7 @@ the sum that comes off equipment and blessings — never among what reduces `hea
 `eng_game_nick_and_value_` and the key, with a name and a figure (read 2026-09-16). Both occurrences
 are on `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`, each stating `-15` and
 naming one of theirs in the actor slot with no target beside it. The published table carries it on
-skill 166 (`frozen/skill-durations.ts`).
+skills 166 and 242 (`frozen/skill-durations.ts`).
 
 ### `heal_per-allies` — decoded
 
@@ -2568,7 +2571,7 @@ _Help:_ names `step`
 _Evidence:_ the mechanic is article 372 §2.3 (read 2026-09-02), as above; the key itself is not
 printed there — view,372 (read 2026-08-09) searched for `step` hits only inside a longer Polish
 word, the false positive this register warns about. Every occurrence is valueless and alone, always
-with an actor and never a target.
+with an actor and never a target (re-read over `captures/` 2026-10-12).
 
 ### `prepare` — decoded
 
@@ -2586,7 +2589,7 @@ _Help:_ names nothing of `prepare`
 
 _Evidence:_ not documented — article view,372 (read 2026-08-09), searched for `prepare`, which does
 not occur. Every occurrence is the only key in its message, every value matches that shape, and each
-has an actor and no target.
+has an actor and no target (re-read over `captures/` 2026-10-12).
 
 ### `txt` — decoded
 
@@ -2607,13 +2610,14 @@ _Shape:_ 498 occurrences; alone in its message; text
 _Help:_ names nothing of `txt`
 
 _Evidence:_ not documented — article view,372 (read 2026-08-09), searched for `txt`, which does not
-occur. Every occurrence is alone in its message, naming no combatant at all — which is why it opens
-no turn of its own; a line announcing a lost turn passes its holder's clock all the same
-(`src/core/turn-clock.ts`).
+occur. Every occurrence is alone in its message, naming no combatant at all (re-read over
+`captures/` 2026-10-12) — which is why it opens no turn of its own; a line announcing a lost turn
+passes its holder's clock all the same (`src/core/turn-clock.ts`).
 
 ### `+exp` — decoded
 
-Experience awarded. Names no combatant, and every occurrence is at the end of a fight.
+Experience awarded. Names no combatant, and every occurrence is at the end of a fight, in the call
+that ends it (re-read over `captures/` 2026-10-12).
 
 _Shape:_ 3 occurrences; alone in its message; a whole number
 
@@ -2651,8 +2655,9 @@ _Help:_ names `regen`
 _Evidence:_ article view,372 at the engine name `en-regen` (read 2026-08-09), given as a passive
 that raises the energy restored with each turn the character takes, with the variable being that
 number of points, and with the restored energy capped at the pool the character began the fight
-with. Every occurrence states 2 and each is the only key in its message. Production build
-`1786514810315` composes it through the shared `bonus_<key> %val%` branch.
+with. Every occurrence states 2 and each is the only key in its message (re-read over `captures/`
+2026-10-12). Production build `1786514810315` composes it through the shared `bonus_<key> %val%`
+branch.
 
 ⚠️ **Not joined to a combatant here.** Like the other standalone keys it reaches no row: the message
 names a side, and what the panel does with a declaration is show it, not add it.
@@ -2663,8 +2668,8 @@ Health restored to a combatant by a healing talisman **once the fight is over**.
 
 ⚠️ **No health verdict, and the witness cannot supply one.** Silence here is a position rather than
 an omission: the figure moves no health that any snapshot in the fight records, so claiming it does
-would make `tests/core/health-witness.test.ts` skip both of these calls whole and lose the coverage
-for nothing. It could not have judged them anyway — an `afterheal` message states no health
+would make `tests/core/health-witness.test.ts` skip every call carrying it whole and lose the
+coverage for nothing. It could not have judged them anyway — an `afterheal` message states no health
 percentage in either slot, so there is no figure for the replay to compare against, and the reading
 rests on the snapshots either side of the call instead.
 
@@ -2677,12 +2682,12 @@ _Shape:_ 7 occurrences; alone in its message; a whole number
 
 _Help:_ names `afterheal`
 
-_Evidence:_ article view,372 at the engine name `afterheal` (read 2026-08-09), which gives the
-formula above, the cap at the health the character started the fight with, and the rule for a
-character carrying several such talismans — only the one with the highest average restoration is
-used. Production build `1786514810315` composes it as `msg_afterheal %name% %val%`; the development
-build `1781609507010` carries the same branch with its original comment, which reads the value as
-the number of health points restored.
+_Evidence:_ article view,372 at the engine name `afterheal` (read 2026-08-09), which gives the cap
+at the health the character started the fight with, and the rule for a character carrying several
+such talismans — only the one with the highest average restoration is used. Production build
+`1786514810315` composes it as `msg_afterheal %name% %val%`; the development build `1781609507010`
+carries the same branch with its original comment, which reads the value as the number of health
+points restored.
 
 ### `critwound` — investigated
 
@@ -2757,8 +2762,8 @@ _Evidence:_ as above, and production build `1786514810315` composes `msg_wound %
 `msg_wound_multi` where the value splits on a comma — the two branches `injure`, `critwound` and
 `poison` take as well; no occurrence here carries the second member. The published help documents
 the damage at article `view,372` (read 2026-08-19): the weapon attribute under the engine names
-`wound1, of_wound1`, applied for five turns after a hit doing non-zero damage, and the type's
-behaviour in the table of damage over time. Carried by
+`wound1, of_wound1`, whose length `docs/auras-standing.md` carries, and the type's behaviour in the
+table of damage over time. Carried by
 `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, the fight the rule above
 was read off, and by four recordings admitted since (read 2026-09-11).
 

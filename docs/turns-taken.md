@@ -48,8 +48,9 @@ somebody expected:
 - **A preparation stated beside its own combatant's action.** Where a `prepare` follows an action of
   the same combatant it is part of that turn; where it stands alone, the turn went on it. Which
   events are that combatant's action is `docs/reading-a-turn.md`'s to state, and the damage a blow
-  reports **by name** is one of them: reading it as nobody's action opened 16 turns the game never
-  numbered (**develop ADR 0057**). Both shapes occur throughout the corpus.
+  reports **by name** is one of them: reading it as nobody's action opens turns the game never
+  numbered (`docs/reading-a-turn.md` carries the measurement, **develop ADR 0057**). Both shapes
+  occur throughout the corpus.
 
 Neither suppression is counted here. The register below reaches every boundary, and what stands in
 place of a count of either is its list of the boundaries where a suppression failing open is what a
@@ -164,8 +165,9 @@ two ordinals. A recording carrying one is `sometimes`, which is what the verdict
 
 ⚠️ **A suppression failing open counts one turn over the game's numbering.** A preparation stated
 after the damage its own combatant's blow reported by name is part of that turn, and counting that
-damage as its striker's action takes 33 turns off the corpus and leaves no boundary over on that
-shape (**develop ADR 0057**, which carries the 16 over against 2 under it was measured on).
+damage as its striker's action takes those turns off the corpus and leaves no boundary over on that
+shape (`docs/reading-a-turn.md` dates the count, and **develop ADR 0057** carries what it was
+measured on).
 
 ⚠️ **A boundary reading `exact` can be two errors cancelling.** One of the three, on
 `2026-08-27-luvia-grupa-vs-amaimon`, is a turn the game numbered and this reading opens nothing for;
@@ -183,8 +185,8 @@ nothing divides by it (`CONTEXT.md`, **Turn**).
 
 **No combatant enters a fight by stepping or preparing alone**, 2026-09-02: counting the two
 declarations adds turns to rows that exist and creates none, so the fights `tools/fight-figures.ts`
-prints hold exactly the rows they held before. Taking 33 of those turns away deleted none either,
-2026-09-07 — the same tool prints the same rows on both sides of **develop ADR 0057**.
+prints hold exactly the rows they held before. Taking away the turns **develop ADR 0057** stopped
+opening deleted none either, 2026-09-07 — the same tool prints the same rows on both sides of it.
 
 ## Taken, and lost
 
@@ -249,8 +251,8 @@ and every other nought on that fight is a measurement. Where nobody did, the car
 
 ## Who else counts this
 
-Two independent readings were looked at before this one was settled, and neither is a source this
-repository can lean on — but what they do says which figure is the one to show.
+Two independent readings stand beside this one, and neither is a source this repository can lean on
+— but what they do says which figure is the one to show.
 
 **The game's client does not count turns at all.** `newTurn` decides whether it is the reader's move
 and sets a sound; `updateTurnPredictions` walks the queue by its values and never reads its keys.

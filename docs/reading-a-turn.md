@@ -65,8 +65,8 @@ The first two are one combatant striking. `docs/protocol-keys.md` owns what each
 is the protocol's own split: a blow aimed at the message's target carries the first, and damage that
 landed on somebody the message names carries the second — whose cause that register reads off the
 message actor, which is why the two answer alike. ⚠️ Read as nobody's action, the second opens 33
-turns across the corpus, 16 of them where the game's own numbering can see it (measured for
-**develop ADR 0057**).
+turns across the corpus, 16 of them where the game's own numbering can see it (measured over the 29
+recordings of `captures/` on 2026-09-07, for **develop ADR 0057**).
 
 The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
 is not that combatant acting, so a preparation after one opens a turn. The corpus stands 177

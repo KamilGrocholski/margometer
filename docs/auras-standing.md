@@ -32,22 +32,18 @@ it settles nothing about who a cast reached; that is refused, on three readings
 (`develop ADR 0104`). The window beside the panel draws none of this: what is true of one fighter is
 said on that fighter (`develop ADR 0108`).
 
-⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
-found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
-and not all. `develop ADR 0049` rejected an attribution measured at 84.6% in the words that bind
-here.
+⚠️ **Listing the side's members would be wrong about some casts**, which is what that reading found
+after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts and
+not all. `develop ADR 0049` rejected that attribution, with its figure, in the words that bind here.
 
 ⚠️ **The target slot is not read**, except beside `shout`. On a cast reaching a side it names one
 end that is not the bearer, and `develop ADR 0010` measured what reading it costs: eight of 115 name
 a combatant other than the caster.
 
-**`shout` names bearers, and the target slot is one of them.** The help's effect table settles it,
-read 2026-09-22: the effect forces whoever carries it to pick the character who used the skill as
-the target of their attacks, and it lands on the skill's own target and on randomly chosen
-characters up to its count. So the provoked strike **whoever cast it** — there is no target the
-caster's side is pointed at — and the announcement's target slot names one of the provoked, which is
-why it resolves against the roster and agrees with the value (`develop ADR 0061`,
-`develop ADR 0064`).
+**`shout` names bearers, and the target slot is one of them.** The provoked strike **whoever cast
+it** (_What a shout holds_) — there is no target the caster's side is pointed at — and the
+announcement's target slot names one of the provoked, which is why it resolves against the roster
+and agrees with the value (`develop ADR 0061`, `develop ADR 0064`).
 
 ⚠️ **What the value is, is _What a shout holds_'s to say**, and this section points at it rather
 than restating it: two statements of one mechanism drift without looking different, and the value is
@@ -240,8 +236,8 @@ none of it. What follows is what the game does, written down so the reading is n
 **Almost every key carries its figure on the wire.** Measured over `captures/` 2026-09-11: every key
 below states an amount on the announcement except `+spell-taken_dmg-all`, which states none on any
 occurrence there is — the count is its `_Shape:_` line in `docs/protocol-keys.md`, re-earned on
-every run. The client's own branch for it is `end-game-without-percent`, so the game shows no
-percentage there either (`develop ADR 0063`).
+every run. The client's own branch for it is `end-game-without-percent` (production build
+`DHSqC3Uh`), so the game shows no percentage there either (`develop ADR 0063`).
 
 **Three different units, and they are not interchangeable.** The help's effect dictionary gives each
 one (article `view,372`, read 2026-09-03):
@@ -332,11 +328,11 @@ turns and debuffs the other side for five. Its `stated` here is the side-wide ha
 shout's, which is the register below's. `develop ADR 0097`, and the two rows are what holds the
 claim — were the two shouts one shape, skill 25 would read five here rather than two.
 
-⚠️ **A shout reaches the side opposite its caster, never the caster's own.** The help's effect table
-forces the affected to attack the character who used the skill, and over `captures/` **168 of 168
-characters named across 166 announcements stand opposite the caster**, none on their own side (read
-2026-09-22). So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its own —
-and `Wyzywający okrzyk` reaches only the other.
+⚠️ **A shout reaches the side opposite its caster, never the caster's own.** The affected attack
+whoever cast it (_What a shout holds_), and over `captures/` **168 of 168 characters named across
+166 announcements stand opposite the caster**, none on their own side (read 2026-09-22). So
+`Prowokujący okrzyk` reaches both — it provokes the other side and raises its own — and
+`Wyzywający okrzyk` reaches only the other.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
@@ -354,10 +350,12 @@ are missing for want of a recording rather than by a verdict: the guard holds th
 
 ## What a shout holds
 
-**A shout is one state per character, and the last one wins.** The published help gives it as
-forcing the affected to attack whoever cast it, so a character forced at two people at once is not a
-state the game has: a later shout replaces whatever held them, from any caster and either skill.
-`develop ADR 0062` carries the rule and names its source.
+**A shout is one state per character, and the last one wins.** The help's effect table, read
+2026-09-22, forces whoever carries it to pick the character who used the skill as the target of
+their attacks, and lands it on the skill's own target and on randomly chosen characters up to its
+count. So a character forced at two people at once is not a state the game has: a later shout
+replaces whatever held them, from any caster and either skill. `develop ADR 0062` carries the rule
+and names its source.
 
 **Its table value is a count of characters, where every other key here states a share.** Both skills
 publish `shout=6@3,7@3,7@3,8@3,8@3,9@3,9@3,10@3,10@3,10@3` — six characters at skill level 1 rising
@@ -377,8 +375,9 @@ count. `develop ADR 0064`, superseding `develop ADR 0063` in part.
 `alllowdmg` and `active_decblock_per-enemies` for five turns and `shout` for three; dated as an aura
 it would hold a character two turns after the game lets them go.
 
-⚠️ **Over `captures/` on 2026-10-04 a shout names more than one character exactly once, and names
-two.** So `at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
+⚠️ **Over `captures/` on 2026-10-12 a shout names more than one character in one recording only,
+`captures/2026-09-09-tempest-duet-vs-wojownik-…`: two casts there name two each, and none names
+more.** So `at once` and `names` are 2 for `Wyzywający okrzyk` and 1 for everything else.
 
 `casters` counts the combatants ever seen holding somebody with it; `fights` the recordings it holds
 in; `at once` the most characters it held at one moment; `stated` what the published table gives the

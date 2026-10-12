@@ -165,11 +165,9 @@ evidence.
   both ends that is no duel, and the first written from side 2. It is what settled whom a shout
   holds (**develop ADR 0064**) and it is the whole of the evidence for it.
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
-  game settled by itself, of the seven `captures/` held on 2026-10-04. Every payload carries `auto`,
-  the whole battle arrives in one engine call with no snapshot before it, and the two calls after it
-  carry snapshots and no messages at all. So it contributes nothing to the health witness, for the
-  same reason the duel does not (`tests/core/health-witness.test.ts`), and its opening call has to
-  be unwound in full to say what anybody entered with.
+  game settled by itself. Every payload carries `auto`, the whole battle arrives in one engine call
+  with no snapshot before it, and the two calls after it carry snapshots and no messages at all, so
+  its opening call has to be unwound in full to say what anybody entered with.
 
   Because of that its entry health comes entirely from stated percentages rather than from a
   snapshot — the first snapshot after the battle has every player clamped to zero, which says where
@@ -189,26 +187,25 @@ evidence.
   carries a build — these three cannot, being evidence (`captures/AGENTS.md`), and their column is a
   fact about them for good.
 
-  It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
-  as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
-  other auto recording it still has an opening snapshot, so the health witness judges it in full
-  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in three other
-  recordings each over `captures/` on 2026-10-09 — the Mamlambo fights of 2026-09-06 and 2026-09-14,
-  against the same monster, and the Umibozu fight of 2026-10-04 — while `anguish` and
-  `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
+  It is also one of three fights **entered by hand and finished on auto**, beside
+  `2026-08-11-tempest-tancerz-vs-wermont` and `2026-08-26-luvia-grupa-vs-draugr` (`captures/` read
+  2026-10-12): the opening call states `auto` as `0`, the third states `1`, and 304 of the 308
+  messages arrive in the closing call. Unlike the fights the game settled from the start, a snapshot
+  stands between its opening and the battle. Of the four keys it brought, `+stun2` and `npc_heal`
+  are in three other recordings each over `captures/` on 2026-10-09 — the Mamlambo fights of
+  2026-09-06 and 2026-09-14, against the same monster, and the Umibozu fight of 2026-10-04 — while
+  `anguish` and `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
   (`docs/protocol-keys.md`).
 
-- `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the third fight the game settled
-  by itself, after `2026-08-24-tempest-tropiciel-vs-centaury-auto`, and in the same shape as the
-  first: `auto` on every payload, all 462 messages in the opening call, no snapshot before it, and
-  the two calls after it carrying snapshots and nothing else. It contributes nothing to the health
-  witness for that reason.
+- `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — a fight the game settled by
+  itself, in the shape of the one of 2026-08-23 above: `auto` on every payload, all 462 messages in
+  the opening call, no snapshot before it, and the two calls after it carrying snapshots and nothing
+  else.
 
 - `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` — fought by hand and **the first
   recording whose opening call carries most of the fight anyway**: 506 of its 619 messages arrive in
   it, opening with the opponent at full health and closing with it at 25.21% and four of the nine
-  players already at zero. The 37 calls after it arrive a turn at a time, which is what the witness
-  judges — 164 comparisons, against 0 for the recordings whose whole fight is in the opening call.
+  players already at zero. The 37 calls after it arrive a turn at a time.
 
   It is also where a tick's missing figure is worst: two combatants apply the bleed
   `+legbon_anguish` announces to the same combatant, and 25 `anguish` ticks come back off it naming
@@ -239,7 +236,7 @@ evidence.
   **only opponent of profession `p`** in the material, and the second recording whose opening call
   carries most of the fight: 627 of its 709 messages arrive there, opening with everybody at full
   health and ending with four of the ten already at zero. The 14 calls after it arrive a turn at a
-  time, which is what the witness judges — 107 comparisons.
+  time.
 
   ⚠️ **The second recording where the game contradicts itself about a combatant's health**, and the
   entry above is the first. For ten of the eleven, the last percentage the opening call states is
@@ -250,25 +247,22 @@ evidence.
 
   It is the first recording carrying two keys — `bandage`, a combatant restoring a share of their
   own pool, and `+stun2-c` — and the first `+oth_dmg` whose element is `p`, which the help gives as
-  damage from poison and which the panel had no word for (`docs/protocol-keys.md`,
-  `src/ui/panel-words.ts`). It is also the first recording carrying `-poison_lowdmg_per` on
-  something that is not a blow: seven poison ticks state their own reduction beside them, which is
-  why that key and `poison` stand at the weakest placement the register has.
+  damage from poison (`docs/protocol-keys.md`, `src/ui/panel-words.ts`). It is also the first
+  recording carrying `-poison_lowdmg_per` on something that is not a blow: seven poison ticks state
+  their own reduction beside them, which is why that key and `poison` stand at the weakest placement
+  the register has.
 
 - `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — the one against the entry
   above's opponent thirteen minutes later, with a different party. 715 messages over 111 engine
   calls, and 110 of those calls carry a snapshot: it is the first `luvia` recording split turn by
-  turn rather than arriving with most of its log in the opening call, which is what makes it a wide
-  health witness — 1 083 comparisons against 107 for its sibling, and no disagreement anywhere.
+  turn rather than arriving with most of its log in the opening call.
 
   ⚠️ **The only recording carrying `lowheal_per-enemies`, and it is evidence for the sizing rather
   than against it.** ⚠️ A reading that leaves every cast unsized in a fight declaring the reducer
   anywhere counts all three of its `healall_per` casts as healing nobody can place, and marks its
   two casters. The help scopes the effect to the caster's opponents and all four occurrences here
   are declared by one of ours at the monster — nothing of ours is reduced, and the three casts are
-  sized (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their
-  engine call, which is where the twenty comparisons that check them against the snapshots come
-  from.
+  sized (`develop:docs/adr/0010-sizing-a-share-onto-a-side.md`).
 
   Two more things it settles. Its sibling above carries `+stun2-c` four times; its five here ride
   the same monster's blows and are followed one-to-one by a turn-loss message, which the sibling's
@@ -279,10 +273,10 @@ evidence.
   (`docs/protocol-keys.md`).
 
 - `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json` — the **smallest party
-  in the material**, and the fourth fight the game settled by itself, in the shape the first and the
-  third have: `auto` on every payload, all 171 messages in the opening call, no snapshot before it,
-  and the two calls after it carrying snapshots and nothing else. It contributes nothing to the
-  health witness for that reason. It is also the first recording on build `ne0iTNdg`.
+  in the material**, and a fight the game settled by itself, in the shape of the fights of
+  2026-08-23 and 2026-08-25 above: `auto` on every payload, all 171 messages in the opening call, no
+  snapshot before it, and the two calls after it carrying snapshots and nothing else. It is also the
+  first recording on build `ne0iTNdg`.
 
   ⚠️ **It is the only recording carrying `surpass_bonus_total`**, and it is what that key needed:
   the corpus already held the same monster at the same level met by ten players, so the two together
@@ -291,10 +285,9 @@ evidence.
   which is why no earlier recording could carry it.
 
 - `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — the first recording on build
-  `Cl9U89Zr`, and the first to carry a key the decoder could not read since the corpus last read
-  whole. Two of them: `+woundpoison`, which is `+wound`'s announcement with a share stated on it,
-  and `+critpierce`, armour destroyed beside `+acdmg` rather than inside it
-  (`docs/protocol-keys.md`).
+  `Cl9U89Zr`, and the first carrying either of two keys: `+woundpoison`, which is `+wound`'s
+  announcement with a share stated on it, and `+critpierce`, armour destroyed beside `+acdmg` rather
+  than inside it (`docs/protocol-keys.md`).
 
   ⚠️ **`+critpierce` is why this one recording was worth more than its size.** 105 blows in
   `captures/` on 2026-10-04 carry `+crit` and `+pierce` together and this is the only one of them
@@ -326,9 +319,9 @@ evidence.
 - `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json` — **the second recording
   carrying no snapshot at all**, and the first is `2026-08-24-tempest-tropiciel-vs-centaury-auto`.
   Its one engine call states `auto`, carries all 276 messages, and states an empty cast on either
-  side of itself: unlike the three auto fights above it there is no trailing call to snapshot
-  anybody. So it contributes nothing to the health witness, and the cast is `payload.w` with nothing
-  to check it against. ⚠️ A guard reading the cast reads it off the payloads, never the snapshots
+  side of itself: unlike the auto fights above it there is no trailing call to snapshot anybody. So
+  it contributes nothing to the health witness, and the cast is `payload.w` with nothing to check it
+  against. ⚠️ A guard reading the cast reads it off the payloads, never the snapshots
   (`tests/repository/redacted-names.test.ts`, `tests/core/npc-heal-rule.test.ts`), and the one whose
   subject **is** the comparison counts what the snapshots hold back by that property rather than by
   a recording's name (`tests/ports/warrior-entries.test.ts`).
@@ -360,12 +353,11 @@ evidence.
   It is the second duel between two players, and the first on `luvia`.
 
 - `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json` — **the only recording carrying
-  `+superspell-prevented`**, a key the client has always branched on and no recording had ever
-  carried, so it had no entry to be written down in. It is `+superspell-dispel`'s sibling: that key
-  breaks a charge already standing, this one states that none began (`docs/protocol-keys.md`). The
-  one occurrence rides `-legbon_glare` on a blow of the boss's, and the boss is the only combatant
-  this recording ever states a charge for — as over `captures/` every charge the game states stands
-  on a monster, 2026-09-21.
+  `+superspell-prevented`**, a key the client branches on. It is `+superspell-dispel`'s sibling:
+  that key breaks a charge already standing, this one states that none began
+  (`docs/protocol-keys.md`). The one occurrence rides `-legbon_glare` on a blow of the boss's, and
+  the boss is the only combatant this recording ever states a charge for — as over `captures/` every
+  charge the game states stands on a monster, 2026-09-21.
 
-  It also grades more boundaries than any other recording — 122, every one agreeing with the game's
-  own numbering (`docs/turns-taken.md`).
+  It also grades more boundaries than any other recording as `captures/` stood on 2026-10-12, every
+  one agreeing with the game's own numbering (`docs/turns-taken.md`).
