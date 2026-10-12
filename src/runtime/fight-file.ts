@@ -207,7 +207,8 @@ function encodeFightFileName(surroundings: FileSurroundings): string {
 
 /**
  * The counted half of what a reader hands over. English keys, unlike the game's payload beside
- * them: a key here is one somebody can grep for in `src/core/fight-statistics.ts`.
+ * them: a key here is a field's name in `src/core/fight-statistics.ts`, or the key the
+ * `REPORT_KEY_BY_…` maps above write that field under.
  */
 export function encodeFightReport(subject: FileSubject): Record<string, unknown> {
     assert(subject.payloadsApplied > 0, "a fight written into a report was built from something");

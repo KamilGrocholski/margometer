@@ -28,7 +28,6 @@ export class ShownFightAbsent extends Error {
     override readonly name = "ShownFightAbsent";
 }
 
-/** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
 export type ExportFailure = ShownFightAbsent | FileUnserializable | FileFailure;
 
 export interface HandoverPorts {

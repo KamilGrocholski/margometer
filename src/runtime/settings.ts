@@ -48,8 +48,8 @@ export class SettingUnreadable extends Error {
     override readonly name = "SettingUnreadable";
     readonly key: SettingKey;
 
-    constructor(key: SettingKey) {
-        super();
+    constructor(key: SettingKey, options?: ErrorOptions) {
+        super(undefined, options);
         this.key = key;
     }
 }
@@ -157,7 +157,8 @@ export function writeWindowCollapsed(
 
 /**
  * Where the reader put the window, or null where they put it nowhere. It comes back from text a
- * person can edit and a browser can truncate, so a fraction or a number written as text is not one.
+ * person or another script on the page can edit, so a fraction or a number written as text is not
+ * one.
  */
 export function readWindowPosition(
     store: KeyValueStore,
@@ -168,28 +169,32 @@ export function readWindowPosition(
     if (storedText instanceof Error) return storedText;
     if (storedText === null) return null;
     if (storedText.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
-    const pair = parseWholePair(storedText, POSITION_FIELDS, ["left", "top"]);
-    if (pair === null) return new SettingUnreadable(key);
+    const pair = parseWholePair(storedText, key, POSITION_FIELDS, ["left", "top"]);
+    if (pair instanceof Error) return pair;
     return { left: pair[0], top: pair[1] };
 }
 
-/** Two whole numbers under two names, or null where the text is not exactly that. */
+/**
+ * Two whole numbers under two names, or the setting unreadable where the text is not exactly that,
+ * carrying the failure met on the way where one was.
+ */
 function parseWholePair<Field extends string>(
     text: string,
+    key: SettingKey,
     fields: FieldKeys<Field>,
     names: readonly [Field, Field],
-): readonly [number, number] | null {
+): readonly [number, number] | SettingUnreadable {
     const parsed = parseJson(text);
-    if (parsed instanceof Error) return null;
-    if (!isRecord(parsed)) return null;
+    if (parsed instanceof Error) return new SettingUnreadable(key, { cause: parsed });
+    if (!isRecord(parsed)) return new SettingUnreadable(key);
     const firstNumber = getNumberField(parsed, fields, names[0]);
     const secondNumber = getNumberField(parsed, fields, names[1]);
-    if (firstNumber instanceof Error) return null;
-    if (secondNumber instanceof Error) return null;
-    if (firstNumber === null) return null;
-    if (secondNumber === null) return null;
-    if (!Number.isSafeInteger(firstNumber)) return null;
-    if (!Number.isSafeInteger(secondNumber)) return null;
+    if (firstNumber instanceof Error) return new SettingUnreadable(key, { cause: firstNumber });
+    if (secondNumber instanceof Error) return new SettingUnreadable(key, { cause: secondNumber });
+    if (firstNumber === null) return new SettingUnreadable(key);
+    if (secondNumber === null) return new SettingUnreadable(key);
+    if (!Number.isSafeInteger(firstNumber)) return new SettingUnreadable(key);
+    if (!Number.isSafeInteger(secondNumber)) return new SettingUnreadable(key);
     return [firstNumber, secondNumber];
 }
 
@@ -234,8 +239,8 @@ export function readWindowSize(
     if (storedText instanceof Error) return storedText;
     if (storedText === null) return null;
     if (storedText.length > PAIR_LENGTH_MAXIMUM) return new SettingTooLong(key);
-    const pair = parseWholePair(storedText, SIZE_FIELDS, ["width", "height"]);
-    if (pair === null) return new SettingUnreadable(key);
+    const pair = parseWholePair(storedText, key, SIZE_FIELDS, ["width", "height"]);
+    if (pair instanceof Error) return pair;
     const [width, height] = pair;
     if (width < 1) return new SettingUnreadable(key);
     if (height < 1) return new SettingUnreadable(key);

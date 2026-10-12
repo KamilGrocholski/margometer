@@ -15,6 +15,7 @@ import {
     assertThrows,
 } from "@std/assert";
 import { encodeJson } from "#/libs/json-text.ts";
+import { FieldWrongType } from "#/libs/unknown-value.ts";
 import {
     initBrowserStore,
     initMemoryStore,
@@ -148,6 +149,11 @@ Deno.test("a shelf nobody can read is refused, never trusted into a figure", () 
     const none = openShelf(unstated);
     assertInstanceOf(none, ShelfVersionUnknown, "and one stating none");
     assertStrictEquals(none.version, null, "as none");
+    assertStrictEquals(none.cause, undefined, "having met nothing");
+    const worded = openShelf(composeStoreHolding('{"version":"3","fights":[]}'));
+    assertInstanceOf(worded, ShelfVersionUnknown, "and one stating a version that is no number");
+    assertStrictEquals(worded.version, null, "as none");
+    assertInstanceOf(worded.cause, FieldWrongType, "carrying what the field was met as");
     const notListed = composeStoreHolding('{"version":3,"fights":"none"}');
     assertInstanceOf(openShelf(notListed), ShelfUnreadable, "fights, a list");
     assertEquals(

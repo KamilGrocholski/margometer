@@ -70,7 +70,10 @@ export interface LiveFight {
     session: FightSession;
     capture: FightCapture;
     snapshotBefore: MargonemEngineWarriorSnapshot | null;
-    /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
+    /**
+     * Read once, on the payload that opens a fight, and held for all of it: that the hero stands
+     * there until the fight ends is assumed here, and no source or measurement of ours states it.
+     */
     place: FightPlace | null;
     /** Read with the place: which combatant the reader is, as the client keys its own warrior. */
     readerId: number | null;

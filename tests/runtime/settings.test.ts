@@ -14,6 +14,8 @@ import {
     assertThrows,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
+import { JsonUnreadable } from "#/libs/json-text.ts";
+import { FieldWrongType } from "#/libs/unknown-value.ts";
 import {
     initBrowserStore,
     initMemoryStore,
@@ -46,6 +48,9 @@ import {
     TYPE_STEP_DEFAULT,
     TYPE_STEPS,
 } from "#/src/ui/panel-choice.ts";
+
+/** What a setting unreadable can carry as its cause: what reading its text met. */
+type MetFailure = typeof JsonUnreadable | typeof FieldWrongType;
 
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
 
@@ -159,17 +164,20 @@ Deno.test("a window's size reads back per window, and goes when it is given back
 Deno.test("a size that is not two whole numbers above nought is refused by name", () => {
     const store = initMemoryStore();
     const key = SETTING_KEY.meterSize;
-    const unread = [
-        '{"width":0,"height":350}',
-        '{"width":320,"height":-1}',
-        '{"width":320.5,"height":350}',
-        '{"width":"320","height":350}',
-        '{"width":320}',
-        "320x350",
+    // Each with the failure met on the way, where one was: a number that is no size meets none.
+    const unread: [string, MetFailure | undefined][] = [
+        ['{"width":0,"height":350}', undefined],
+        ['{"width":320,"height":-1}', undefined],
+        ['{"width":320.5,"height":350}', undefined],
+        ['{"width":"320","height":350}', FieldWrongType],
+        ['{"width":320}', undefined],
+        ["320x350", JsonUnreadable],
     ];
-    for (const text of unread) {
+    for (const [text, met] of unread) {
         store.write(STORE_KEY.meterSize, text);
-        expectSettingUnreadable(readWindowSize(store, PANEL_WINDOW.meter), key, text);
+        const answer = readWindowSize(store, PANEL_WINDOW.meter);
+        expectSettingUnreadable(answer, key, text);
+        expectCause(answer, met, text);
     }
     store.write(STORE_KEY.meterSize, `{"width":320,"height":${"0".repeat(4096)}}`);
     assertInstanceOf(
@@ -180,6 +188,13 @@ Deno.test("a size that is not two whole numbers above nought is refused by name"
     expectStoreRefused(readWindowSize(composeRefusingStore(), PANEL_WINDOW.meter), "a refusal");
     expectStoreRefused(deleteWindowSize(composeRefusingStore(), PANEL_WINDOW.meter), "on removing");
 });
+
+/** The failure a setting unreadable carries as its cause, or that it carries none. */
+function expectCause(answer: unknown, met: MetFailure | undefined, message: string): void {
+    assertInstanceOf(answer, Error, message);
+    if (met === undefined) assertStrictEquals(answer.cause, undefined, `${message}, met nothing`);
+    else assertInstanceOf(answer.cause, met, `${message}, carrying what was met`);
+}
 
 Deno.test("a fold is the one mark, and anything else stored there is not read as one", () => {
     const store = initMemoryStore();
@@ -251,19 +266,21 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
     assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: 12, top: 34 }, "back");
     writeWindowPosition(store, PANEL_WINDOW.meter, { left: -3, top: 0 });
     assertEquals(readWindowPosition(store, PANEL_WINDOW.meter), { left: -3, top: 0 }, "zero");
-    const samples: [string, string][] = [
-        ["", "nothing stored as empty text is no position"],
-        ["{", "and neither is text that was cut short"],
-        ["[1,2]", "nor a shape of another kind"],
-        ['{"left":1}', "a position states both numbers"],
-        ['{"left":"1","top":2}', "as numbers, not text"],
-        ['{"left":1.5,"top":2}', "and as whole ones"],
-        ['{"left":1,"top":2.5}', "both of them"],
+    const samples: [string, MetFailure | undefined, string][] = [
+        ["", JsonUnreadable, "nothing stored as empty text is no position"],
+        ["{", JsonUnreadable, "and neither is text that was cut short"],
+        ["[1,2]", undefined, "nor a shape of another kind"],
+        ['{"left":1}', undefined, "a position states both numbers"],
+        ['{"left":"1","top":2}', FieldWrongType, "as numbers, not text"],
+        ['{"left":1,"top":"2"}', FieldWrongType, "the second as the first"],
+        ['{"left":1.5,"top":2}', undefined, "and as whole ones"],
+        ['{"left":1,"top":2.5}', undefined, "both of them"],
     ];
-    for (const [text, message] of samples) {
+    for (const [text, met, message] of samples) {
         store.write(STORE_KEY.meterPosition, text);
         const answer = readWindowPosition(store, PANEL_WINDOW.meter);
         expectSettingUnreadable(answer, SETTING_KEY.meterPosition, message);
+        expectCause(answer, met, message);
     }
 });
 

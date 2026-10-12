@@ -503,6 +503,17 @@ function onRuntimeIntent(state: RuntimeState, intent: PanelIntent): void {
             resetScreenFightDropped(state.screen, state.keeper.getFights());
             shouldDraw = true;
             break;
+        // A row released after a fight ending pushed it off the shelf moves nothing, as a pin on
+        // it does: the frame that fight asked for already shows the shelf as it is.
+        case PANEL_INTENT.showKept: {
+            const openedAt = intent.openedAt;
+            if (!state.keeper.getFights().some((keptFight) => keptFight.openedAt === openedAt)) {
+                shouldDraw = false;
+                break;
+            }
+            shouldDraw = executeScreenIntent(state.screen, intent);
+            break;
+        }
         case PANEL_INTENT.storage:
             state.keeper.moveShelf(intent.choice);
             resetScreenFightDropped(state.screen, state.keeper.getFights());

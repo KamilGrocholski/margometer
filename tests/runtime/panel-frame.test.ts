@@ -12,12 +12,13 @@ import {
     assertStrictEquals,
 } from "@std/assert";
 import * as errors from "#/libs/errors.ts";
+import { parseInteger } from "#/libs/number-text.ts";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import { BATTLE_EVENT } from "#/src/core/battle-event.ts";
 import { CHARGED_SKILL_STATE } from "#/src/core/charged-skill.ts";
 import { createFightSession, SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { createFightCapture } from "#/src/ports/fight-capture.ts";
-import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
+import { type Defect, DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
 import { type KeptFightState, replayKeptFight } from "#/src/runtime/fight-state.ts";
 import {
     FIGURES_CUT,
@@ -28,7 +29,12 @@ import {
 import type { KeptFight } from "#/src/runtime/shelf.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import type { ShownScreen, WaitingContent } from "#/src/ui/panel-element.ts";
-import { createScreenState, OPENED_PART, PANEL_METRIC } from "#/src/ui/panel-screen.ts";
+import {
+    createScreenState,
+    OPENED_PART,
+    PANEL_METRIC,
+    type ScreenState,
+} from "#/src/ui/panel-screen.ts";
 import { HELPER_ABSENCE, type HelperAbsence, type HelperContent } from "#/src/ui/panel-helper.ts";
 import {
     EVERY_SLOT_PINNED_ANSWER,
@@ -93,6 +99,8 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
     const waited: WaitingContent[] = [];
     const standings: (HelperContent | HelperAbsence)[] = [];
     const defects = initDefectLedger({ console: { writeBrandedLine: () => {} } });
+    // The ledger keeps the first failure of a kind, so every one added is kept here as well.
+    const added: Defect[] = [];
     const parts: FrameParts = {
         screen: createScreenState(false),
         keeper: {
@@ -122,7 +130,13 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
             payloadRefusal: null,
             margonemEngineBattle: null,
         },
-        defects,
+        defects: {
+            add: (defect) => {
+                added.push(defect);
+                defects.add(defect);
+            },
+            getCounts: () => defects.getCounts(),
+        },
         view: {
             element: composeFakeDocument().createElement("div"),
             render: (screen) => {
@@ -156,7 +170,12 @@ function composeFrameWorld(fight: KeptFight, reading: KeptFightState | null) {
             ? defectCount.first.cut
             : defectCount.first.name
         );
-    return { parts, shown, waited, standings, defects, readFiguresSaid };
+    /** The cut of every disagreement added, in the order the frame added them. */
+    const readFiguresCutsAdded = () =>
+        added.flatMap((defect) =>
+            defect.failure instanceof FiguresDisagreed ? [defect.failure.cut] : []
+        );
+    return { parts, shown, waited, standings, defects, readFiguresSaid, readFiguresCutsAdded };
 }
 
 /** A broken invariant the reader's layer passes over is carried out, and the frame says it. */
@@ -218,10 +237,104 @@ Deno.test("a nameless charge and a part cut by no id are said as the helper's an
     assertStrictEquals(said.length, 1, "one row for the figures");
     assertStrictEquals(said[0]?.count, 2, "holding both, the helper's and the part's");
     assertEquals(world.readFiguresSaid(), [FIGURES_CUT.helper], "the window's said first");
+    assertEquals(
+        world.readFiguresCutsAdded(),
+        [FIGURES_CUT.helper, FIGURES_CUT.part],
+        "and the part's after it, as the part's",
+    );
     assertStrictEquals(
         world.shown[0]?.part?.hasFiguresDisagreed,
         true,
         "and the part carries its own",
+    );
+});
+
+/**
+ * Each level an opened row draws counts its figure twice, and a disagreement on one is said as that
+ * level's: an opponent keyed by no id under the person, kinds under the pair that come to less than
+ * its parts, and a part keyed by no id under a person's plain blows.
+ */
+Deno.test("a person, a pair and a part whose counts disagree are each said as their own", () => {
+    const fight: KeptFight = {
+        openedAt: 1,
+        payloads: lookupRecordedFight(HILDUR).updates,
+        place: null,
+        readerId: null,
+        margonemClientBuild: null,
+        isPinned: false,
+    };
+    const replayed = replayKeptFight(fight, RUNTIME_TABLES.decoder, SESSION_OPTIONS);
+    assert(!(replayed instanceof Error), "the recording replays");
+    assert(replayed !== null, "into a fight");
+    const { statistics } = replayed.figures;
+    const [combatantId, figures] =
+        [...statistics.byCombatantId].find(([, held]) =>
+            held.damageDealtWithoutSkillByOpponent.size > 0
+        ) ?? [];
+    assert(combatantId !== undefined, "somebody struck under no announcement");
+    assert(figures !== undefined, "and is tallied");
+    const [opponentKey] = [...figures.damageDealtByOpponentAndKind.keys()];
+    assertExists(opponentKey, "and struck somebody");
+    const opponentId = parseInteger(opponentKey);
+    assert(opponentId !== null, "who is keyed by their id");
+    const readCutsAdded = (
+        brokenFigures: typeof figures,
+        screen: Pick<ScreenState, "pairCombatantId" | "openPart">,
+    ) => {
+        const world = composeFrameWorld(fight, {
+            ...replayed,
+            figures: {
+                ...replayed.figures,
+                statistics: {
+                    ...statistics,
+                    byCombatantId: new Map([
+                        ...statistics.byCombatantId,
+                        [combatantId, brokenFigures],
+                    ]),
+                },
+            },
+        });
+        world.parts.screen.openedCombatantId = combatantId;
+        world.parts.screen.pairCombatantId = screen.pairCombatantId;
+        world.parts.screen.openPart = screen.openPart;
+        renderFrame(world.parts);
+        assertStrictEquals(world.shown.length, 1, "the level is drawn all the same");
+        return world.readFiguresCutsAdded();
+    };
+    assertEquals(
+        readCutsAdded(figures, { pairCombatantId: opponentId, openPart: null }),
+        [],
+        "a person and a pair core tallied say nothing",
+    );
+    assertEquals(
+        readCutsAdded({
+            ...figures,
+            damageDealtByOpponent: new Map([...figures.damageDealtByOpponent, ["nobody", 1]]),
+        }, { pairCombatantId: null, openPart: null }),
+        [FIGURES_CUT.drill],
+        "an opponent keyed by no id is said as the person's",
+    );
+    assertEquals(
+        readCutsAdded({
+            ...figures,
+            damageDealtByOpponentAndKind: new Map([
+                ...figures.damageDealtByOpponentAndKind,
+                [opponentKey, new Map([["dmg", 1]])],
+            ]),
+        }, { pairCombatantId: opponentId, openPart: null }),
+        [FIGURES_CUT.pair],
+        "parts coming to more than the pair's figure are said as the pair's",
+    );
+    assertEquals(
+        readCutsAdded({
+            ...figures,
+            damageDealtWithoutSkillByOpponent: new Map([
+                ...figures.damageDealtWithoutSkillByOpponent,
+                ["nobody", 1],
+            ]),
+        }, { pairCombatantId: null, openPart: { kind: OPENED_PART.plain } }),
+        [FIGURES_CUT.part],
+        "a part keyed by no id is said as the part's",
     );
 });
 

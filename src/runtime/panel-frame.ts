@@ -125,7 +125,8 @@ export interface FrameParts {
     translate: TranslateLabel;
     /**
      * The world the page is on, which is every kept fight's: a world is read off the page's host
-     * (`src/ports/browser-surroundings.ts`), and a browser keeps a store for each origin apart.
+     * (`src/ports/browser-surroundings.ts`), and a store belongs to the page's origin (the HTML
+     * Standard, §12.2.2 and §12.2.3, the storage getters; read 2026-10-12).
      */
     world: string | null;
 }

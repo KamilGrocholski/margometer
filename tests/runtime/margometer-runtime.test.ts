@@ -2305,6 +2305,42 @@ function readChosenFights(world: RuntimeWorld): (string | undefined)[] {
         .map((fakeElement) => fakeElement.attributes.get("data-fight"));
 }
 
+/**
+ * A row pressed, and released only after the fight ending pushed it off a full shelf: the release
+ * names a fight nobody keeps any more, so it moves nothing, as a pin on it does.
+ */
+Deno.test("a row released after the rotation dropped it moves nothing", () => {
+    const world = initRuntimeWorld(composeBattlePage(), (built) => {
+        const payloads = [{ init: 1, m: ["0;0;winner=Gracz 1"], endBattle: 1 }];
+        const fights = [{ openedAt: 1, payloads: readUpdates(FIRST_OF_A_PAIR), isPinned: false }];
+        for (let openedAt = 2; openedAt <= KEPT_MAXIMUM; openedAt += 1) {
+            fights.push({ openedAt, payloads, isPinned: false });
+        }
+        built.getShelf("local").set(STORE_KEY.fights, JSON.stringify({ version: 3, fights }));
+        return {};
+    });
+    const host = world.getHost();
+    const updates = readUpdates(SECOND_OF_A_PAIR);
+    const ending = updates.findIndex((update) =>
+        isRecord(update) ? Object.hasOwn(update, "endBattle") : false
+    );
+    assert(ending > 0, "the fight states its end after it has begun");
+    for (const payload of updates.slice(0, ending)) world.update(payload);
+    openShelfScreen(world);
+    const oldest = findByMark(host, "data-fight", "1");
+    assertExists(oldest, "the oldest fight kept is a row");
+    world.press(oldest, "pointerdown");
+    assert(
+        readKeptFights(world.getShelf("local")).some((fight) => fight.openedAt === 1),
+        "pressed while it was still kept",
+    );
+    for (const payload of updates.slice(ending)) world.update(payload);
+    const keptOpenedAts = readKeptFights(world.getShelf("local")).map((fight) => fight.openedAt);
+    assert(!keptOpenedAts.includes(1), "the fight ending pushed the oldest off a full shelf");
+    world.press(oldest, "pointerup");
+    assertEquals(readChosenFights(world), ["live"], "the shelf stands open on the live fight");
+});
+
 Deno.test("a fight on screen a store made room by gives the screen back, on a pin", () => {
     const held = new Map([[STORE_KEY.fights as string, composeSmallShelf(2, false)]]);
     const world = initRuntimeWorld(composeBattlePage(), () => ({

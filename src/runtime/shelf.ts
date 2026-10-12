@@ -178,8 +178,8 @@ export function openShelf(store: KeyValueStore): ShelfOpened | ShelfFailure {
     if (parsed instanceof Error) return new ShelfUnreadable({ cause: parsed });
     if (!isRecord(parsed)) return new ShelfUnreadable();
     const version = getNumberField(parsed, SHELF_FIELDS, "version");
-    const stated = version instanceof Error ? null : version;
-    if (stated !== SHELF_VERSION) return new ShelfVersionUnknown(stated);
+    if (version instanceof Error) return new ShelfVersionUnknown(null, { cause: version });
+    if (version !== SHELF_VERSION) return new ShelfVersionUnknown(version);
     const storedFights = getListField(parsed, SHELF_FIELDS, "fights", KEPT_MAXIMUM);
     if (storedFights instanceof Error) return new ShelfUnreadable({ cause: storedFights });
     const fights: KeptFight[] = [];
