@@ -136,7 +136,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `get` — in 6 files: `tests/`
 - `getAirAround` — `tests/ui/panel-look.test.ts`
 - `getAllComments` — `tests/source-tree.ts`
-- `getAlly` — `tools/fabricated-fight.ts`
 - `getAnswers` — `src/runtime/shelf-keeper.ts`, `tests/runtime/panel-frame.test.ts`
 - `getAttribute` — `src/ui/panel-document.ts`, `tests/fake-document.ts`,
   `tests/ui/panel-intent.test.ts`
@@ -230,7 +229,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getPairGivingEnd` — `src/ui/panel-content.ts`
 - `getPairKinds` — `src/ui/panel-content.ts`
 - `getPanelDefects` — `src/runtime/panel-frame.ts`
-- `getPanelFight` — `tools/drill-report.ts`
 - `getPanelWithin` — `tests/fake-document.ts`
 - `getParsedMessages` — `tests/core/absorption-destruction-rule.test.ts`,
   `tests/core/skill-announcement-rule.test.ts`
@@ -269,10 +267,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getSideRelationCharged` — `src/ui/panel-content.ts`
 - `getSideRelationListed` — `src/ui/panel-content.ts`
 - `getSkillOwnerId` — `src/core/fight-statistics.ts`
-- `getStandingOnSide` — `tools/fabricated-fight.ts`
 - `getStandingTurnNow` — `src/ui/panel-helper.ts`
 - `getStandingTurnState` — `src/ui/panel-helper.ts`
-- `getStatedCombatants` — `tools/fabricated-fight.ts`
 - `getStatedTextField` — `libs/unknown-value.ts`
 - `getStorageChosen` — `tests/runtime/margometer-runtime.test.ts`
 - `getSubWordsForBlowKey` — `src/ui/panel-words.ts`
@@ -285,8 +281,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getTokenSpelling` — `tests/ui/panel-look.test.ts`
 - `getTop` — `src/ui/panel-element.ts`
 - `getTrailingStatuses` — `src/ui/panel-words.ts`
-- `getTurnOutcome` — `tools/turn-count.ts`
-- `getTurnPlacing` — `tools/turn-count.ts`
 - `getTurnsLost` — `tests/core/fight-statistics.test.ts`
 - `getTurnsTaken` — `tests/core/fight-statistics.test.ts`
 - `getTypeStep` — `src/ui/panel-element.ts`
@@ -295,7 +289,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `getUnmistakableKeys` — `tests/ui/panel-words.test.ts`
 - `getUnnamedEndForMetric` — `src/ui/panel-element.ts`
 - `getUnpairedProfessions` — `tests/ui/panel-palette.test.ts`
-- `getVerdictForTally` — `tools/drill-report.ts`
 - `getVocabularyFaults` — `tests/ui/panel-words.test.ts`
 - `getWalks` — `tests/tools/turn-reading.test.ts`
 - `getWholeTextsByClass` — `tests/fake-document.ts`
@@ -364,6 +357,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 ### `lookup` — strong
 
 - `lookup` — `src/ui/panel-element.ts`
+- `lookupAlly` — `tools/fabricated-fight.ts`
 - `lookupAmbientWaysOut` — `tools/build-userscript.ts`
 - `lookupAnnouncedForMessage` — `src/core/fight-decoder.ts`
 - `lookupAnnouncedWound` — `src/core/fight-statistics.ts`
@@ -465,6 +459,8 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `lookupShownFight` — `src/runtime/fight-state.ts`
 - `lookupShownKeptFight` — `src/runtime/fight-state.ts`
 - `lookupSingleImported` — `tests/repository/single-importer.test.ts`
+- `lookupStandingOnSide` — `tools/fabricated-fight.ts`
+- `lookupStatedCombatants` — `tools/fabricated-fight.ts`
 - `lookupStoreValueTooLong` — `src/ports/browser-store.ts`
 - `lookupStyleFetches` — `tools/build-userscript.ts`
 - `lookupSwitchSubjectStart` — `tools/protocol-key-table.ts`
@@ -956,7 +952,12 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `decodeNamedHealing` — `src/core/fight-decoder.ts`
 - `decodePayloadMessages` — `src/core/fight-decoder.ts`
 - `decodeRecordedFight` — `tests/recorded-fights.ts`
+- `decodeShapePlacement` — `tools/protocol-key-shape.ts`
+- `decodeShapeValue` — `tools/protocol-key-shape.ts`
 - `decodeSkillUsedEvent` — `src/core/fight-decoder.ts`
+- `decodeTallyVerdict` — `tools/drill-report.ts`
+- `decodeTurnOutcome` — `tools/turn-count.ts`
+- `decodeTurnPlacing` — `tools/turn-count.ts`
 - `decodeTwoAppliers` — `tests/core/anguish-rule.test.ts`
 - `decodeUnaccountedShare` — `src/core/fight-decoder.ts`
 - `decodeUnknownMessageEvent` — `src/core/fight-decoder.ts`
@@ -1023,8 +1024,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyBitRows` — `tools/aura-lifetime.ts`
 - `tallyBitRowsCommonTurns` — `tools/aura-lifetime.ts`
 - `tallyBlowFigures` — `src/core/fight-statistics.ts`
-- `tallyCardHeight` — `tools/card-height.ts`
-- `tallyCardHeights` — `tools/card-height.ts`
 - `tallyCardLayoutSize` — `src/ui/panel-element.ts`
 - `tallyCardSize` — `src/ui/panel-element.ts`
 - `tallyCarriedFigures` — `src/core/carried-figure.ts`
@@ -1038,7 +1037,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyDrillCases` — `tools/drill-report.ts`
 - `tallyEveryRecording` — `tests/ui/panel-content.test.ts`
 - `tallyExpectedTicks` — `tests/core/injure-rule.test.ts`
-- `tallyFightCardHeights` — `tools/card-height.ts`
 - `tallyFightFigures` — `src/core/fight-figures.ts`
 - `tallyFightState` — `src/runtime/fight-state.ts`
 - `tallyFightStatistics` — `src/core/fight-statistics.ts`
@@ -1048,8 +1046,6 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `tallyHalfNamedRowsImbalance` — `src/core/fight-statistics.ts`
 - `tallyHoldingReading` — `tools/shout-holding.ts`
 - `tallyKeyShapes` — `tools/protocol-key-shape.ts`
-- `tallyKeyShapesPlacement` — `tools/protocol-key-shape.ts`
-- `tallyKeyShapesValue` — `tools/protocol-key-shape.ts`
 - `tallyListedTotal` — `src/ui/panel-content.ts`
 - `tallyPairTotal` — `src/ui/panel-content.ts`
 - `tallyPartTotal` — `src/ui/panel-content.ts`
@@ -1107,8 +1103,9 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `calculateBlowLargest` — `src/core/fight-statistics.ts`
 - `calculateBlowsForAnnouncement` — `src/core/fight-decoder.ts`
 - `calculateCardColumnSplit` — `src/ui/panel-element.ts`
-- `calculateCardHeight` — `src/ui/panel-look.ts`
+- `calculateCardHeight` — `src/ui/panel-look.ts`, `tools/card-height.ts`
 - `calculateCardHeightAvailable` — `src/ui/panel-look.ts`
+- `calculateCardHeights` — `tools/card-height.ts`
 - `calculateCardLineCost` — `src/ui/panel-element.ts`
 - `calculateCardLinesForCharacters` — `src/ui/panel-element.ts`
 - `calculateCardWidthAvailable` — `src/ui/panel-look.ts`
@@ -1118,6 +1115,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `calculateControlHeightPixels` — `src/ui/panel-look.ts`
 - `calculateCountedTotal` — `src/ui/panel-content.ts`
 - `calculateDumpAgeDays` — `tools/help-article.ts`
+- `calculateFightCardHeights` — `tools/card-height.ts`
 - `calculateFigure` — `tools/fabricated-fight.ts`
 - `calculateHealthCeiling` — `tools/fabricated-fight.ts`
 - `calculateHealthFromPercent` — `src/core/combatant-health.ts`
@@ -1821,6 +1819,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `composePairPartFigures` — `src/ui/panel-content.ts`
 - `composePairParts` — `src/ui/panel-content.ts`
 - `composePanelDragGrab` — `src/ui/panel-drag.ts`
+- `composePanelFight` — `tools/drill-report.ts`
 - `composePanelHandle` — `tests/e2e/panel-fixture.ts`
 - `composePanelPage` — `tests/e2e/margonem-page.ts`
 - `composePanelShots` — `tools/panel-shots.ts`
@@ -6905,7 +6904,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `flowing` — `tools/protocol-key-shape.ts`
 - `fold` — `tools/panel-giving-way.ts`
 - `folded` — `tools/build-userscript.ts`
-- `fought` — `tools/fabricated-fight.ts`
+- `fought` — `tools/capture-intake.ts`, `tools/fabricated-fight.ts`
 - `fragment` — `tools/help-article.ts`
 - `fragments` — `tools/help-article.ts`
 - `from` — in 5 files: `tools/`
@@ -7072,7 +7071,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `output` — `tools/build-userscript.ts`, `tools/develop-reports.ts`
 - `own` — `tools/aura-lifetime.ts`, `tools/payload-cost.ts`
 - `ownTurnsEach` — `tools/aura-lifetime.ts`
-- `page` — in 4 files: `tools/`
+- `page` — in 5 files: `tools/`
 - `pageLength` — `tools/skill-table.ts`
 - `pagePath` — `tools/skill-table.ts`
 - `paged` — `tools/margonem-readings.ts`
@@ -7905,7 +7904,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `foreign` — `tests/ports/margonem-engine-battle.test.ts`
 - `forged` — `tests/ports/fight-capture.test.ts`
 - `format` — `tests/repository/documents.test.ts`
-- `fought` — `tests/runtime/fight-file.test.ts`
+- `fought` — `tests/runtime/fight-file.test.ts`, `tests/tools/capture-intake.test.ts`
 - `four` — `tests/runtime/shelf.test.ts`
 - `fraction` — `tests/ports/payload-envelope.test.ts`, `tests/runtime/settings.test.ts`,
   `tests/runtime/shelf.test.ts`
@@ -8812,8 +8811,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `slot` — `tests/ui/panel-scroll.test.ts`
 - `small` — `tests/ui/panel-element.test.ts`, `tests/ui/panel-look.test.ts`
 - `snake` — `tests/repository/names.test.ts`
-- `snapshot` — `tests/ports/margonem-engine-warriors.test.ts`, `tests/recorded-fights.ts`,
-  `tests/runtime/live-fight.test.ts`
+- `snapshot` — in 4 files: `tests/`
 - `snapshots` — `tests/ports/margonem-engine-warriors.test.ts`
 - `soloRoster` — `tests/core/combatant-roster.test.ts`
 - `sorted` — `tests/repository/name-register.test.ts`
@@ -12659,7 +12657,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `skillId` — `tools/aura-standing.ts`
 - `skillName` — `tools/aura-standing.ts`
 - `skillTable` — `tools/margometer-tool-error.ts`
-- `skills` — `tools/fabricated-fight.ts`, `tools/recorded-material.ts`, `tools/skill-table.ts`
+- `skills` — `tools/recorded-material.ts`, `tools/skill-table.ts`
 - `skillsComboMaximum` — `tools/fabricated-fight.ts`
 - `skillsDisabled` — `tools/fabricated-fight.ts`
 - `sometimes` — `tools/drill-report.ts`, `tools/turn-count.ts`
@@ -14071,7 +14069,7 @@ Each `as const` object of a module, by its keys.
 ### `tools/`
 
 - `CLIENT_FIELDS` — `tools/fabricated-fight.ts`: `battleground`, `skillsDisabled`,
-  `skillsComboMaximum`, `skills`, `poolTime`, `poolTotal`, `poolMinimum`, `poolPenalty`, `poolLeft`,
+  `skillsComboMaximum`, `poolTime`, `poolTotal`, `poolMinimum`, `poolPenalty`, `poolLeft`,
   `moveOpening`, `move`, `originalId`, `otherLevel`, `gender`, `gridRow`, `icon`, `mana`, `energy`,
   `armour`, `resistanceFire`, `resistanceFrost`, `resistanceLight`, `act`, `focus`, `combo`,
   `cooldowns`, `figureNow`, `figureBonus`, `healthPercent`
@@ -15588,7 +15586,6 @@ suite's material.
 - `"rounds"` — `ROUNDS_FLAG`
 - `"settled"` — `FABRICATION_ENDING`
 - `"shouts"` — `CLOSING_SHOUTS_SUFFIX`
-- `"skills"` — `CLIENT_FIELDS`
 - `"skills_combo_max"` — `CLIENT_FIELDS`
 - `"skills_disabled"` — `CLIENT_FIELDS`
 - `"start_move"` — `CLIENT_FIELDS`

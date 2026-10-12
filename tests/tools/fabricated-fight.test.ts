@@ -40,8 +40,8 @@ import {
     FABRICATION_ENDING,
     FABRICATION_FIELDS,
     formatFabricationShape,
-    getStatedCombatants,
     isFabricatedPath,
+    lookupStatedCombatants,
     requireFabricationShape,
 } from "#/tools/fabricated-fight.ts";
 import { REGISTER_PATH } from "#/tools/help-claim-register.ts";
@@ -465,12 +465,12 @@ Deno.test("a combatant whose mask the round cleared is stated, and one cleared b
         seat(5, 0, 0),
     ];
     assertEquals(
-        getStatedCombatants(cast, 5, [1]).map((combatant) => combatant.id),
+        lookupStatedCombatants(cast, 5, [1]).map((combatant) => combatant.id),
         [1, 2, 3],
         "the one named, the one carrying a mask, and the one whose mask cleared this round",
     );
     assertEquals(
-        getStatedCombatants(cast, 0, [1]).map((combatant) => combatant.id),
+        lookupStatedCombatants(cast, 0, [1]).map((combatant) => combatant.id),
         [1, 2],
         "and at the first round nobody whose mask was never set",
     );

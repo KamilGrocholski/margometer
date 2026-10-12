@@ -31,9 +31,9 @@ import {
     calculateTurnVerdict,
     composeTurnBoundaries,
     composeTurnGrades,
+    decodeTurnOutcome,
+    decodeTurnPlacing,
     formatCaseReport,
-    getTurnOutcome,
-    getTurnPlacing,
     NO_STRETCH,
     parseTurnArguments,
     TURN_OUTCOME,
@@ -327,23 +327,39 @@ Deno.test("the cases state a line for every recording, and the heading above the
 });
 
 Deno.test("an outcome says which of the three a count came to", () => {
-    assertStrictEquals(getTurnOutcome(1, 1), TURN_OUTCOME.exact, "one where the game numbered one");
-    assertStrictEquals(getTurnOutcome(0, 1), TURN_OUTCOME.under, "none where it numbered one");
-    assertStrictEquals(getTurnOutcome(2, 1), TURN_OUTCOME.over, "two where one passed");
+    assertStrictEquals(
+        decodeTurnOutcome(1, 1),
+        TURN_OUTCOME.exact,
+        "one where the game numbered one",
+    );
+    assertStrictEquals(decodeTurnOutcome(0, 1), TURN_OUTCOME.under, "none where it numbered one");
+    assertStrictEquals(decodeTurnOutcome(2, 1), TURN_OUTCOME.over, "two where one passed");
     // Zero is a boundary and so is one (W5), and a wide advance is graded the same way.
-    assertStrictEquals(getTurnOutcome(13, 13), TURN_OUTCOME.exact, "thirteen where it said so");
-    assertStrictEquals(getTurnOutcome(12, 13), TURN_OUTCOME.under, "and twelve is one short");
+    assertStrictEquals(decodeTurnOutcome(13, 13), TURN_OUTCOME.exact, "thirteen where it said so");
+    assertStrictEquals(decodeTurnOutcome(12, 13), TURN_OUTCOME.under, "and twelve is one short");
 });
 
 Deno.test("a placing is asked only of one turn the game numbered on its own", () => {
-    assertStrictEquals(getTurnPlacing(1, 1, 1), TURN_PLACING.exact, "the named one's own");
-    assertStrictEquals(getTurnPlacing(1, 0, 1), TURN_PLACING.elsewhere, "and somebody else's");
-    assertStrictEquals(getTurnPlacing(0, 0, 1), null, "nothing counted says nothing about whose");
-    assertStrictEquals(getTurnPlacing(2, 1, 1), null, "two turns say nothing of which was theirs");
+    assertStrictEquals(decodeTurnPlacing(1, 1, 1), TURN_PLACING.exact, "the named one's own");
+    assertStrictEquals(decodeTurnPlacing(1, 0, 1), TURN_PLACING.elsewhere, "and somebody else's");
+    assertStrictEquals(
+        decodeTurnPlacing(0, 0, 1),
+        null,
+        "nothing counted says nothing about whose",
+    );
+    assertStrictEquals(
+        decodeTurnPlacing(2, 1, 1),
+        null,
+        "two turns say nothing of which was theirs",
+    );
     // The condition the recordings cannot show, because nothing in them counts one turn across a
     // wider advance: the queue names who held the **first** of several ordinals.
-    assertStrictEquals(getTurnPlacing(1, 1, 3), null, "one turn across three is placed by nothing");
-    assertStrictEquals(getTurnPlacing(1, 0, 2), null, "and so is one across two");
+    assertStrictEquals(
+        decodeTurnPlacing(1, 1, 3),
+        null,
+        "one turn across three is placed by nothing",
+    );
+    assertStrictEquals(decodeTurnPlacing(1, 0, 2), null, "and so is one across two");
 });
 
 Deno.test("a verdict says what the steps under it came to", () => {

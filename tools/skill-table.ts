@@ -258,10 +258,10 @@ function requireCachedSkillTable(manifest: unknown): CachedSkillTable {
 
 /** Rows carrying exactly the columns named above; a page of another shape is refused. */
 export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
-    requirePageInsideBound(html);
+    const page = requirePageInsideBound(html);
     const skills: SkillReading[] = [];
     // What stands before the first row is the page around the table, and no row.
-    const rows = html.split(ROW_OPEN).slice(1);
+    const rows = page.split(ROW_OPEN).slice(1);
     if (rows.length > ROWS_MAXIMUM) {
         throw new SkillTableError(`the skill table serves more than ${ROWS_MAXIMUM} rows`);
     }
@@ -299,8 +299,8 @@ export function requireSkillsOfMargonemApi(html: string): SkillReading[] {
 }
 
 /** A page past the length one is walked to, refused before a row of it is read. */
-function requirePageInsideBound(html: string): void {
-    if (html.length <= HTML_CHARACTERS_MAXIMUM) return;
+function requirePageInsideBound(html: string): string {
+    if (html.length <= HTML_CHARACTERS_MAXIMUM) return html;
     throw new SkillTableError(
         `the skill table is ${formatInteger(html.length)} characters, past the ${
             formatInteger(HTML_CHARACTERS_MAXIMUM)

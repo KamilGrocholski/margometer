@@ -146,10 +146,9 @@ function writeIntake(source: string, slug: string): void {
     }
     // Spelled in English before anything is asked of it, and refused for carrying nothing before
     // it is refused for a world it never got as far as stating.
-    const recording = composeRecordingInEnglish(parsed);
-    requireRecordingFought(source, recording);
-    requireCallsCarried(recording);
-    requireSnapshotsCarried(source, recording);
+    const english = composeRecordingInEnglish(parsed);
+    const fought = requireRecordingFought(source, english);
+    const recording = requireSnapshotsCarried(source, requireCallsCarried(fought));
     const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
     // Material is never overwritten: a recording already here is evidence a test stands on.
     // A stat that fails for any reason but absence is not leave to write.
@@ -162,7 +161,7 @@ function writeIntake(source: string, slug: string): void {
         }
     } else throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
     const intake = composeIntake(recording);
-    requireRecordingIsNew(source, intake.recording, readRecordedFights());
+    void requireRecordingIsNew(source, intake.recording, readRecordedFights());
     const written = errors.attempt(() => Deno.writeTextFileSync(target, intake.text));
     if (written instanceof errors.Caught) {
         throw new CaptureIntakeError(`${target} cannot be written`, { cause: written });
@@ -295,11 +294,9 @@ function composeRenamedRecord(
  * them. What goes is what names a person to somebody reading GitHub.
  */
 export function composePseudonymisedRecording(recording: unknown): Pseudonymisation {
-    const roll = indexCombatantRoll(recording);
-    requireEveryCombatantDecided(roll);
+    const roll = requireEveryCombatantDecided(indexCombatantRoll(recording));
     const substitutions = indexNameSubstitutions(roll);
-    const pairs = composeSubstitutionOrder(substitutions);
-    requireNoNameInsideAnother(roll, pairs);
+    const pairs = requireNoNameInsideAnother(roll, composeSubstitutionOrder(substitutions));
     let changed = 0;
     // One walk, longest name first at each place, and a name only where it stands whole: a short
     // nickname inside a skill's or a monster's name is refused rather than replaced into it.
@@ -428,12 +425,12 @@ function addRollName(roll: CombatantRoll, id: number, name: unknown): void {
  * ⚠️ **Guessing is not on the table.** "A negative id is a monster" is a claim nobody measured,
  * and it is wrong both ways at once: one way corrupts the material, the other admits a nickname.
  */
-function requireEveryCombatantDecided(roll: CombatantRoll): void {
+function requireEveryCombatantDecided(roll: CombatantRoll): CombatantRoll {
     // Numeric, not lexicographic: `-161518` would otherwise sort between `-1` and `-2`.
     const undecided = [...roll.namesById.keys()]
         .filter((id) => !roll.isPlayerById.has(id))
         .sort((id, otherId) => id - otherId);
-    if (undecided.length === 0) return;
+    if (undecided.length === 0) return roll;
     throw new CaptureIntakeError(
         `cannot tell whether combatant ${undecided.join(", ")} is a player or a monster — ` +
             `\`${INTAKE_KEYS.nonPlayer}\` rides only in the payload's roster, and they are not there`,
@@ -446,8 +443,7 @@ function indexNameSubstitutions(roll: CombatantRoll): Map<string, string> {
         .filter((id) => roll.isPlayerById.get(id) === true)
         .sort((id, otherId) => id - otherId);
     for (const [order, id] of players.entries()) {
-        // A digit rather than a letter: `Gracz A`…`Gracz G` name fixed people in the repository's
-        // prose (`NOTICE.md`), while a label here means something in one file only.
+        // ⚠️ A label names somebody in one file only: `Gracz 2` in two recordings is two people.
         const label = `Gracz ${order + 1}`;
         for (const name of roll.namesById.get(id) ?? []) {
             const standing = substitutions.get(name);
@@ -491,7 +487,7 @@ function composeSubstitutionOrder(substitutions: ReadonlyMap<string, string>): [
 function requireNoNameInsideAnother(
     roll: CombatantRoll,
     pairs: readonly (readonly [string, string])[],
-): void {
+): readonly (readonly [string, string])[] {
     for (const [id, names] of roll.namesById) {
         if (roll.isPlayerById.get(id) === true) continue;
         for (const monsterName of names) {
@@ -503,6 +499,7 @@ function requireNoNameInsideAnother(
             );
         }
     }
+    return pairs;
 }
 
 function isNameEdgeAt(text: string, index: number): boolean {
@@ -594,8 +591,8 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
 }
 
 /** A recording with no call is a session that saw nothing, and evidence of nothing. */
-export function requireCallsCarried(recording: unknown): void {
-    if (readRecordingCalls(recording).length > 0) return;
+export function requireCallsCarried(recording: unknown): unknown {
+    if (readRecordingCalls(recording).length > 0) return recording;
     throw new CaptureIntakeError(
         `\`${FILE_FIELD.calls}\` carries no call the engine made — nothing here is evidence`,
     );
@@ -606,8 +603,8 @@ export function requireCallsCarried(recording: unknown): void {
  * evidence, because the snapshots are the one check the decoder has that is not the decoder
  * (`develop ADR 0053`). The rule is the tests' reader's, so intake and the corpus share one.
  */
-export function requireSnapshotsCarried(path: string, recording: unknown): void {
-    if (readOfferedFight(path, recording).hasSnapshot) return;
+export function requireSnapshotsCarried(path: string, recording: unknown): unknown {
+    if (readOfferedFight(path, recording).hasSnapshot) return recording;
     throw new CaptureIntakeError(
         `no call states \`${FILE_FIELD.combatantsBefore}\` or \`${FILE_FIELD.combatantsAfter}\`` +
             " — a fight read back off the shelf, and the snapshots are what the decoder is held to",
@@ -626,8 +623,8 @@ function readOfferedFight(path: string, recording: unknown): RecordedFight {
 }
 
 /** A fight nobody fought is never material, and once in `captures/` only a person takes it out. */
-export function requireRecordingFought(path: string, recording: unknown): void {
-    if (!isFabricatedEnvelope(recording)) return;
+export function requireRecordingFought(path: string, recording: unknown): unknown {
+    if (!isFabricatedEnvelope(recording)) return recording;
     throw new CaptureIntakeError(`${path} is a fabricated fight, which is never material`);
 }
 
@@ -640,7 +637,7 @@ export function requireRecordingIsNew(
     path: string,
     recording: unknown,
     admitted: readonly RecordedFight[],
-): void {
+): unknown {
     assert(path.length > 0, "an offered recording is named by where it was read");
     if (admitted.length > RECORDINGS_MAXIMUM) {
         throw new CaptureIntakeError(
@@ -655,6 +652,7 @@ export function requireRecordingIsNew(
                 "whatever day, world and build the envelope states",
         );
     }
+    return recording;
 }
 
 function encodeRequiredJson(encodable: unknown): string {

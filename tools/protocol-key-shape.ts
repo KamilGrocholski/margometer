@@ -196,8 +196,8 @@ export function tallyKeyShapes(
         shapes.push({
             key,
             occurrences: tally.occurrences,
-            placement: tallyKeyShapesPlacement(key, tally.placements),
-            value: tallyKeyShapesValue(key, tally.values),
+            placement: decodeShapePlacement(key, tally.placements),
+            value: decodeShapeValue(key, tally.values),
         });
     }
     assertStrictEquals(shapes.length, tallies.size, "every key tallied is a shape");
@@ -231,7 +231,7 @@ function decodeKeyValue(stated: string | null): KeyValue {
 }
 
 /** The strongest phrase still standing, which is what the register writes. */
-function tallyKeyShapesPlacement(key: string, placements: ReadonlySet<KeyPlacement>): KeyPlacement {
+function decodeShapePlacement(key: string, placements: ReadonlySet<KeyPlacement>): KeyPlacement {
     assert(placements.has(KEY_PLACEMENT.anywhere), "the floor is never narrowed away");
     const strongest = KEY_PLACEMENTS.find((placement) => placements.has(placement));
     assert(strongest !== undefined, `${key} sits somewhere, if only at the floor`);
@@ -243,7 +243,7 @@ function tallyKeyShapesPlacement(key: string, placements: ReadonlySet<KeyPlaceme
  * is `a number`; a value on some occurrences and none on others is a shape this vocabulary cannot
  * say, and is refused rather than filed under the nearest word.
  */
-function tallyKeyShapesValue(key: string, values: ReadonlySet<KeyValue>): KeyValue {
+function decodeShapeValue(key: string, values: ReadonlySet<KeyValue>): KeyValue {
     assert(values.size > 0, "a claim is made about a key something was seen of");
     const [only] = values;
     assert(only !== undefined, "a set holding something has a first member");

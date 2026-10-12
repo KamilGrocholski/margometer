@@ -49,7 +49,7 @@ type EventKind = BattleEvent["kind"];
 /**
  * One message, and what reading it came to. The message itself is **not** carried: a `prepare` or
  * an announcement states the client's own display text, which is nobody here's to keep
- * (`captures/AGENTS.md`). The payload and the place in it are what a reader opens instead.
+ * (`NOTICE.md`). The payload and the place in it are what a reader opens instead.
  */
 export interface MessageReading {
     payload: number;

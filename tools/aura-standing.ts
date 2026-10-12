@@ -312,8 +312,7 @@ export function tallySourceRows(
     }
     const rows = [...tallies.values()].filter((row) => row.sourcesAtOnce > 1);
     assert(rows.length <= tallies.size, "a row reported is a row tallied");
-    // Plain comparison rather than `localeCompare`: the keys are the game's own ASCII spellings,
-    // and `docs/browser-support.md` registers that construct as spelled nowhere in this tree.
+    // Plain comparison rather than `localeCompare`: the keys are the game's own ASCII spellings.
     return rows.sort((left, right) => (left.key < right.key ? -1 : 1));
 }
 

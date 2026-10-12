@@ -9,12 +9,12 @@ import { PANEL_METRIC, SCREEN_ORDER } from "#/src/ui/panel-screen.ts";
 import {
     addCardHeight,
     ARGUMENTS_MAXIMUM,
+    calculateCardHeights,
     type CardHeight,
     CARDS_MAXIMUM,
     formatHeightReport,
     formatTallestReport,
     parseCardArguments,
-    tallyCardHeights,
 } from "#/tools/card-height.ts";
 import { CardHeightError } from "#/tools/margometer-tool-error.ts";
 import { readRecordedMaterial, replayRecordedMaterial } from "#/tools/recorded-material.ts";
@@ -27,7 +27,7 @@ const CENTAUR = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-
 const TALLEST_LISTED = 12;
 
 Deno.test("a recording opens a card per ranking row on every screen, and the report sums them", () => {
-    const heights = tallyCardHeights(replayRecordedMaterial(readRecordedMaterial([HILDUR])));
+    const heights = calculateCardHeights(replayRecordedMaterial(readRecordedMaterial([HILDUR])));
     assertStrictEquals(heights.length % SCREEN_ORDER.length, 0, "the same rows on every screen");
     for (const screen of SCREEN_ORDER) {
         assert(heights.some((height) => height.screen === screen), `${screen} opens cards`);
@@ -98,13 +98,13 @@ Deno.test("fights are tallied up to the bound on cards, and the fight past it is
     // fights comes to one card past; the card itself is the case above.
     const [fight] = replayRecordedMaterial(readRecordedMaterial([CENTAUR]));
     assertExists(fight, "the recording replays");
-    const perFight = tallyCardHeights([fight]).length;
+    const perFight = calculateCardHeights([fight]).length;
     assertStrictEquals(CARDS_MAXIMUM % perFight, 0, "the bound is whole fights of this one");
     const copies = (count: number) => Array.from({ length: count }, () => fight);
-    const atBound = tallyCardHeights(copies(CARDS_MAXIMUM / perFight));
+    const atBound = calculateCardHeights(copies(CARDS_MAXIMUM / perFight));
     assertStrictEquals(atBound.length, CARDS_MAXIMUM, "every card, at the bound");
     assertThrows(
-        () => tallyCardHeights(copies(CARDS_MAXIMUM / perFight + 1)),
+        () => calculateCardHeights(copies(CARDS_MAXIMUM / perFight + 1)),
         CardHeightError,
         `more cards than the ${CARDS_MAXIMUM}`,
     );

@@ -3,8 +3,8 @@
  * reading in `frozen/` is evidence a guard and the bundle stand on, and the gate reaches no network
  * and so cannot tell one has gone behind the game: here staleness is an exit code, and a world
  * that did not answer is a different one. A preview reads the development channel's client against
- * what production froze, and writes nothing under `frozen/`. `frozen/AGENTS.md` says when each is
- * run (W10).
+ * what production froze, and writes nothing under `frozen/`. W10 says when each is run, and
+ * `frozen/AGENTS.md` says how.
  *
  *     deno task margonem:readings status | refresh | preview
  */

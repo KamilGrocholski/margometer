@@ -48,8 +48,8 @@
         // That directory is git's to ignore, so this refuses loudly where there is none.
         "preview:fabricated": "deno run -A tools/preview-server.ts --fabricated",
         // One picture per state the READMEs show, into `screenshots/`, in the Chrome the browser
-        // suite drives. It refuses a tree whose `src/` is not in a commit (`DESIGN.md`); a release
-        // takes the set with `--release` (`docs/releasing.md`).
+        // suite drives. It refuses a tree where what the bundle is built from is not in a commit
+        // (`DESIGN.md`); a release takes the set with `--release` (`docs/releasing.md`).
         "panel:shots": "deno run -A tools/panel-shots.ts",
         // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
         "panel:drill": "deno run -A tools/drill-report.ts",

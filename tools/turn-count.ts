@@ -404,14 +404,14 @@ function composeTurnBoundary(
         to: arriving.ordinal,
         advance,
         counted,
-        outcome: getTurnOutcome(counted, advance),
-        placing: getTurnPlacing(counted, mine, advance),
+        outcome: decodeTurnOutcome(counted, advance),
+        placing: decodeTurnPlacing(counted, mine, advance),
         isNarrated: delta.isNarrated,
     };
 }
 
 /** How many turns were counted against how many the game numbered, and nothing about whose. */
-export function getTurnOutcome(counted: number, advance: number): TurnOutcome {
+export function decodeTurnOutcome(counted: number, advance: number): TurnOutcome {
     assert(counted >= 0, "a stretch carried no less than nothing");
     assert(advance > 0, "and the game numbered it forwards");
     if (counted === advance) return TURN_OUTCOME.exact;
@@ -424,7 +424,11 @@ export function getTurnOutcome(counted: number, advance: number): TurnOutcome {
  * numbered one turn, or the queue names the holder of only the first of several, and one must have
  * been counted. `elsewhere` names the wrong person, a worse failure than miscounting.
  */
-export function getTurnPlacing(counted: number, mine: number, advance: number): TurnPlacing | null {
+export function decodeTurnPlacing(
+    counted: number,
+    mine: number,
+    advance: number,
+): TurnPlacing | null {
     assert(counted >= 0, "a stretch carried no less than nothing");
     assert(mine >= 0, "and the named combatant no less of it");
     assert(advance > 0, "and the game numbered it forwards");

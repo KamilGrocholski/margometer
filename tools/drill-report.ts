@@ -153,7 +153,7 @@ export function tallyDrillCases(
     assert(replayed.length > 0, "a register is measured over something");
     const tally: DrillTally = new Map();
     for (const walked of replayed) {
-        const fight = getPanelFight(walked);
+        const fight = composePanelFight(walked);
         for (const screen of SCREEN_ORDER) {
             // Add every case one screen of the fight draws.
             const reading = presentScreenForEveryone(fight, screen);
@@ -190,7 +190,7 @@ export function tallyDrillCases(
         screen: counted.screen,
         rung: counted.rung,
         row: counted.row,
-        verdict: getVerdictForTally(counted),
+        verdict: decodeTallyVerdict(counted),
         opens: counted.opens,
         shut: counted.shut,
     }));
@@ -443,7 +443,7 @@ function addOpenedLevelToTally(
     }
 }
 
-function getPanelFight(replayed: ReplayedFight): PanelFight {
+function composePanelFight(replayed: ReplayedFight): PanelFight {
     const { view, figures } = replayed.reading;
     assert(
         view.payloadsApplied > 0,
@@ -562,7 +562,7 @@ function calculateCaseOrder(drillCase: DrillCase, otherDrillCase: DrillCase): nu
     return DRILL_ROWS.indexOf(drillCase.row) - DRILL_ROWS.indexOf(otherDrillCase.row);
 }
 
-function getVerdictForTally(tally: CaseTally): DrillVerdict {
+function decodeTallyVerdict(tally: CaseTally): DrillVerdict {
     assert(tally.opens + tally.shut > 0, "a case with no row behind it is not a case");
     if (tally.shut === 0) return DRILL_VERDICT.always;
     if (tally.opens === 0) return DRILL_VERDICT.never;
@@ -594,7 +594,7 @@ export function formatDrillReport(
     screens: readonly PanelMetric[],
 ): string[] {
     assert(screens.length > 0, "a report walks at least one screen");
-    const fight = getPanelFight(replayed);
+    const fight = composePanelFight(replayed);
     const lines = ["", `=== ${fight.name} ===`];
     for (const screen of screens) {
         lines.push(`  --- ${screen} ---`);

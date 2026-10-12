@@ -151,7 +151,7 @@ const WORD_CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012
 /** Sorts below the release of that number, so a copy built here is offered the release. */
 const DEVELOPMENT_SUFFIX = "-dev";
 const DIRECTIVE_KEY_WIDTH = 12;
-/** `YYYYMMDDHHMM`, so a later build sorts higher as a number and as text alike. */
+/** `YYYYMMDDHHMMSS`, so a later build sorts higher as a number and as text alike. */
 const DATED_SECOND_LENGTH = 14;
 const ISO_SECOND_LENGTH = "YYYY-MM-DDTHH:MM:SS".length;
 const DIGITS = "0123456789";

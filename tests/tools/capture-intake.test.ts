@@ -199,12 +199,16 @@ Deno.test("the whole intake drops the report and adds its counts to what the fil
 
 Deno.test("a file with no call, or with no snapshot on any call, is not material", () => {
     assertThrows(() => requireCallsCarried({ calls: [] }), CaptureIntakeError, "no call");
-    requireCallsCarried(composeFight());
+    const fight = composeFight();
+    assertStrictEquals(
+        requireCallsCarried(fight),
+        fight,
+        "a call carried, the recording handed back",
+    );
     const shelved = { calls: [{ messages: [], payload: {} }] };
     assertThrows(() => requireSnapshotsCarried("x.json", shelved), CaptureIntakeError);
-    requireSnapshotsCarried("x.json", {
-        calls: [{ messages: [], payload: {}, combatantsBefore: [] }],
-    });
+    const snapshot = { calls: [{ messages: [], payload: {}, combatantsBefore: [] }] };
+    assertStrictEquals(requireSnapshotsCarried("x.json", snapshot), snapshot, "and a snapshot");
 });
 
 Deno.test("a call the corpus's reader would refuse is refused with intake's own class", () => {
@@ -227,7 +231,8 @@ Deno.test("a fight nobody fought is refused by either mark, and a recording is n
         CaptureIntakeError,
         "fabricated",
     );
-    requireRecordingFought("x.json", { isFabricated: false, world: "tempest" });
+    const fought = { isFabricated: false, world: "tempest" };
+    assertStrictEquals(requireRecordingFought("x.json", fought), fought, "a recording passes");
 });
 
 Deno.test("a fight already in the corpus is refused by its payloads, whatever its envelope", () => {

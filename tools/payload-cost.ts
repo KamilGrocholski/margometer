@@ -1,8 +1,9 @@
 /**
  * What one payload costs in the game's stack, and what the frame's tally costs at a fight's end,
  * timed over the recordings (S3). A payload is timed through the wrap itself: the add-on stood up by
- * its entry over the simulator's page and game (`tests/simulation.ts`), the game's method called
- * as the game calls it, less what the game's own method took. Each figure is the least of several
+ * its entry over a fake window and a battle that rebuilds itself (`tests/fake-window.ts`,
+ * `tests/rebuilding-battle.ts`), the game's method called as the game calls it, less what the
+ * game's own method took. Each figure is the least of several
  * runs: a slower run is the collector or another process, never the code. V8 under Deno, which is
  * the engine Chrome runs the userscript on.
  *

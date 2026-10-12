@@ -193,14 +193,14 @@ export const FABRICATION_FIELDS = {
     fabricatedShape: "fabricatedShape",
 } as const;
 /**
- * The client's keys the script writes and nothing in this tree reads by an exported map: the
- * replay in `tests/tools/fabricated-fight.test.ts` holds the ones a reader takes to their reader.
+ * The client's keys the script writes that no exported map of this tree spells; one that does is
+ * written through it (`INTAKE_KEYS`). The replay in `tests/tools/fabricated-fight.test.ts` holds
+ * the ones a reader takes to their reader.
  */
 const CLIENT_FIELDS = {
     battleground: "battleground",
     skillsDisabled: "skills_disabled",
     skillsComboMaximum: "skills_combo_max",
-    skills: "skills",
     poolTime: "poolTime",
     poolTotal: "total",
     poolMinimum: "minimum",
@@ -489,7 +489,7 @@ export function createFabricatedFight(
             [CLIENT_FIELDS.battleground]: "009.jpg",
             [CLIENT_FIELDS.skillsDisabled]: [],
             [CLIENT_FIELDS.skillsComboMaximum]: [],
-            [CLIENT_FIELDS.skills]: ["-1", "", "", "", "", "", "", "", "", ""],
+            [INTAKE_KEYS.skills]: ["-1", "", "", "", "", "", "", "", "", ""],
             [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
                 state.combatants,
                 encodeOpeningCombatant,
@@ -553,7 +553,7 @@ export function createFabricatedFight(
         // Both sides are asked before either shouts: a side with nobody left neither shouts nor
         // is shouted at, and the second of those is what a check on the shouter alone walks
         // past.
-        const wiped = SIDES.filter((side) => getStandingOnSide(state, side).length === 0);
+        const wiped = SIDES.filter((side) => lookupStandingOnSide(state, side).length === 0);
         if (wiped.length > 0) {
             throw new FabricatedFightError(
                 `nobody is left standing on side ${wiped.join(" and side ")} after` +
@@ -563,7 +563,7 @@ export function createFabricatedFight(
         }
         let ordinal = turns;
         for (const side of SIDES) {
-            const standing = getStandingOnSide(state, side);
+            const standing = lookupStandingOnSide(state, side);
             const shouter = standing[standing.length - 1];
             assertExists(shouter, "a side somebody is left on has a last of them");
             const turn = prepareTurn(state, shouter, ordinal);
@@ -808,11 +808,11 @@ function isStanding(combatant: FabricatedCombatant): boolean {
 
 function isFightOver(state: FabricationState): boolean {
     assert(state.combatants.length > 0, "a fight that is asked about has combatants");
-    if (getStandingOnSide(state, READER_SIDE).length === 0) return true;
-    return getStandingOnSide(state, OPPOSING_SIDE).length === 0;
+    if (lookupStandingOnSide(state, READER_SIDE).length === 0) return true;
+    return lookupStandingOnSide(state, OPPOSING_SIDE).length === 0;
 }
 
-function getStandingOnSide(state: FabricationState, side: number): FabricatedCombatant[] {
+function lookupStandingOnSide(state: FabricationState, side: number): FabricatedCombatant[] {
     const standing = state.combatants.filter((combatant) => {
         if (combatant.side === side) return isStanding(combatant);
         return false;
@@ -829,7 +829,7 @@ function prepareTurn(
 ): FabricatedTurn | null {
     const target = lookupOpponent(state, actor, ordinal);
     if (target === null) return null;
-    const ally = getAlly(state, actor, ordinal);
+    const ally = lookupAlly(state, actor, ordinal);
     assert(ally.id > 0, "an act that names an ally names somebody");
     assertNotStrictEquals(target.id, actor.id, "and a blow is never thrown at its own thrower");
     return {
@@ -837,8 +837,8 @@ function prepareTurn(
         actor,
         target,
         ally,
-        side: getStandingOnSide(state, actor.side),
-        opposing: getStandingOnSide(state, target.side),
+        side: lookupStandingOnSide(state, actor.side),
+        opposing: lookupStandingOnSide(state, target.side),
         round: state.round,
         ordinal,
     };
@@ -854,7 +854,7 @@ function lookupOpponent(
     ordinal: number,
 ): FabricatedCombatant | null {
     const opposingSide = actor.side === READER_SIDE ? OPPOSING_SIDE : READER_SIDE;
-    const standing = getStandingOnSide(state, opposingSide);
+    const standing = lookupStandingOnSide(state, opposingSide);
     if (standing.length === 0) return null;
     const chosen = standing[(ordinal + state.round * CHOICE_PER_ROUND) % standing.length];
     assertExists(chosen, "a blow is thrown at somebody still standing");
@@ -862,12 +862,12 @@ function lookupOpponent(
 }
 
 /** The actor themselves where nobody else is left: a turn is never skipped for want of a second. */
-function getAlly(
+function lookupAlly(
     state: FabricationState,
     actor: FabricatedCombatant,
     ordinal: number,
 ): FabricatedCombatant {
-    const beside = getStandingOnSide(state, actor.side).filter((combatant) =>
+    const beside = lookupStandingOnSide(state, actor.side).filter((combatant) =>
         combatant.id !== actor.id
     );
     if (beside.length === 0) return actor;
@@ -889,7 +889,7 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
         [ENVELOPE_KEYS.combatants]: encodeCombatantsById(
-            getStatedCombatants(state.combatants, state.round, [
+            lookupStatedCombatants(state.combatants, state.round, [
                 turn.actor.id,
                 turn.target.id,
                 turn.ally.id,
@@ -968,9 +968,9 @@ function encodeFledClosing(fled: FabricatedCombatant): string[] {
 
 /** The two sides named, and the spoils the winner is paid after them. */
 function encodeSettledClosing(state: FabricationState): string[] {
-    const won = getStandingOnSide(state, READER_SIDE).length > 0 ? READER_SIDE : OPPOSING_SIDE;
+    const won = lookupStandingOnSide(state, READER_SIDE).length > 0 ? READER_SIDE : OPPOSING_SIDE;
     const lost = won === READER_SIDE ? OPPOSING_SIDE : READER_SIDE;
-    assert(getStandingOnSide(state, won).length > 0, "the side that won has somebody standing");
+    assert(lookupStandingOnSide(state, won).length > 0, "the side that won has somebody standing");
     return [
         encodeMessage(null, null, [encodeValued(OUTCOME_WINNER_KEY, encodeSideNames(state, won))]),
         encodeMessage(null, null, [encodeValued(OUTCOME_LOSER_KEY, encodeSideNames(state, lost))]),
@@ -1143,8 +1143,8 @@ function addWeakenedWound(turn: FabricatedTurn, messages: string[]): void {
 }
 
 /**
- * The wound an auxiliary weapon left, and `+wound` is not beside it: both occurrences in
- * `captures/` ride a blow stating this key alone (`docs/protocol-keys.md`).
+ * The wound an auxiliary weapon left, and `+wound` is not beside it: in `captures/` this key rides
+ * a blow stating it alone (`docs/protocol-keys.md`).
  */
 function addAuxiliaryWound(turn: FabricatedTurn, messages: string[]): void {
     setStatusBit(turn.target, "deep_wound", turn.round);
@@ -1772,7 +1772,7 @@ function readEndingFlag(stated: string | undefined): FabricationEnding {
  * whole cast, and a mask that goes unstated is a status the panel would still see standing after
  * the script cleared it.
  */
-export function getStatedCombatants(
+export function lookupStatedCombatants(
     combatants: readonly FabricatedCombatant[],
     round: number,
     namedIds: readonly number[],

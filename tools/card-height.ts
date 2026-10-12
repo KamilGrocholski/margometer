@@ -52,16 +52,18 @@ export const ARGUMENTS_MAXIMUM = 64;
 const TALLEST_LISTED = 12;
 
 /** Every card the ranking of every screen opens, in the order the screens and rows are drawn. */
-export function tallyCardHeights(replayed: readonly ReplayedFight[]): CardHeight[] {
+export function calculateCardHeights(replayed: readonly ReplayedFight[]): CardHeight[] {
     const heights: CardHeight[] = [];
     for (const replayedFight of replayed) {
-        for (const height of tallyFightCardHeights(replayedFight)) addCardHeight(heights, height);
+        for (const height of calculateFightCardHeights(replayedFight)) {
+            addCardHeight(heights, height);
+        }
     }
     assert(heights.length >= replayed.length, "every fight opens at least one card");
     return heights;
 }
 
-function tallyFightCardHeights(replayed: ReplayedFight): CardHeight[] {
+function calculateFightCardHeights(replayed: ReplayedFight): CardHeight[] {
     const { view, figures } = replayed.reading;
     const heights: CardHeight[] = [];
     for (const screen of SCREEN_ORDER) {
@@ -73,13 +75,13 @@ function tallyFightCardHeights(replayed: ReplayedFight): CardHeight[] {
             view.readerSide,
             NOTHING_SUSPECT,
         );
-        for (const row of reading.rows) heights.push(tallyCardHeight(replayed, screen, row));
+        for (const row of reading.rows) heights.push(calculateCardHeight(replayed, screen, row));
     }
     assert(heights.length > 0, "a fight replayed ranks somebody to open a card on");
     return heights;
 }
 
-function tallyCardHeight(
+function calculateCardHeight(
     replayed: ReplayedFight,
     screen: PanelMetric,
     row: RankingRow,
@@ -187,7 +189,7 @@ export function parseCardArguments(stated: readonly string[]): CardArguments {
 if (import.meta.main) {
     const asked = parseCardArguments(Deno.args);
     const material = readRecordedMaterial(asked.paths);
-    const heights = tallyCardHeights(replayRecordedMaterial(material));
+    const heights = calculateCardHeights(replayRecordedMaterial(material));
     console.log(`material ${material.material}`);
     for (const line of formatHeightReport(heights)) console.log(line);
     if (asked.shouldListTallest) {
