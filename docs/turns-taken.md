@@ -201,7 +201,7 @@ line and divided from them by a slash.
 another language: the line opens with the combatant's own name and the separator the game puts after
 it, and it does not end in the full stop the game's other lines about a combatant end in. Measured
 over `captures/` on 2026-09-03 with no other condition: **319 matches, all 319 a turn nobody spent,
-nothing missed, nothing else caught.** The corpus states 449 of them, 2026-10-04 (the pin in
+nothing missed, nothing else caught.** The corpus states 468 of them, 2026-10-12 (the pin in
 `tests/core/fight-statistics.test.ts`); what the recordings admitted since 2026-09-03 have not had
 is the second half of that reading, which is a person going through every match. The three lines
 about striking a target already dead end in a full stop; loot lines put a colon after the name.

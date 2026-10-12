@@ -9035,7 +9035,7 @@ By the verb a name opens with, and the purity N2 states for that verb.
 - `verdict` — `tests/tools/drill-report.test.ts`, `tests/tools/turn-count.test.ts`
 - `version` — `tests/runtime/shelf.test.ts`, `tests/tools/build-userscript.test.ts`
 - `versions` — `tests/repository/browser-support.test.ts`
-- `view` — in 15 files: `tests/`
+- `view` — in 16 files: `tests/`
 - `viewportHeight` — `tests/ui/card-window.test.ts`
 - `visited` — `tests/fake-document.ts`
 - `visitors` — `tests/source-tree.ts`

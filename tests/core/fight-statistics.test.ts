@@ -34,7 +34,7 @@ import {
 } from "#/src/core/fight-statistics.ts";
 import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
-import { readRecordedFights } from "#/tests/recorded-fights.ts";
+import { readRecordedFights, tallyRecordedFight } from "#/tests/recorded-fights.ts";
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
@@ -1398,23 +1398,22 @@ Deno.test("the game's other lines about a combatant are not turns anybody lost",
 });
 
 /**
- * What the corpus holds, which is also what `docs/turns-taken.md` measures against the
- * game's own numbering. Every one of them is placed on a row: no recording states a name the
- * roster cannot.
+ * What the corpus holds, which `docs/turns-taken.md` states and measures against the game's own
+ * numbering. ⚠️ **The cast is the one the add-on reads off the payloads**: two recordings hold no
+ * snapshot, and a roster read off the snapshots names nobody in them, so their lines read as no
+ * turn at all. Every one is placed on a row: no recording states a name the roster cannot.
  */
 Deno.test("every turn the recordings say was lost is charged to somebody in the fight", () => {
     let lost = 0;
-    for (const { path, combatants, payloads } of readRecordedFights()) {
-        const roster = indexCombatantRoster(combatants);
-        const events = payloads.flatMap((payload) => decode(payload, roster));
-        const statistics = tally(events, indexSideHeals(events, roster));
+    for (const { path } of readRecordedFights()) {
+        const { view, statistics } = tallyRecordedFight(path);
         let placed = 0;
         for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
-        const stated = events.filter((event) => event.kind === "turn-lost").length;
+        const stated = view.events.filter((event) => event.kind === "turn-lost").length;
         assertStrictEquals(placed, stated, `${path}: a turn was lost by nobody the roster holds`);
         lost += placed;
     }
-    assertStrictEquals(lost, 449, "the turns the recordings say were lost, 2026-10-04");
+    assertStrictEquals(lost, 468, "the turns the recordings say were lost, 2026-10-12");
 });
 
 /**
