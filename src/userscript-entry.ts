@@ -85,7 +85,7 @@ export interface BrowserWindow extends BrowserTimers, BrowserFrames {
     URL: { createObjectURL(blob: unknown): string; revokeObjectURL(url: string): void };
     Blob: new (parts: readonly string[], options: { type: string }) => unknown;
     setTimeout(step: () => void, afterMilliseconds: number): number;
-    /** Both optional: a private window or a third-party-storage rule is a page with neither. */
+    /** Both optional: nothing promises a page either store (`SECURITY.md`). */
     localStorage?: BrowserStorage | undefined;
     sessionStorage?: BrowserStorage | undefined;
     innerWidth?: number | undefined;
@@ -254,7 +254,7 @@ function isCallableOn(owner: unknown, name: string): boolean {
 
 /**
  * The store a browser lends under that name, or null. Reaching the property is itself a read that
- * can throw: a browser forbidding storage throws on the access, before there is a `getItem`.
+ * can throw, before there is a `getItem` (`SECURITY.md`, _Data the reader's browser holds_).
  */
 function readBrowserStorage(
     browserWindow: BrowserWindow,

@@ -30,8 +30,9 @@ export interface CachedMargonemClientSource {
 
 const MARGONEM_CHANNELS = Object.values(MARGONEM_CHANNEL);
 /**
- * Production is any world; they all serve the same build. `tempest` was the world most recordings
- * in `captures/` came from on 2026-10-06, so a claim read here stays comparable with the material.
+ * Production is any world: `tempest` and `luvia` served one build, read 2026-08-25
+ * (`src/ports/margonem-client-build.ts`). `tempest` was the world most recordings in `captures/`
+ * came from on 2026-10-06, so a claim read here stays comparable with the material.
  */
 const CHANNEL_HOSTS: Readonly<Record<MargonemChannel, string>> = {
     [MARGONEM_CHANNEL.production]: "https://tempest.margonem.pl",

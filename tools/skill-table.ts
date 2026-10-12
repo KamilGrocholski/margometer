@@ -1,9 +1,10 @@
 /**
  * Every skill the game publishes, and the turns each of its effects is stated to run for. The
- * published table is the only source stating a duration: an effect reads `key=value@turns`, once
- * per skill level. Ids, effect keys and turns are kept; the description column is the game's own
- * prose and stays in the cache (`SECURITY.md`, `NOTICE.md`). Which effects reach a side is
- * `src/core/aura-standing.ts`'s to say, and this asks it.
+ * published table is the only source stating a duration: in the table fetched 2026-10-02
+ * (`frozen/skill-durations.ts`) an effect reads `key=value@turns`, once per skill level. Ids,
+ * effect keys and turns are kept; the description column is the game's own prose and stays in the
+ * cache (`SECURITY.md`, `NOTICE.md`). Which effects reach a side is `src/core/aura-standing.ts`'s
+ * to say, and this asks it.
  *
  *     deno task margonem:skills status | fetch | freeze
  */

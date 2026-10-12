@@ -1,9 +1,9 @@
 /**
- * The game's published help, cached and searched. It is the only source saying what an effect
- * does (the bundle says which keys exist), and it prints the engine name in parentheses beside the
- * human one, which is what joins an article to a protocol key. Raw slices are printed and never
- * interpreted: a summary that missed a phrase reads exactly like an article that lacks it. What is
- * fetched stays in `.cache/` (`NOTICE.md`).
+ * The game's published help, cached and searched. It is the only source saying what an effect does
+ * (the bundle says which keys exist), and the dump fetched 2026-10-06 prints the engine name in
+ * parentheses beside the human one, which is what joins an article to a protocol key. Raw slices
+ * are printed and never interpreted: a summary that missed a phrase reads exactly like an article
+ * that lacks it. What is fetched stays in `.cache/` (`NOTICE.md`).
  *
  *     deno task margonem:help status | fetch | search <phrase> … | freeze [phrase …]
  */
