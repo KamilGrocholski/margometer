@@ -232,7 +232,7 @@ export function requireProtocolKeys(bundle: string): string[] {
 function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
     assert(Number.isSafeInteger(from), "a switch is looked for from a whole position");
     let tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, from);
-    for (let look = 0; look <= LOOKS_MAXIMUM; look += 1) {
+    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
         if (tailAt === -1) return null;
         let start = tailAt;
         for (let back = 0; back < RUN_CHARACTERS_MAXIMUM; back += 1) {
@@ -253,6 +253,7 @@ function lookupSwitchSubjectStart(bundle: string, from: number): number | null {
         }
         tailAt = bundle.indexOf(SWITCH_SUBJECT_TAIL, tailAt + 1);
     }
+    if (tailAt === -1) return null;
     throw new ProtocolKeyTableError(
         `more than ${LOOKS_MAXIMUM} places to look for the switch — the walk would stop short`,
     );
@@ -297,7 +298,7 @@ function isCharacterWithin(character: string, lowest: string, highest: string): 
 function parseCaseLabels(body: string): string[] {
     const labels: string[] = [];
     let from = 0;
-    for (let look = 0; look <= CASE_LABELS_MAXIMUM; look += 1) {
+    for (let look = 0; look < CASE_LABELS_MAXIMUM; look += 1) {
         const keywordAt = body.indexOf(CASE_KEYWORD, from);
         if (keywordAt === -1) return labels;
         from = keywordAt + 1;
@@ -310,6 +311,7 @@ function parseCaseLabels(body: string): string[] {
         labels.push(quoted.text);
         from = terminator + 1;
     }
+    if (body.indexOf(CASE_KEYWORD, from) === -1) return labels;
     throw new ProtocolKeyTableError(
         `more than ${CASE_LABELS_MAXIMUM} places to look for a label — the walk would stop short`,
     );
@@ -375,8 +377,12 @@ export function requireComputedKeyFamily(bundle: string): ComputedKeyFamily {
     if (markerLength === null) {
         throw new ProtocolKeyTableError("the default branch's marker length is not a number");
     }
-    assert(marker.length > 0, "a family is recognised by a marker that says something");
-    assert(dealtSign.length > 0, "and by a sign saying whose figure it is");
+    if (marker.length === 0) {
+        throw new ProtocolKeyTableError("the default branch's marker is an empty literal");
+    }
+    if (dealtSign.length === 0) {
+        throw new ProtocolKeyTableError("the default branch's dealt sign is an empty literal");
+    }
     return { marker, markerAt, markerLength, dealtSign };
 }
 
@@ -393,12 +399,13 @@ function lookupShapeFields(
         throw new ProtocolKeyTableError("a default-branch shape has to open with text");
     }
     let headAt = bundle.indexOf(head.text);
-    for (let look = 0; look <= LOOKS_MAXIMUM; look += 1) {
+    for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
         if (headAt === -1) return null;
         const fields = parseShapeFields(bundle, headAt, steps);
         if (fields !== null) return fields;
         headAt = bundle.indexOf(head.text, headAt + 1);
     }
+    if (headAt === -1) return null;
     throw new ProtocolKeyTableError(
         `more than ${LOOKS_MAXIMUM} places to look for a shape — the walk would stop short`,
     );

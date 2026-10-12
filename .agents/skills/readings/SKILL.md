@@ -33,13 +33,14 @@ reading keeps its date is ADR 0011.
 
 ## Reading the exit
 
-| Command   | `0`                 | `1`                              | `2`              |
+| Command   | `0`                 | `3`                              | `2`              |
 | --------- | ------------------- | -------------------------------- | ---------------- |
 | `status`  | every row current   | a reading went behind: refresh   | nobody could ask |
 | `preview` | development matches | development adds, drops or moves | nobody could ask |
 
 `2` is an outage, not evidence that anything moved: wait and ask again, and never file a claim on
-it.
+it. `1` is the tool itself failing, which Deno exits with on any throw it did not catch: read what
+it printed, and refresh nothing on it.
 
 ## The checklist
 

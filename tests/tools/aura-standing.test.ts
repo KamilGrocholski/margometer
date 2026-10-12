@@ -10,6 +10,7 @@ import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { AURA_REACH, type AuraReach } from "#/src/core/aura-standing.ts";
 import {
     type AuraRow,
+    composeSettledReach,
     type ProvocationRow,
     REACH_WORDS,
     type SourceRow,
@@ -250,6 +251,24 @@ Deno.test("the skills, keys and shouts a register holds are refused past their b
         "recordings stand more keys",
     );
     assertThrows(() => tallySourceRows(STEPPED, 0), RecordingReadError, "a moment holds");
-    assert(tallyProvocationRows(STEPPED).length > 0, "and shouts");
+    const shouts = tallyProvocationRows(STEPPED).length;
+    assert(shouts > 0, "and shouts");
+    assertStrictEquals(tallyProvocationRows(STEPPED, shouts).length, shouts, "every shout at it");
+    assertThrows(
+        () => tallyProvocationRows(STEPPED, shouts - 1),
+        RecordingReadError,
+        "hold more shouts",
+        "and one past the bound handed is refused, not the module's own",
+    );
     assertThrows(() => tallyProvocationRows(STEPPED, 0), RecordingReadError, "shout more skills");
+});
+
+Deno.test("a skill's casts settle on one reach, or on both sides where two disagree", () => {
+    const { castersSide, otherSide, bothSides } = AURA_REACH;
+    assertStrictEquals(composeSettledReach(null, null), null, "nothing settles nothing");
+    assertStrictEquals(composeSettledReach(null, otherSide), otherSide, "the first cast settles");
+    assertStrictEquals(composeSettledReach(otherSide, null), otherSide, "a silent cast leaves it");
+    assertStrictEquals(composeSettledReach(otherSide, otherSide), otherSide, "and one agreeing");
+    assertStrictEquals(composeSettledReach(castersSide, otherSide), bothSides, "two are both");
+    assertStrictEquals(composeSettledReach(bothSides, castersSide), bothSides, "and stay so");
 });

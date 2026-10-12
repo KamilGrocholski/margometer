@@ -346,10 +346,15 @@ function readMessageIndices(update: unknown): number[] | null {
     const indices: number[] = [];
     for (const statedIndex of stated) {
         if (typeof statedIndex !== "number") return null;
-        if (!Number.isFinite(statedIndex)) return null;
+        if (!Number.isSafeInteger(statedIndex)) return null;
+        if (statedIndex < 0) return null;
         indices.push(statedIndex);
     }
     assertStrictEquals(indices.length, stated.length, "every index stated is an index read");
+    assert(
+        indices.every((index) => index >= 0),
+        "a numbering read runs from the fight's own start",
+    );
     return indices;
 }
 

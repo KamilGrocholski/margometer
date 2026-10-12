@@ -1318,7 +1318,7 @@ function addSideHeal(turn: FabricatedTurn, messages: string[]): void {
     );
     const share = calculateSmall(turn, 22);
     for (const standing of turn.side) {
-        addHealth(standing, Math.round(standing.healthMaximum * share / WHOLE_PERCENT));
+        void addHealth(standing, Math.round(standing.healthMaximum * share / WHOLE_PERCENT));
     }
     messages.push(encodeMessage(encodeSide(turn.actor), null, [
         ...encodeAnnouncement(getAuraSkill(turn)),
@@ -1802,11 +1802,12 @@ if (import.meta.main) {
     const parsed = parseArgs(Deno.args, {
         string: [OUTPUT_FLAG, PER_SIDE_FLAG, ROUNDS_FLAG, LEVEL_FLAG, ENDING_FLAG],
         boolean: [CLOSING_SHOUTS_FLAG],
-        unknown: (argument, flag) => {
-            // A flag misspelt would be kept as a key nobody reads, and the run would answer
-            // something else than was asked; a path is read from `_`.
-            if (flag === undefined) return true;
-            throw new FabricatedFightError(`${argument} is not a flag this reads`);
+        unknown: (argument) => {
+            // A flag misspelt would be kept as a key nobody reads, and a path named bare would be
+            // passed over for the default one: either way the run would answer something else.
+            throw new FabricatedFightError(
+                `${argument} is not a flag this reads — a path is named by --${OUTPUT_FLAG}`,
+            );
         },
     });
     const shape = requireFabricationShape(

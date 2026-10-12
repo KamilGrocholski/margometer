@@ -167,7 +167,11 @@ function readCachedSkills(): { cached: CachedSkillTable; skills: SkillReading[] 
             { cause: html },
         );
     }
-    assert(html.length > 0, "a cached page says something");
+    if (html.length === 0) {
+        throw new SkillTableError(
+            `${cached.pagePath} is empty — run \`deno task margonem:skills fetch\``,
+        );
+    }
     return { cached, skills: requireSkillsOfMargonemApi(html) };
 }
 
@@ -248,7 +252,7 @@ function requireCachedSkillTable(manifest: unknown): CachedSkillTable {
     if (typeof fetchedAt !== "string") throw new SkillTableError("the skill cache has no date");
     if (typeof pagePath !== "string") throw new SkillTableError("the skill cache names no page");
     if (typeof pageLength !== "number") throw new SkillTableError("the cache states no length");
-    assert(fetchedAt.length > 0, "a cached reading carries the date it was taken on");
+    if (fetchedAt.length === 0) throw new SkillTableError("the skill cache states an empty date");
     return { url, fetchedAt, pagePath, pageLength };
 }
 

@@ -8,7 +8,14 @@
  * text it writes is read back as a recording is, through the runtime's chain, with nothing unread.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { parseJson } from "#/libs/json-text.ts";
 import { getNumberField, isRecord } from "#/libs/unknown-value.ts";
 import { replayAuraStandings } from "#/src/core/aura-standing.ts";
@@ -467,4 +474,27 @@ Deno.test("a combatant whose mask the round cleared is stated, and one cleared b
         [1, 2],
         "and at the first round nobody whose mask was never set",
     );
+});
+
+/** The tool is run as a person runs it, since what it reads off a command line is its entry. */
+Deno.test("a path named bare is refused, and one named by its flag is the one asked about", async () => {
+    const directory = Deno.makeTempDirSync({ prefix: "margometer-fabricated-" });
+    const refusing = async (args: string[]) => {
+        const ran = await new Deno.Command(Deno.execPath(), {
+            args: ["run", "-A", "tools/fabricated-fight.ts", ...args],
+            stdout: "null",
+            stderr: "piped",
+        }).output();
+        assertStrictEquals(ran.success, false, `${args.join(" ")} is refused`);
+        return new TextDecoder().decode(ran.stderr);
+    };
+    try {
+        const path = `${directory}/mine.json`;
+        assertStringIncludes(await refusing([path]), "is not a flag this reads", "bare");
+        // Outside `fabricated/` on purpose: the flag is read, and the gate writes no fight.
+        assertStringIncludes(await refusing(["--out", path]), "is outside", "by its flag");
+        assertThrows(() => Deno.statSync(path), Deno.errors.NotFound, undefined, "none written");
+    } finally {
+        Deno.removeSync(directory, { recursive: true });
+    }
 });

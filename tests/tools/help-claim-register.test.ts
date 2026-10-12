@@ -5,9 +5,11 @@
 
 import { assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import {
+    HELP_CLAIMS_MAXIMUM,
     parseBacktickedPhrases,
     parseCitedHelpPhrases,
     parseHelpClaim,
+    parseHelpClaims,
     PHRASES_MAXIMUM,
 } from "#/tools/help-claim-register.ts";
 import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
@@ -22,6 +24,18 @@ Deno.test("a claim naming past the bound is refused, and one at it is read whole
     const naming = (count: number) => parseBacktickedPhrases("`phrase` ".repeat(count));
     assertStrictEquals(naming(PHRASES_MAXIMUM).length, PHRASES_MAXIMUM, "every phrase at it");
     assertThrows(() => naming(PHRASES_MAXIMUM + 1), HelpArticleError, "more than the");
+});
+
+Deno.test("a register claiming past the bound is refused, and one at it is read whole", () => {
+    const claiming = (count: number) => parseHelpClaims("_Help:_ names `phrase`\n".repeat(count));
+    assertStrictEquals(claiming(HELP_CLAIMS_MAXIMUM).length, HELP_CLAIMS_MAXIMUM, "every claim");
+    assertThrows(() => claiming(HELP_CLAIMS_MAXIMUM + 1), HelpArticleError, "more than the");
+    assertThrows(
+        () => parseCitedHelpPhrases("_Help:_ names `phrase`\n".repeat(HELP_CLAIMS_MAXIMUM + 1)),
+        HelpArticleError,
+        "more than the",
+        "and so is every phrase it would cite",
+    );
 });
 
 Deno.test("a claim naming no phrase is refused, and one naming a phrase is read", () => {

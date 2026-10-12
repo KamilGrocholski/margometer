@@ -84,6 +84,22 @@ Deno.test("a dump says how old it is, and says it loudly once it is worth re-fet
     assert(isDumpStale("not a date", READ_AT_MILLISECONDS), "and a date nobody reads counts stale");
 });
 
+Deno.test("a dump's age is counted in the calendar days its date is written in", () => {
+    const late = "2026-08-09T23:00:00.000Z";
+    const lateMilliseconds = Date.parse(late);
+    const hour = MILLISECONDS_PER_DAY / 24;
+    assertStringIncludes(formatDumpAge(late, lateMilliseconds + hour / 2), "today", "same day");
+    assertStringIncludes(
+        formatDumpAge(late, lateMilliseconds + 2 * hour),
+        "yesterday",
+        "past midnight, though not a day on",
+    );
+    const sixth = lateMilliseconds + 6 * MILLISECONDS_PER_DAY;
+    assert(!isDumpStale(late, sixth), "six days on is not stale");
+    assert(isDumpStale(late, sixth + 2 * hour), "and the seventh day, though six days on, is");
+    assertStringIncludes(formatDumpAge(late, sixth + 2 * hour), "7 days ago ⚠", "said as it is");
+});
+
 Deno.test("an article this cannot date is an article it will not answer from", () => {
     const whole = {
         article: "372",

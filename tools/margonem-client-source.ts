@@ -174,7 +174,11 @@ export function readCachedBundle(channel: MargonemChannel): string {
             { cause: bundle },
         );
     }
-    assert(bundle.length > 0, "a bundle that was cached says something");
+    if (bundle.length === 0) {
+        throw new MargonemClientSourceError(
+            `${cached.bundlePath} is empty — run \`deno task margonem:client fetch ${channel}\``,
+        );
+    }
     return bundle;
 }
 
@@ -204,7 +208,9 @@ export async function writeMargonemClientSourceCache(
 
 async function readMargonemWorldPage(channel: MargonemChannel): Promise<string> {
     const html = await readMargonemAnswerText(CHANNEL_HOSTS[channel]);
-    assert(html.length > 0, "a world that answered said something");
+    if (html.length === 0) {
+        throw new MargonemClientSourceError(`${CHANNEL_HOSTS[channel]} answered an empty page`);
+    }
     return html;
 }
 

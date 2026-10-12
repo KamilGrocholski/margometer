@@ -143,6 +143,17 @@ Deno.test("a world that did not answer is said as that, and never as a stale rea
     assertNotStrictEquals(EXIT_STALE, EXIT_UNASKED, "and a caller tells the two apart by the exit");
 });
 
+Deno.test("a verdict exits apart from a throw nobody caught, which the runtime says itself", () => {
+    const thrown = new Deno.Command(Deno.execPath(), {
+        args: ["eval", "throw new Error()"],
+        stderr: "null",
+    }).outputSync();
+    assertStrictEquals(thrown.success, false, "an uncaught throw fails the run");
+    for (const verdict of [EXIT_STALE, EXIT_UNASKED, EXIT_AHEAD]) {
+        assertNotStrictEquals(verdict, thrown.code, "a caller never reads a crash as a verdict");
+    }
+});
+
 Deno.test("a preview names the keys development adds and drops, and nothing it shares", () => {
     const same = composeKeyDifference(["a", "b"], ["b", "a"]);
     assertEquals(same, { added: [], removed: [] }, "order is not a difference in a set of keys");

@@ -52,12 +52,14 @@ function composeHashOfShown(
     return compose(window, document, state, store) as string;
 }
 
-function readStateFromHash(hash: string): PreviewStateReading {
+function readStateFromHash(hash: string, warned: unknown[][] = []): PreviewStateReading {
     const readPreviewState = new Function(
         "window",
+        "console",
         `${composePreviewStateReading()}\nreturn PREVIEW_STATE;`,
     );
-    return readPreviewState({ location: { hash } }) as PreviewStateReading;
+    const console = { warn: (...said: unknown[]) => warned.push(said) };
+    return readPreviewState({ location: { hash } }, console) as PreviewStateReading;
 }
 
 Deno.test("an address nobody composed reads as no state rather than as a wrong one", () => {
@@ -75,6 +77,21 @@ Deno.test("an address nobody composed reads as no state rather than as a wrong o
         "an entry beside a store nobody could read is still an entry",
     );
     assertEquals(half.store, {}, "and a value that is not text is not carried");
+});
+
+Deno.test("a part nobody could read is dropped alone, and said, while the rest still travels", () => {
+    const warned: unknown[][] = [];
+    const broken = readStateFromHash("#e=3&k=%7B&s=damageTaken", warned);
+    assertStrictEquals(broken.entry, 3, "an entry beside a store that is not JSON is kept");
+    assertStrictEquals(broken.screen, "damageTaken", "and so is the screen after it");
+    assertEquals(broken.store, {}, "while the store holds nothing it could not read");
+    const escaped = readStateFromHash("#e=%E0%A4%A&e=4", warned);
+    assertStrictEquals(escaped.entry, 4, "a broken escape takes no other part down");
+    assertStrictEquals(warned.length, 2, "and each part dropped is said once");
+    assertStrictEquals(warned[0]?.[0], "MargoMeter/Preview", "under the page's own brand");
+    const whole: unknown[][] = [];
+    assertStrictEquals(readStateFromHash("#e=3&k=%7B%7D", whole).entry, 3, "a whole one");
+    assertStrictEquals(whole.length, 0, "says nothing");
 });
 
 Deno.test("a value too long for an address does not travel, and one at the edge does", () => {

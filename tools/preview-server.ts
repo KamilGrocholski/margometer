@@ -240,7 +240,10 @@ function composeServedFights(fromPaths: readonly string[]): ServedFight[] {
 }
 
 function composeServedFight(fight: RecordedFight): ServedFight {
-    assert(fight.updates.length > 0, "a fight served has something to play");
+    assert(fight.path.length > 0, "a fight served is named by the path it was read at");
+    if (fight.updates.length === 0) {
+        throw new PreviewServeError(`${fight.path} lists no call, so there is nothing to play`);
+    }
     return { name: formatRecordingName(fight.path), calls: fight.updates };
 }
 

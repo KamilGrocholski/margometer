@@ -173,6 +173,15 @@ Deno.test("a manifest naming a page that is gone is refused, naming what fetches
         Deno.mkdirSync(CACHE_ROOT, { recursive: true });
         Deno.writeTextFileSync(`${CACHE_ROOT}provenance.json`, JSON.stringify(manifest));
         assertThrows(() => readFrozenSkillTable(), SkillTableError, "margonem:skills fetch");
+        Deno.writeTextFileSync(pagePath, "");
+        assertThrows(() => readFrozenSkillTable(), SkillTableError, "is empty", "nor one empty");
+        Deno.writeTextFileSync(
+            `${CACHE_ROOT}provenance.json`,
+            JSON.stringify({ ...manifest, fetchedAt: "" }),
+        );
+        assertThrows(() => readCachedSkillTable(), SkillTableError, "empty date", "nor undated");
+        Deno.writeTextFileSync(`${CACHE_ROOT}provenance.json`, JSON.stringify(manifest));
+        assertStrictEquals(readCachedSkillTable()?.fetchedAt, "t", "while a dated one is read");
     } finally {
         Deno.chdir(held);
         Deno.removeSync(directory, { recursive: true });

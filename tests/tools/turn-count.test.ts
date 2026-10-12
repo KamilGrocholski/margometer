@@ -25,6 +25,7 @@ import { CARD_WORDS } from "#/src/ui/panel-words.ts";
 import { isOneOf } from "#/libs/vocabulary.ts";
 import { TurnCountError } from "#/tools/margometer-tool-error.ts";
 import { replayRecordedSteps } from "#/tools/recorded-material.ts";
+import { ENVELOPE_KEYS } from "#/src/ports/payload-envelope.ts";
 import {
     ARGUMENTS_MAXIMUM,
     calculateTurnVerdict,
@@ -227,6 +228,28 @@ Deno.test("a stretch the game never narrated is counted apart and graded by noth
         "the ordinals it spans, and the one message the game sent across them",
     );
     assert(boundaries.every((boundary) => boundary.advance > 0), "a boundary runs forwards");
+});
+
+Deno.test("a message index that is no whole count numbers nothing, and a whole one numbers", () => {
+    const steps = replayRecordedSteps(lookupRecordedFight(UNNARRATED));
+    const restating = (indices: readonly unknown[] | null) =>
+        composeTurnBoundaries(steps.map((step, position) => {
+            if (position !== 2) return step;
+            const update = { ...(step.update as Record<string, unknown>) };
+            if (indices === null) delete update[ENVELOPE_KEYS.messagesStated];
+            else update[ENVELOPE_KEYS.messagesStated] = indices;
+            return { ...step, update };
+        }));
+    const unnumbered = restating(null);
+    assertEquals(restating([3.5, 4, 5, 6]), unnumbered, "a fraction is read as no numbering");
+    assertEquals(restating([-3, 4, 5, 6]), unnumbered, "and so is an index before the fight");
+    const numbered = restating([3, 4, 5, 6]);
+    assertEquals(numbered, composeTurnBoundaries(steps), "while the whole one stated is read");
+    assert(
+        numbered.filter((boundary) => !boundary.isNarrated).length <
+            unnumbered.filter((boundary) => !boundary.isNarrated).length,
+        "and it narrates what the payloads after it carry",
+    );
 });
 
 /**

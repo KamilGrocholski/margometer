@@ -26,6 +26,7 @@ import {
 import {
     readRecordedMaterial,
     RECORDINGS_MAXIMUM,
+    type ReplayedFight,
     replayRecordedMaterial,
 } from "#/tools/recorded-material.ts";
 
@@ -275,4 +276,19 @@ Deno.test("the keys a tally holds are refused past their bound", () => {
     const keys = tallyKeyShapes(replayed).length;
     assertStrictEquals(tallyKeyShapes(replayed, keys).length, keys, "every key, at the bound");
     assertThrows(() => tallyKeyShapes(replayed, keys - 1), ProtocolKeyShapeError, "more keys");
+});
+
+/** A key stating a value on one occurrence and none on another is a shape no phrase says. */
+Deno.test("a key stated with a value and without one is refused, and one stated alike is read", () => {
+    const stating = (messages: string[]) =>
+        tallyKeyShapes([
+            { fight: { path: "x.json" }, reading: { messagesByPayload: [messages] } },
+        ] as unknown as ReplayedFight[]);
+    assertThrows(
+        () => stating(["0;0;k", "0;0;k=1"]),
+        ProtocolKeyShapeError,
+        "k states a value on some occurrences and not others",
+    );
+    assertEquals(stating(["0;0;k=2", "0;0;k=1"]).map((shape) => shape.value), [KEY_VALUE.whole]);
+    assertEquals(stating(["0;0;k", "0;0;k"]).map((shape) => shape.value), [KEY_VALUE.none]);
 });

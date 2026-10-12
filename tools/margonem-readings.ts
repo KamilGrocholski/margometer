@@ -79,11 +79,14 @@ const CHANNEL = MARGONEM_CHANNEL.production;
 /** The channel a preview reads: it serves what production has not shipped yet. */
 const PREVIEW_CHANNEL = MARGONEM_CHANNEL.development;
 const NOTHING_CACHED = "nothing cached";
-/** What a script reads off a status: a reading behind the game, and a world nobody could ask. */
-export const EXIT_STALE = 1;
+/**
+ * What a script reads off a status: a reading behind the game, and a world nobody could ask. Off
+ * `1`, which Deno exits with on any throw this tool does not catch.
+ */
+export const EXIT_STALE = 3;
 export const EXIT_UNASKED = 2;
 /** What a script reads off a preview: the development client differs from what is frozen. */
-export const EXIT_AHEAD = 1;
+export const EXIT_AHEAD = 3;
 /** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
 const READINGS_REPORTED = 7;
 const NAME_COLUMN = 16;

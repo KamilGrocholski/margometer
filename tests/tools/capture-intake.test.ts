@@ -30,6 +30,7 @@ import {
 } from "#/tools/capture-intake.ts";
 import { CaptureIntakeError } from "#/tools/margometer-tool-error.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
+import { RECORDINGS_MAXIMUM } from "#/tools/recorded-material.ts";
 
 const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 
@@ -42,6 +43,11 @@ Deno.test("an older recording is spelled in English, and an English one passes u
     });
     const english = composeFight();
     assertEquals(composeRecordingInEnglish(english), english, "every name is its own translation");
+    assertEquals(
+        composeRecordingInEnglish({ toString: 1, constructor: 2 }),
+        { toString: 1, constructor: 2 },
+        "and a name the map's prototype holds is no name the map knows",
+    );
 });
 
 /** A player, two monsters, and a player whose name holds the first one's. */
@@ -68,6 +74,22 @@ function composeFight(): Record<string, unknown> {
         }],
     };
 }
+
+Deno.test("a field stated in both spellings is refused rather than one of them dropped", () => {
+    for (const both of [{ wersja: 2, formatVersion: 3 }, { formatVersion: 3, wersja: 2 }]) {
+        assertThrows(
+            () => composeRecordingInEnglish(both),
+            CaptureIntakeError,
+            "`formatVersion` in both spellings",
+        );
+    }
+    assertThrows(
+        () => composeRecordingInEnglish({ calls: [{ nr: 0, index: 1 }] }),
+        CaptureIntakeError,
+        "`index` in both",
+        "and so is a call's",
+    );
+});
 
 Deno.test("players are numbered by id, longest name first, and a monster keeps its name", () => {
     const named = composePseudonymisedRecording(composeFight());
@@ -221,6 +243,13 @@ Deno.test("a fight already in the corpus is refused by its payloads, whatever it
     );
     const changed = { calls: offered.calls.slice(1) };
     requireRecordingIsNew("x.json", changed, [fight]);
+    requireRecordingIsNew("x.json", changed, Array(RECORDINGS_MAXIMUM).fill(fight));
+    assertThrows(
+        () => requireRecordingIsNew("x.json", changed, Array(RECORDINGS_MAXIMUM + 1).fill(fight)),
+        CaptureIntakeError,
+        `more than the ${RECORDINGS_MAXIMUM} recordings`,
+        "a corpus past what a tool reads at once is refused, and one at it is compared",
+    );
 });
 
 Deno.test("a file is named for its day, world, fight, build and version, or `none`", () => {

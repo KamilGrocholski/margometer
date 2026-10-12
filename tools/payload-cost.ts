@@ -42,6 +42,8 @@ interface FightCost {
 const RUNS = 15;
 const MICROSECONDS_PER_MILLISECOND = 1_000;
 const PERCENTILE_TAIL = 0.99;
+/** A mean over no messages, which is no figure at all, and never `0 µs` (E6). */
+const NO_MEAN = "—";
 
 function readPayloadCosts(material: RecordedMaterial, runs: number): FightCost[] {
     assert(runs > 0, "a cost is the least of at least one run");
@@ -139,21 +141,23 @@ function formatCostReport(costs: readonly FightCost[], material: string): string
     assert(costs.length > 0, "a report is of something");
     assert(material.length > 0, "and names what it was taken on (V4)");
     const payloads = costs.flatMap((cost) =>
-        cost.payloadMicroseconds.map((microseconds, payloadIndex) => ({
-            name: cost.name,
-            at: payloadIndex,
-            microseconds,
-            messages: cost.messages[payloadIndex] ?? 0,
-        }))
+        cost.payloadMicroseconds.map((microseconds, payloadIndex) => {
+            const messages = cost.messages[payloadIndex];
+            assertExists(messages, "every payload timed has its messages counted");
+            return { name: cost.name, at: payloadIndex, microseconds, messages };
+        })
     );
+    // Every fight timed opened, so it carried a payload: `readPayloadCosts` refuses one that did not.
+    assert(payloads.length > 0, "a report is of payloads timed");
     const ordered = payloads.map((payload) => payload.microseconds).sort((
         microseconds,
         otherMicroseconds,
     ) => microseconds - otherMicroseconds);
-    const median = ordered[Math.floor(ordered.length / 2)] ?? 0;
+    const median = ordered[Math.floor(ordered.length / 2)];
+    assertExists(median, "a median stands among the payloads timed");
     const tail =
-        ordered[Math.min(ordered.length - 1, Math.floor(ordered.length * PERCENTILE_TAIL))] ??
-            0;
+        ordered[Math.min(ordered.length - 1, Math.floor(ordered.length * PERCENTILE_TAIL))];
+    assertExists(tail, "and so does the tail");
     const largest = payloads.reduce((largestSoFar, payload) =>
         payload.microseconds > largestSoFar.microseconds ? payload : largestSoFar
     );
@@ -172,7 +176,7 @@ function formatCostReport(costs: readonly FightCost[], material: string): string
             formatMicroseconds(tail)
         }   ` +
         `largest ${formatMicroseconds(largest.microseconds)} (${largest.name}, call ${largest.at})`,
-        `  per message   mean ${formatMicroseconds(messages === 0 ? 0 : total / messages)}`,
+        `  per message   mean ${messages === 0 ? NO_MEAN : formatMicroseconds(total / messages)}`,
         `  every payload ${formatMicroseconds(total)}`,
         `  frame tally   largest ${
             formatMicroseconds(tally.tallyMicroseconds)

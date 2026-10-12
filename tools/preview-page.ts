@@ -644,11 +644,37 @@ var setFightShown = function (fight, calls) {
 ${start}`;
 }
 
+/** The controls wired to what they do, and the entry the page opens on. */
+function composePreviewPicksBindings(): string {
+    const bindings =
+        `getPreviewElement("preview-next").addEventListener("click", function handleNext() {
+  setNextFed();
+});
+getPreviewElement("preview-end").addEventListener("click", function handleEnd() {
+  setFedTo(PREVIEW.entryCount);
+});
+getPreviewElement("preview-back").addEventListener("click", function handleBack() {
+  if (probe.fed <= 1) {
+    setStartOpened();
+    return;
+  }
+  setFedTo(probe.fed - 1);
+});
+getPreviewElement("preview-play").addEventListener("click", handlePlay);
+getPreviewElement("preview-start").addEventListener("click", setStartOpened);
+if (picker !== null) picker.addEventListener("change", handlePick);
+
+renderPicker();
+setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;
+    assertStringIncludes(bindings, "PREVIEW_STATE.entry", "the page opens where the address said");
+    return bindings;
+}
+
 /**
  * Playing runs for a stated time and the step falls out of it: a fixed tick ran 0.22 s on the
  * shortest recording and 24.4 s on the longest (`captures/`, 2026-09-18).
  */
-function composePreviewPicksHandlers(): string {
+export function composePreviewPicksHandlers(): string {
     const least = PLAY_STEP_MILLISECONDS_MINIMUM;
     const most = PLAY_STEP_MILLISECONDS_MAXIMUM;
     assert(least < most, "a step has room between its bounds");
@@ -681,39 +707,15 @@ var handlePick = function () {
     return null;
   }
   return window.fetch(chosen.callsAddress).then(function handleAnswer(answer) {
-    return answer.json();
+    if (answer.ok) return answer.json();
+    return Promise.reject(answer.status);
   }).then(function handleCallsRead(calls) {
     setFightShown(chosen, calls);
-  }, function handleCallsRefused() {
+  }).catch(function handleCallsRefused(reason) {
+    console.warn("MargoMeter/Preview", reason);
     window.location.href = chosen.address + composePreviewStateHash();
   });
 };`;
-}
-
-/** The controls wired to what they do, and the entry the page opens on. */
-function composePreviewPicksBindings(): string {
-    const bindings =
-        `getPreviewElement("preview-next").addEventListener("click", function handleNext() {
-  setNextFed();
-});
-getPreviewElement("preview-end").addEventListener("click", function handleEnd() {
-  setFedTo(PREVIEW.entryCount);
-});
-getPreviewElement("preview-back").addEventListener("click", function handleBack() {
-  if (probe.fed <= 1) {
-    setStartOpened();
-    return;
-  }
-  setFedTo(probe.fed - 1);
-});
-getPreviewElement("preview-play").addEventListener("click", handlePlay);
-getPreviewElement("preview-start").addEventListener("click", setStartOpened);
-if (picker !== null) picker.addEventListener("change", handlePick);
-
-renderPicker();
-setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;
-    assertStringIncludes(bindings, "PREVIEW_STATE.entry", "the page opens where the address said");
-    return bindings;
 }
 
 /**
@@ -745,7 +747,7 @@ export function composePreviewStore(): string {
     try {
       Object.defineProperty(window, names[index], { value: PREVIEW_STORE, configurable: true });
     } catch (refusal) {
-      void refusal;
+      console.warn("MargoMeter/Preview", refusal);
     }
   }
 })();`;

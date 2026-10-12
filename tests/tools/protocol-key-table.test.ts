@@ -171,7 +171,7 @@ Deno.test("the family the client recognises by shape is read in both orders", ()
     assertThrows(() => requireComputedKeyFamily("var a=1;"), ProtocolKeyTableError);
 });
 
-Deno.test("an offset or a length past a whole number is refused, each by its name", () => {
+Deno.test("an offset, a length or a literal the client wrote unreadable is refused by its name", () => {
     const past = "9".repeat(20);
     assertThrows(
         () => requireComputedKeyFamily(NEWER_BUNDLE.replace("substr(1,", `substr(${past},`)),
@@ -182,6 +182,16 @@ Deno.test("an offset or a length past a whole number is refused, each by its nam
         () => requireComputedKeyFamily(NEWER_BUNDLE.replace(",3)", `,${past})`)),
         ProtocolKeyTableError,
         "marker length",
+    );
+    assertThrows(
+        () => requireComputedKeyFamily(NEWER_BUNDLE.replace('=="dmg"', '==""')),
+        ProtocolKeyTableError,
+        "marker is an empty literal",
+    );
+    assertThrows(
+        () => requireComputedKeyFamily(NEWER_BUNDLE.replace('=="+"', '==""')),
+        ProtocolKeyTableError,
+        "dealt sign is an empty literal",
     );
 });
 

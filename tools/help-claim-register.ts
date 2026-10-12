@@ -17,6 +17,8 @@ export const REGISTER_PATH = "docs/protocol-keys.md";
 export const BACKTICK = "`";
 /** Past the phrase count of any claim in the register, so each walk carries a stated bound. */
 export const PHRASES_MAXIMUM = 64;
+/** Past the register's `_Help:_` lines, 115 read 2026-10-12, so the walk over them is bounded. */
+export const HELP_CLAIMS_MAXIMUM = 1024;
 
 /** The register writes it italic; the section defining the vocabulary writes it bold. */
 const HELP_MARKERS = ["_Help:_", "*Help:*"];
@@ -33,7 +35,10 @@ export function parseCitedHelpPhrases(text: string): string[] {
         for (const phrase of claim.phrases) phrases.add(phrase);
     }
     const sorted = [...phrases].sort();
-    assert(sorted.length <= text.length, "no more phrases than characters to have written them in");
+    assert(
+        sorted.length <= HELP_CLAIMS_MAXIMUM * PHRASES_MAXIMUM,
+        "no more phrases than the claims read may name",
+    );
     if (sorted.includes("")) {
         throw new HelpArticleError(`${REGISTER_PATH} cites an empty phrase, which says nothing`);
     }
@@ -44,14 +49,20 @@ export function parseHelpClaims(text: string): HelpClaim[] {
     const claims: HelpClaim[] = [];
     for (const [offset, line] of text.split("\n").entries()) {
         const claim = parseHelpClaim(line, offset + 1);
-        if (claim !== null) claims.push(claim);
+        if (claim === null) continue;
+        if (claims.length === HELP_CLAIMS_MAXIMUM) {
+            throw new HelpArticleError(
+                `${REGISTER_PATH} makes more than the ${HELP_CLAIMS_MAXIMUM} claims it is read for`,
+            );
+        }
+        claims.push(claim);
     }
     assert(claims.every((claim) => claim.line > 0), "every claim knows which line it is on");
-    assert(claims.length <= text.length, "no more claims than characters");
+    assert(claims.length <= HELP_CLAIMS_MAXIMUM, "no more claims than the bound");
     return claims;
 }
 
-/** The claim a line makes, or null where the line makes none. */
+/** The claim a line makes, or null where the line is no claim; a claim of neither verb is refused. */
 export function parseHelpClaim(line: string, lineNumber: number): HelpClaim | null {
     assert(lineNumber >= 1, "a line number is one-based");
     const trimmed = line.trim();
@@ -60,7 +71,11 @@ export function parseHelpClaim(line: string, lineNumber: number): HelpClaim | nu
     const body = trimmed.slice(marker.length).trim();
     const isSilent = body.startsWith(SILENCE_CLAIM);
     if (!isSilent) {
-        if (!body.startsWith(OCCURRENCE_CLAIM)) return null;
+        if (!body.startsWith(OCCURRENCE_CLAIM)) {
+            throw new HelpArticleError(
+                `${REGISTER_PATH}:${lineNumber} says neither "${OCCURRENCE_CLAIM}" nor "${SILENCE_CLAIM}"`,
+            );
+        }
     }
     const phrases = parseBacktickedPhrases(body);
     if (phrases.length === 0) {

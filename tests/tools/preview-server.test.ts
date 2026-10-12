@@ -336,6 +336,17 @@ Deno.test("a path whose name a recording already carries is refused, not drawn o
     }
 });
 
+Deno.test("a path listing no call is refused, where one listing a call is drawn", () => {
+    const directory = Deno.makeTempDirSync();
+    const path = `${directory}/listing-nothing.json`;
+    Deno.writeTextFileSync(path, JSON.stringify({ calls: [] }));
+    try {
+        assertThrows(() => initTestServer([path]), PreviewServeError, "lists no call");
+    } finally {
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
 Deno.test("the flags are read by walking them, and one nobody reads is refused", () => {
     assertEquals(
         readPreviewFlags([]),

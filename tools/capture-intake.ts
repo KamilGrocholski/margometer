@@ -27,7 +27,7 @@ import {
 import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { isFabricatedEnvelope } from "./fabricated-fight.ts";
 import { CaptureIntakeError } from "./margometer-tool-error.ts";
-import { INTAKE_KEYS, RECORDING_SUFFIX } from "./recorded-material.ts";
+import { INTAKE_KEYS, RECORDING_SUFFIX, RECORDINGS_MAXIMUM } from "./recorded-material.ts";
 
 export interface Pseudonymisation {
     recording: unknown;
@@ -107,7 +107,6 @@ export const TEXT_CHARACTERS_MAXIMUM = 1_048_576;
 const KEPT_BREAK = "\u0000";
 /** A slug and a version are typed at a terminal; this is far past either. */
 const OFFERED_MAXIMUM = 256;
-const ADMITTED_MAXIMUM = 4096;
 const DAY_SHAPE = "dddd-dd-dd";
 /** What a slug is made of besides its single dashes, walked rather than matched (C7). */
 const SLUG_CHARACTERS = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -135,7 +134,7 @@ const FIELDS_PER_SKILL = 10;
 const DESCRIPTION_FIELD = 5;
 
 /** Read, checked, redacted and written; what was substituted goes to the screen and nowhere else. */
-function writeIntake(source: string, slug: string): string {
+function writeIntake(source: string, slug: string): void {
     assert(source.length > 0, "a recording is read from somewhere");
     const text = errors.attempt(() => Deno.readTextFileSync(source));
     if (text instanceof Error) {
@@ -180,7 +179,6 @@ function writeIntake(source: string, slug: string): string {
     console.log("Still yours, and no test closes it: read `txt=`, `shout=` and `loser=` in the");
     console.log("messages with your eyes. A nickname tied to no combatant id walks through.");
     console.log("Then run `deno task fight:decoding` over it, and commit it.");
-    return target;
 }
 
 /**
@@ -273,8 +271,21 @@ function composeRenamedRecord(
     names: Readonly<Record<string, string>>,
 ): Record<string, unknown> {
     const renamed: Record<string, unknown> = {};
-    for (const [key, held] of Object.entries(record)) renamed[names[key] ?? key] = held;
-    assert(Object.keys(renamed).length <= Object.keys(record).length, "a field is renamed once");
+    for (const [key, held] of Object.entries(record)) {
+        // Asked of the map itself: `toString` is a key a recording may carry and a prototype holds.
+        const name = Object.hasOwn(names, key) ? names[key] ?? key : key;
+        if (Object.hasOwn(renamed, name)) {
+            throw new CaptureIntakeError(
+                `the recording states \`${name}\` in both spellings, so which one holds is unknown`,
+            );
+        }
+        renamed[name] = held;
+    }
+    assertStrictEquals(
+        Object.keys(renamed).length,
+        Object.keys(record).length,
+        "every field is carried, under one name",
+    );
     return renamed;
 }
 
@@ -630,7 +641,12 @@ export function requireRecordingIsNew(
     recording: unknown,
     admitted: readonly RecordedFight[],
 ): void {
-    assert(admitted.length <= ADMITTED_MAXIMUM, "the material compared against is bounded");
+    assert(path.length > 0, "an offered recording is named by where it was read");
+    if (admitted.length > RECORDINGS_MAXIMUM) {
+        throw new CaptureIntakeError(
+            `the corpus holds more than the ${RECORDINGS_MAXIMUM} recordings a tool reads at once`,
+        );
+    }
     const offered = encodeRequiredJson(readOfferedFight(path, recording).updates);
     for (const fight of admitted) {
         if (encodeRequiredJson(fight.updates) !== offered) continue;

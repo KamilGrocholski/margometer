@@ -74,25 +74,24 @@ function composePreviewStateParser(): string {
   if (text.length === 0) return state;
   if (text.length > ${STATE_TEXT_MAXIMUM}) return state;
   var parts = text.split("&");
-  try {
-    for (var index = 0; index < parts.length; index += 1) {
-      var mark = parts[index].indexOf("=");
-      if (mark > 0) {
+  for (var index = 0; index < parts.length; index += 1) {
+    var mark = parts[index].indexOf("=");
+    if (mark > 0) {
+      try {
         var name = parts[index].slice(0, mark);
         var partText = decodeURIComponent(parts[index].slice(mark + 1));
         if (name === ${entryName}) state.entry = getPreviewWholeFromText(partText);
         if (name === ${screen}) state.screen = partText;
         if (name === ${store}) state.store = getPreviewStoreFromText(partText);
+      } catch (refusal) {
+        console.warn("MargoMeter/Preview", refusal);
       }
     }
-  } catch (refusal) {
-    void refusal;
-    return { entry: null, screen: null, store: {} };
   }
   return state;
 };`;
     assertStringIncludes(parser, 'split("&")', "an address is read by walking it");
-    assertStringIncludes(parser, "catch", "and what this did not write reads as no state");
+    assertStringIncludes(parser, "catch", "and a part this did not write reads as none, alone");
     return parser;
 }
 

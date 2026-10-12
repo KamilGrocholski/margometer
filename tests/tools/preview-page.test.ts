@@ -11,6 +11,7 @@ import { MARGONEM_CLIENT_SCRIPT_NAME } from "#/tests/e2e/margonem-page.ts";
 import { USERSCRIPT_NAME } from "#/tools/build-userscript.ts";
 import {
     composePreviewPage,
+    composePreviewPicksHandlers,
     composePreviewStore,
     PREVIEW_INSTALL_OPENING,
     type PreviewFightLink,
@@ -169,6 +170,72 @@ Deno.test("the store is taken away, and what the add-on keeps lives only in the 
         "and keeps what the add-on writes in the page, not the browser",
     );
     assertStrictEquals(store.getItem("absent"), null, "and answers nothing for what nobody wrote");
+});
+
+Deno.test("an engine keeping its store leaves it in place, and says so once per store", () => {
+    const warned: unknown[][] = [];
+    const window = Object.freeze({ localStorage: "the browser's own" });
+    new Function("window", "PREVIEW_STATE", "console", composePreviewStore())(
+        window,
+        { store: {} },
+        { warn: (...said: unknown[]) => warned.push(said) },
+    );
+    assertStrictEquals(window.localStorage, "the browser's own", "the store stays the engine's");
+    assertStrictEquals(warned.length, 2, "and each refusal is said, never swallowed");
+    assertStrictEquals(warned[0]?.[0], "MargoMeter/Preview", "under the page's own brand");
+});
+
+/** A fight picked is fetched; any way that fails, the page goes to it by address instead. */
+Deno.test("a fight picked is shown, and one the server or the page refused is opened anew", async () => {
+    const picking = async (answer: Response, setFightShown: (calls: unknown) => void) => {
+        const warned: unknown[][] = [];
+        const window = {
+            fetch: () => Promise.resolve(answer),
+            location: { href: "/?fight=first" },
+        };
+        const handlePick = new Function(
+            "window",
+            "picker",
+            "getFightByAddress",
+            "setPlayStopped",
+            "setFightShown",
+            "composePreviewStateHash",
+            "console",
+            `${composePreviewPicksHandlers()}\nreturn handlePick;`,
+        )(
+            window,
+            { value: "/?fight=second" },
+            () => ({ address: "/?fight=second", callsAddress: "/calls?fight=second" }),
+            () => {},
+            (_chosen: unknown, calls: unknown) => setFightShown(calls),
+            () => "#e=3",
+            { warn: (...said: unknown[]) => warned.push(said) },
+        );
+        await handlePick();
+        return { href: window.location.href, warned: warned.length };
+    };
+    let shown: unknown = null;
+    assertEquals(
+        await picking(new Response("[1]"), (calls) => (shown = calls)),
+        { href: "/?fight=first", warned: 0 },
+        "calls read are shown in place",
+    );
+    assertEquals(shown, [1], "and they are the calls the server answered");
+    const reopened = { href: "/?fight=second#e=3", warned: 1 };
+    shown = null;
+    assertEquals(
+        await picking(new Response("[2]", { status: 404 }), (calls) => (shown = calls)),
+        reopened,
+        "a refusal opens the fight by address",
+    );
+    assertEquals(shown, null, "showing nothing the refusal carried");
+    assertEquals(
+        await picking(new Response("[1]"), () => {
+            throw new TypeError("a page that could not draw it");
+        }),
+        reopened,
+        "and so does a page that could not show what it read",
+    );
 });
 
 Deno.test("the second half of the driver is the caller's, and so is the sentence over it", () => {

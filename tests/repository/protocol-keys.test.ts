@@ -26,6 +26,7 @@ import {
     PHRASES_MAXIMUM,
     REGISTER_PATH,
 } from "#/tools/help-claim-register.ts";
+import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
 import {
     DAMAGE_FAMILY_HEADING,
     parseProseCountClaims,
@@ -103,10 +104,11 @@ Deno.test("the reader knows a help claim from every other line", () => {
         "another line",
     );
     assertStrictEquals(parseHelpClaim("the help names `heal` somewhere", 1), null, "and prose");
-    assertStrictEquals(
-        parseHelpClaim("_Help:_ says `heal`", 1),
-        null,
-        "and a claim of neither kind",
+    assertThrows(
+        () => parseHelpClaim("_Help:_ says `heal`", 4),
+        HelpArticleError,
+        ":4 says neither",
+        "while a claim of neither kind is refused, not passed over",
     );
 });
 

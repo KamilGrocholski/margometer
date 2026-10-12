@@ -206,7 +206,7 @@ export function tallyAuraRows(
                     };
                     tally.casterIds.add(standing.casterId);
                     tally.paths.add(fight.path);
-                    tally.row.reach = standing.reach;
+                    tally.row.reach = composeSettledReach(tally.row.reach, standing.reach);
                     tallies.set(standing.skillId, tally);
                 }
                 for (const [skillId, count] of atOnce) {
@@ -229,6 +229,19 @@ export function tallyAuraRows(
     assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
     assert(rows.every((row) => row.turnsStated > 0), "and each carries the turns it was dated by");
     return rows.sort((left, right) => left.skillId - right.skillId);
+}
+
+/**
+ * The reach a skill's casts settle on together, as `lookupReachOfEffects` settles one cast's
+ * effects: a cast settling nothing leaves what is settled, and two sides are both.
+ */
+export function composeSettledReach(
+    settled: AuraReach | null,
+    stated: AuraReach | null,
+): AuraReach | null {
+    if (stated === null) return settled;
+    if (settled === null) return stated;
+    return settled === stated ? settled : AURA_REACH.bothSides;
 }
 
 /**
@@ -355,10 +368,11 @@ export function tallyProvocationRows(
                     if (tally === undefined) continue;
                     if (count > tally.row.namedAtOnce) tally.row.namedAtOnce = count;
                 }
-                assert(
-                    tallies.size <= SKILLS_MAXIMUM,
-                    "the register stays inside its stated bound",
-                );
+                if (tallies.size > skillsMaximum) {
+                    throw new RecordingReadError(
+                        `the recordings hold more shouts than the ${skillsMaximum} registered`,
+                    );
+                }
             }
         }
     }
@@ -367,6 +381,7 @@ export function tallyProvocationRows(
         rows.push({ ...tally.row, casters: tally.casterIds.size, recordings: tally.paths.size });
     }
     assertStrictEquals(rows.length, tallies.size, "a skill is registered once");
+    assert(rows.length <= skillsMaximum, "and no more shouts than the bound handed");
     return rows.sort((left, right) => left.skillId - right.skillId);
 }
 

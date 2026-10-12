@@ -256,7 +256,19 @@ export function lookupFragments(
 export function isDumpStale(fetchedAt: string, now: number): boolean {
     const milliseconds = Date.parse(fetchedAt);
     if (!Number.isFinite(milliseconds)) return true;
-    return Math.floor((now - milliseconds) / MILLISECONDS_PER_DAY) >= STALE_AFTER_DAYS;
+    return calculateDumpAgeDays(milliseconds, now) >= STALE_AFTER_DAYS;
+}
+
+/**
+ * Calendar days in UTC, as the date beside it is written: a dump read at 23:00 is yesterday's an
+ * hour after midnight. An epoch millisecond divided by a day is its UTC day, JavaScript counting no
+ * leap second.
+ */
+function calculateDumpAgeDays(fetchedMilliseconds: number, now: number): number {
+    assert(Number.isFinite(fetchedMilliseconds), "an age is counted from a date");
+    assert(Number.isFinite(now), "to a moment");
+    const fetchedDay = Math.floor(fetchedMilliseconds / MILLISECONDS_PER_DAY);
+    return Math.floor(now / MILLISECONDS_PER_DAY) - fetchedDay;
 }
 
 /** How old the dump is, in words, and loudly once it is worth re-fetching. */
@@ -265,7 +277,7 @@ export function formatDumpAge(fetchedAt: string, now: number): string {
     if (!Number.isFinite(milliseconds)) return "read date unreadable — treat this dump as stale";
     // UTC spelled out: a file `ls` shows at 20:30 would otherwise read here as 18:30.
     const when = `${fetchedAt.slice(0, 16).split("T").join(" ")} UTC`;
-    const days = Math.floor((now - milliseconds) / MILLISECONDS_PER_DAY);
+    const days = calculateDumpAgeDays(milliseconds, now);
     if (days <= 0) return `read ${when}, today`;
     if (days === 1) return `read ${when}, yesterday`;
     const warning = isDumpStale(fetchedAt, now) ? " ⚠ re-fetch before deciding" : "";

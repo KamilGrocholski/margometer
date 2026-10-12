@@ -19,6 +19,7 @@ import {
     readCachedBundle,
     readCachedMargonemClientSource,
     readMargonemAnswerText,
+    readServedBuild,
     requireCachedMargonemClientSource,
     requireMargonemChannel,
     requireMargonemWorldPageBuild,
@@ -88,6 +89,12 @@ Deno.test("a manifest missing a field is provenance nobody can date", () => {
         "a whole one",
     );
 
+    assertThrows(
+        () => requireCachedMargonemClientSource({ ...whole, host: "" }, "production"),
+        MargonemClientSourceError,
+        "host is empty",
+        "a field stated empty dates nothing either",
+    );
     const { fetchedAt: _dropped, ...truncated } = whole;
     assertThrows(
         () => requireCachedMargonemClientSource(truncated, "production"),
@@ -146,6 +153,13 @@ Deno.test("a manifest naming a bundle that is gone is refused, naming what fetch
             MargonemClientSourceError,
             "margonem:client fetch production",
         );
+        Deno.writeTextFileSync(bundlePath, "");
+        assertThrows(
+            () => readCachedBundle("production"),
+            MargonemClientSourceError,
+            "is empty",
+            "a bundle cached empty is refused as one gone is",
+        );
         Deno.writeTextFileSync(bundlePath, "var a;");
         assertStrictEquals(readCachedBundle("production"), "var a;", "and one standing is read");
     } finally {
@@ -172,6 +186,37 @@ Deno.test("an answer broken off after its status is a world that did not answer"
             TypeError,
             "the runtime's own failure travels as its cause",
         );
+    } finally {
+        globalThis.fetch = fetchHeld;
+    }
+});
+
+Deno.test("a world that cannot be reached at all is a world that did not answer", async () => {
+    const fetchHeld = globalThis.fetch;
+    globalThis.fetch = () => Promise.reject(new TypeError("error sending request"));
+    try {
+        const refusal = await assertRejects(
+            () => readMargonemAnswerText("https://x.example"),
+            MargonemUnreachableError,
+            "did not answer",
+        );
+        assertInstanceOf(refusal.cause, TypeError, "the runtime's own failure is its cause");
+    } finally {
+        globalThis.fetch = fetchHeld;
+    }
+});
+
+Deno.test("a world answering an empty page is refused, and one naming a build is read", async () => {
+    const fetchHeld = globalThis.fetch;
+    try {
+        globalThis.fetch = () => Promise.resolve(new Response(""));
+        await assertRejects(
+            () => readServedBuild("production"),
+            MargonemClientSourceError,
+            "an empty page",
+        );
+        globalThis.fetch = () => Promise.resolve(new Response(NEWER_PAGE));
+        assertStrictEquals(await readServedBuild("production"), "53XkBRxF", "a page naming one");
     } finally {
         globalThis.fetch = fetchHeld;
     }
