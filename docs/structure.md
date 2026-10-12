@@ -99,7 +99,7 @@ file comes or goes (ADR 0010).
 | `docs/adr/0028-a-storage-key-names-the-window-it-keeps.md`                                             | a storage key is `MargoMeter-` and its setting's word, the meter's and the helper's named                                                                       |
 | `docs/adr/0029-the-legendary-bonuses-stand-in-a-run-of-their-own-on-the-card.md`                       | the legendary bonuses are counted on their holder and read in a run of their own on the card                                                                    |
 | `docs/adr/0030-every-legendary-bonus-is-named-in-our-words-from-the-published-help.md`                 | every legendary bonus is named by the published help, and the client is asked about none                                                                        |
-| `docs/adr/0031-somebody-elses-legendary-bonuses-stand-on-the-card-of-whoever-they-reached.md`          | somebody else's bonuses stand on the card of whoever they reached, under whose they were                                                                        |
+| `docs/adr/0031-somebody-elses-legendary-bonuses-stand-on-the-card-of-whoever-they-reached.md`          | superseded by ADR 0032: somebody else's bonuses stand on the card of whoever they reached, under whose they were                                                |
 | `docs/adr/0032-the-card-counts-the-legendary-bonuses-that-reached-its-combatant-and-names-no-giver.md` | the card counts the bonuses that reached its combatant, and names no giver                                                                                      |
 | `docs/adr/0033-a-card-too-tall-for-the-window-stands-in-two-columns.md`                                | a card too tall for the window stands in two columns before it gives up a run                                                                                   |
 | `docs/adr/0034-every-row-under-an-end-left-out-says-so-at-every-level.md`                              | every row under an end the game left out says so at every level, with its kinds where they are kept                                                             |
@@ -216,9 +216,9 @@ file comes or goes (ADR 0010).
 | `src/ui/panel-choice.ts`   | what a reader chooses about the panel, which the runtime keeps                       |
 | `src/ui/panel-document.ts` | the surface the panel asks of a browser's document, declared rather than assumed     |
 | `src/ui/panel-drag.ts`     | where a window sits, how a reader moves it by its bar and sizes it by its corner     |
-| `src/ui/panel-element.ts`  | the panel drawn into a document it is handed, and the card its rows open             |
+| `src/ui/panel-element.ts`  | the panel drawn into a document it is handed, and the cards it opens                 |
 | `src/ui/panel-intent.ts`   | what the reader asked for, read off the element they pressed                         |
-| `src/ui/panel-listener.ts` | the one listener handed to the browser, and the guard on it                          |
+| `src/ui/panel-listener.ts` | the one place a listener is handed to the browser, and the guard on it               |
 | `src/ui/panel-look.ts`     | the panel's tokens, the classes its rules select, and the stylesheet built from both |
 | `src/ui/panel-palette.ts`  | the colours a reading names: the signal inks and the profession palette              |
 | `src/ui/panel-content.ts`  | one screen's worth of a fight: the rows, in the order they are drawn                 |

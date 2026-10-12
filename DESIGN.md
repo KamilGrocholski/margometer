@@ -71,8 +71,9 @@ dark, and a light panel over it would be the brightest thing on the display.
 | `inkLight`  | `#ffffff` | Ink on a dark-enough bar.                               |
 
 **Text on a coloured bar clears WCAG AA contrast, checked by a test rather than by eye.** Which of
-the two inks a bar would take is computed from the bar's colour, not chosen by hand; nothing is
-printed on a bar at present, and the pair is what proves the tint keeps every hue readable.
+the two inks a bar would take is computed from the bar's colour, not chosen by hand. Every cell a
+bar reaches is printed in the plain `text` (ADR 0048), so `inkDark` and `inkLight` are drawn
+nowhere: the pair is what proves the tint keeps every hue readable.
 
 ### Signals
 
@@ -118,9 +119,10 @@ than by rank, so the same profession is the same colour in every fight:
 
 `#157cd0` `#3f8e2b` `#bb4a7f` `#9d6f00` `#008e71` `#c2502b`
 
-**Six, because the game has six.** `PALETTE_COLOURS` holds no hue waiting for a profession that does
-not exist: a colour nobody draws still crowds the ones that are drawn — such a hue stood 15.6 from
-`theirs`, measured 2026-09-15 (**C9**).
+**Six, because the recordings state six** (`src/ui/panel-palette.ts` holds the reading).
+`PALETTE_COLOURS` holds no hue waiting for a profession that does not exist: a colour nobody draws
+still crowds the ones that are drawn — such a hue stood 15.6 from `theirs`, measured 2026-09-15
+(**C9**).
 
 **A hue says who somebody is.** A cut of a figure — a kind of damage, a key health went out under,
 the part the protocol named nobody for — is drawn in the grey of unknown (`SIGNAL.unknown`) and
@@ -162,21 +164,21 @@ small size's unless it says which, or is dated with what it was measured on.
 A 2-pixel base, because the panel is dense and a 4-pixel base doubles its height for no gain in
 legibility.
 
-| Token            | Value                                                                             |
-| ---------------- | --------------------------------------------------------------------------------- |
-| `spaceHalf`      | `2px`                                                                             |
-| `spaceSmall`     | `4px` — the base step                                                             |
-| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region                      |
-| `spaceWide`      | `8px`, which is also the inset the panel sits at                                  |
-| `fontSize`       | `12px` · `13px` · `14px` — the three steps of type, small first                   |
-| `rowHeight`      | `25px` · `27px` · `29px`                                                          |
-| `maxHeightShare` | `66vh`                                                                            |
-| `cardWidth`      | `272px` · `296px` · `318px` — a maximum, and a card is as wide as what it says    |
-| `lineHeight`     | `16px` · `18px` · `20px` — whole pixels, and what a counted card is multiplied by |
-| `meterWidth`     | `274px` · `306px` · `316px` — narrow on purpose: the meter is a guest             |
-| `helperWidth`    | `228px` · `248px` · `268px` — the window beside the meter                         |
-| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                   |
-| `panelLayer`     | `10` — the game's interface layer, and under every window it opens                |
+| Token            | Value                                                                                |
+| ---------------- | ------------------------------------------------------------------------------------ |
+| `spaceHalf`      | `2px` — the base                                                                     |
+| `spaceSmall`     | `4px` — two of it                                                                    |
+| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region                         |
+| `spaceWide`      | `8px`, which is also the inset the panel sits at                                     |
+| `fontSize`       | `12px` · `13px` · `14px` — the three steps of type, small first                      |
+| `rowHeight`      | `25px` · `27px` · `29px`                                                             |
+| `maxHeightShare` | `66vh`                                                                               |
+| `cardWidth`      | `272px` · `296px` · `318px` — a maximum, and a card is as wide as what it says       |
+| `lineHeight`     | `16px` · `18px` · `20px` — whole pixels, and what a counted card is multiplied by    |
+| `meterWidth`     | `274px` · `306px` · `316px` — narrow on purpose: the meter is a guest                |
+| `helperWidth`    | `228px` · `248px` · `268px` — the window beside the meter                            |
+| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against                      |
+| `panelLayer`     | `10` — the game's interface layer, and under every window it opens: develop ADR 0114 |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
@@ -284,17 +286,17 @@ shown whole, or the mark took it.
 **The ranking marks whose turn it is**, before the name, on the one row the game is numbering. It
 stands on the same argument as the suspect mark below: a mark that reaches one row is not the second
 channel the paragraph above refuses, which would stand on every row to say a thing the card already
-says. `▸` measures 9.53px in Chrome 152 on 2026-09-15, against 13.88 for the suspect mark the panel
-already carries — and it toggles against nothing, which ★/☆ would. A fight already over numbers
-nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no mark at
-all. **develop ADR 0066.**
+says. `▸` measures 9.53px in Chrome 152 on 2026-09-15, on `develop`'s 11px panel (`fa1dcce`),
+against 13.88 for the suspect mark the panel already carries — and it toggles against nothing, which
+★/☆ would. A fight already over numbers nobody's turn and a fight read off the shelf is a moment
+that has passed, so both draw no mark at all. **develop ADR 0066.**
 
 **A row whose figure means less than its label wears the caveat mark**, in the same place and on the
-same argument, and the two stand together where a row earns both. It costs a row 14px in Chrome 152
-on 2026-09-15 — a 10px ring and the air after it — against 13.88 for the suspect mark and 9.53 for
-the turn mark, and it is the one mark whose cost is held rather than reasoned about: what every row
-wearing it takes off a level's longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say.
-**develop ADR 0089.**
+same argument, and the two stand together where a row earns both. It cost a row 14px in Chrome 152
+on 2026-09-15, on `develop`'s 11px panel (`fa1dcce`) — a 10px ring and the air after it — against
+13.88 for the suspect mark and 9.53 for the turn mark, and it is the one mark whose cost is held
+rather than reasoned about: what every row wearing it takes off a level's longest skill name is
+`tests/e2e/panel-marks.spec.ts`'s to say. **develop ADR 0089.**
 
 **And it is the one mark this panel draws rather than spells**: no font can be relied on for the
 codepoint `ⓘ`, which comes to a vertical sliver beside a figure. The measurement stands beside the
@@ -481,8 +483,9 @@ of them constants, and none of them longer than `TYP OBRAŻEŃ`.
 
 ⚠️ **A figure never folds.** It is one word — the gap between its thousands is a space that offers
 no place to break — and the cell it stands in never gives way; the words beside it are what
-shortens, cut with an ellipsis. A figure that broke across two lines in a row 18 pixels tall was
-read as a number half its size, which is worse than a figure not drawn at all.
+shortens, cut with an ellipsis. A figure that broke across two lines in a row 18 pixels tall, on
+`develop`'s 11px panel (`fa1dcce`), was read as a number half its size, which is worse than a figure
+not drawn at all.
 
 **Summary bar.** The fight's own strip. This is where a gap that names nobody is said, because no
 row can carry it. It is a reading's summary, **not** a banner — the distinction is that it always

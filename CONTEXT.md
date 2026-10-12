@@ -232,8 +232,9 @@ options, each measured at its own size rather than scaled from another. _Avoid_:
 **Row**: One combatant's line in a ranking, or a pinned line standing apart from it. _Avoid_: Item,
 entry, bar
 
-**Card**: The box a row opens while the pointer rests on it: what the row had to leave out about the
-person, and the caveats under it. Ours — the box the game itself hangs on a fighter is its
+**Card**: The panel's own box that a row, a control, a pin or the crumb's name opens while the
+pointer rests on it: on a row, what the row had to leave out about the person and the caveats under
+it; on anything else, what it is. Ours — the box the game itself hangs on a fighter is its
 **tooltip**, which the add-on only writes rows into. _Avoid_: Tip, popup, hover
 
 **Drill**: What pressing a row opens onto — the levels below the ranking. _Avoid_: Detail view,
@@ -243,7 +244,7 @@ expansion, breakdown, sub-panel
 own count holds and no row of it does. **A measurement, never a category** — it is the screen
 counted a second time, from the statistics rather than from the rows, so anything that stops
 reaching a row lands in it and nothing is ever written to put it there. It holds nothing on any
-screen of the 37 recordings of `captures/`, every seat and side (read through `presentScreen`,
+screen of the recordings of `captures/`, every seat and side (read through `presentScreen`,
 2026-10-06). _Avoid_: Other, remainder, misc, pozostałe
 
 **Cut**: What one drill level states a figure by — the element it was dealt with, or the combatant

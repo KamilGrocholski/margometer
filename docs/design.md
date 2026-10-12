@@ -292,7 +292,7 @@ export interface MargonemEngineHeroPort {
     readHeroId(): number | MargonemReadFailure;
 }
 export interface MargonemClientDictionaryPort {
-    /** The category is the client's own filing: a status is filed under `buff`. */
+    /** The client's own filing: a status is under `buff` (development build `1781609507010`). */
     readLabel(labelId: string, category?: string): string | MargonemReadFailure;
 }
 export interface MargonemClientBuildPort {
@@ -544,9 +544,10 @@ export interface SessionOptions {
 ```
 
 A payload arriving before `init` is read, as `develop` reads it: it opens a fight marked joined in
-progress, and `hasJoinedInProgress` is the suspect the reader sees. No recording begins that way (0
-of 35, 2026-09-24); a reader reloading mid-fight does. The carried statuses, the legendary bonuses
-and the charges are walks `prepare…` computes as new values, so preparing touches nothing.
+progress, and `hasJoinedInProgress` is the suspect the reader sees. No recording begins that way
+(`tests/ports/recorded-session.test.ts` holds it over every one); a reader reloading mid-fight does.
+The carried statuses, the legendary bonuses and the charges are walks `prepare…` computes as new
+values, so preparing touches nothing.
 
 ### 6.5 Figures
 
@@ -672,8 +673,10 @@ opening still starts the file anew and leaves the session empty, so the next cal
 fight as one joined in progress rather than running on in the one that ended.
 
 Capture has no failure of its own. The ceiling is a state of the file and not an error: it stops
-collecting, counts what it dropped and says its tail is missing (`isTruncated`), which the format
-has carried since version 1. A payload the JSON round trip cannot carry is recorded as `null`.
+collecting, counts what it dropped and says its tail is missing (`isTruncated`), which every
+recording of `captures/` carries but the two of 2026-08-04 and 2026-08-06, whose version-1 envelope
+has no such field (read 2026-10-12). A payload the JSON round trip cannot carry is recorded as
+`null`.
 
 Whether the game mutates a payload after the call does not need to be settled. Everything read is
 built into arrays and records of ours in the game's stack, strings are immutable, and the raw
@@ -906,7 +909,7 @@ export interface RenderReport {
 }
 // Each a class `extends Error`, with what was caught as its `cause`.
 export type ViewFailure =
-    | RegionUndrawn // `region`; the cause a `Caught`, or a `CardRefused` for a card's key
+    | RegionUndrawn // `region`; the cause a `Caught`, a `CardRefused` or a `CardLinesExceeded`
     | GestureDropped // `listener`
     | WindowUnplaced; // `window`
 
@@ -932,12 +935,14 @@ export type PanelIntent =
     | { kind: "pin"; openedAt: number };
 ```
 
-The intents are `develop`'s presses, one for one: `pin` toggles, as `develop`'s does, so it carries
-no state, and there is no `remove-kept`, because `develop` has no such press. A press is read off
-one `data-*` mark per control (`PANEL_MARK`), never a class; a mark stating a value nothing of ours
-writes is `MarkValueUnknown`, which the listener reports as a dropped gesture, with it as the
-`cause`. A `PanelDefect` the panel states is `{ kind, region, count }`, one per row of the ledger: a
-kind leaving two regions undrawn is two lines, each naming its region (null where a kind is none's).
+The intents carry `develop`'s presses, its two folds as one `fold` naming the window, and add what
+`develop` had no press for: moving and sizing a window, the type step, the options and the way back
+to the live fight. `pin` toggles, as `develop`'s does, so it carries no state, and there is no
+`remove-kept`, because `develop` has no such press. A press is read off one `data-*` mark per
+control (`PANEL_MARK`), never a class; a mark stating a value nothing of ours writes is
+`MarkValueUnknown`, which the listener reports as a dropped gesture, with it as the `cause`. A
+`PanelDefect` the panel states is `{ kind, region, count }`, one per row of the ledger: a kind
+leaving two regions undrawn is two lines, each naming its region (null where a kind is none's).
 
 The UI returns failures beside its values, and a `RenderReport`, and neither throws nor asserts. An
 exception out of the DOM is caught by `errors.attempt` inside its region. A listener reads an intent
@@ -1110,26 +1115,27 @@ file and the tooltip both take as empty.
 
 | Boundary                         | Where                                                                                                                                                                                                                                                                                               |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the add-on standing up           | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry                                                                                                                                                                                                                           |
+| the add-on standing up           | `readRuntimePorts` and `initRuntime` under `errors.attempt`, in the entry, and the console a page that will not stand is told on                                                                                                                                                                    |
 | the wrapped engine call          | `PayloadListener.onBeforeCall` and `onPayload`                                                                                                                                                                                                                                                      |
 | one render region                | `errors.attempt` per region in `PanelView.render`                                                                                                                                                                                                                                                   |
-| browser storage                  | `errors.attempt` inside the `KeyValueStore` implementation                                                                                                                                                                                                                                          |
+| browser storage                  | `errors.attempt` inside the `KeyValueStore` implementation, and around reaching the store a browser lends, in the entry                                                                                                                                                                             |
 | the game's own page state        | `errors.attempt` in `MargonemEngineBattlePort` (its read, the wrap's write, the detach), `MargonemEnginePlacePort`, `MargonemEngineHeroPort`, `MargonemClientDictionaryPort`, `MargonemClientBuildPort`, `MargonemEngineTooltipPort` (reading the board, and the walk writing each block), warriors |
-| a browser API this program calls | `errors.attempt` inside `BrowserConsolePort`, `BrowserSurroundingsPort`, `BrowserClock`, `BrowserFrameScheduler`, `BrowserIntervalScheduler`, `BrowserFileSink`                                                                                                                                     |
+| a browser API this program calls | `errors.attempt` inside `BrowserConsolePort`, `BrowserSurroundingsPort`, `BrowserClock`, `BrowserFrameScheduler`, `BrowserIntervalScheduler`, `BrowserFileSink`, and `mountPanel` in the entry                                                                                                      |
 | a callback somebody else calls   | a DOM listener, `onFrame`, the interval's step and the file's timeout, under `errors.attempt`                                                                                                                                                                                                       |
 
 ### 10.7 The card: `onHover`, in the root listener, under its guard
 
 ```
-listener ─ the row under the pointer, by its card key, and the pointer's height
-   onHover: the same row → the card moves with the pointer, and nothing is drawn
-            another row   → its reading composed and the card drawn at once
-            no row        → the card hides
+listener ─ the card key under the pointer — a row's, a control's, a pin's or the crumb's —
+           and the pointer's height
+   onHover: the same key → the card moves with the pointer, and nothing is drawn
+            another key  → its reading composed and the card drawn at once
+            no key       → the card hides
 ```
 
-The detail window answers the pointer where it stands, with no frame between: a card drawn a frame
-late follows a row the pointer has already left. It is the view's own state — which key is open and
-where the card stands — and reaches neither the runtime nor the session, so it marks nothing stale.
+The card answers the pointer where it stands, with no frame between: a card drawn a frame late
+follows a row the pointer has already left. It is the view's own state — which key is open and where
+the card stands — and reaches neither the runtime nor the session, so it marks nothing stale.
 
 ## 11. Recorded material and the file format
 
@@ -1148,7 +1154,7 @@ where the card stands — and reaches neither the runtime nor the session, so it
 
 ## 12. Building it
 
-This branch starts empty, so the order is what makes each step testable on the last:
+Each step stands on the one before it, and the order is what makes each testable on the last:
 
 1. `libs/`: `errors`, `vocabulary`, `unknown-value`, `json-text`, `number-text`, `number-range`,
    `text-walk`, each in the step that brings its first consumer (`AGENTS.md` C9), so this list is an

@@ -67,9 +67,9 @@ When two of these conflict, the earlier one wins:
 
 Panel performance is a constraint on the panel and not follow-up polish: under pressure it draws
 less, it never decodes less, and it never hides that it drew less. **Nothing mechanical holds it
-today** — `docs/releasing.md` has no step for it and `tools/` has no instrument that measures it, so
-it is a constraint a person keeps. A gate for it starts with a measurement, not with a sentence
-here.
+today** — `docs/releasing.md` has no step for it, and `deno task fight:cost` times the payload and
+the frame's tally but nothing times the drawing, so it is a constraint a person keeps. A gate for it
+starts with a measurement, not with a sentence here.
 
 ## Success measures
 
@@ -99,7 +99,8 @@ MargoMeter does not, and will not within this horizon:
 - claim the operator's approval or guaranteed compliance with their terms;
 - support games other than Margonem;
 - carry accounts, groups, a server or shared state;
-- collect, transmit or retain a player's nickname;
+- send a player's nickname anywhere, or let one into this repository (`SECURITY.md` says what the
+  shelf and a saved file keep);
 - present the game's own sentences as this project's work;
 - divide any figure by a turn count, or state a rate per turn;
 - guess a name the protocol did not carry.

@@ -37,17 +37,17 @@ then one commit over the lot:
 deno task panel:shots --release
 ```
 
-`--release` puts the declared number on the panel instead of the `-dev` mark a build nobody tagged
-wears. The shoot is allowed over this edit because `tools/panel-shots.ts` refuses uncommitted work
-in what the bundle is built from, but for a `deno.json` that differs in its version alone. **One
-commit and not two**, because `tests/tools/panel-shots.test.ts` holds the set to the declaration:
-bump first and the set states the release before it, shoot first and it states a number the tree
-does not declare.
+`--release` builds the panel at the declared number instead of the `-dev` mark a build nobody tagged
+wears, and `screenshots/taken-at.json` records the number the set was built at. No picture shows it:
+the panel states its version in its options alone (ADR 0055), and none of the set opens them. The
+shoot is allowed over this edit because `tools/panel-shots.ts` refuses uncommitted work in what the
+bundle is built from, but for a `deno.json` that differs in its version alone. **One commit and not
+two**, because `tests/tools/panel-shots.test.ts` holds the set to the declaration: bump first and
+the set states the release before it, shoot first and it states a number the tree does not declare.
 
 - [ ] **Open every one.** No machine can say whether the state in a picture is reachable
       (`DESIGN.md`, _The Frame Is Not A Screen Rule_).
-- [ ] The title bar reads the bare number in every one of them, and `screenshots/taken-at.json`
-      states it unmarked.
+- [ ] `screenshots/taken-at.json` states the bare number, unmarked.
 
 How a section is written: the header comment of `CHANGELOG.md`. Why the section is the body of the
 release, and why the declaration is in one place: **develop ADR 0018**.
@@ -97,12 +97,12 @@ hand:
 - [ ] **Both files are attached** — `margometer.user.js` and `margometer.meta.js`. An installed copy
       polls the second for its next version, and a release without it leaves every copy checking a
       404 for good, silently.
-- [ ] Install the published file into a browser and open a fight. The meter's title bar states the
-      released number.
+- [ ] Install the published file into a browser, open a fight and the panel's options. They state
+      the released number.
 - [ ] **The same file is posted to Greasy Fork** — the asset this release attached, never a local
       build. A copy installed there polls Greasy Fork's own copy and never this repository's, so a
       release skipped there leaves those copies where they are (**develop ADR 0099**).
-- [ ] The published page states the same number, in its band and in its panel.
+- [ ] The published page states the same number, in its band and in its panel's options.
 - [ ] **The published page shows the column of the game's tooltips** beside the panel, at 1920 and
       at 1366 wide. Only that page runs `tools/preview-site.ts`'s script, and nothing in the gate,
       the browser suite or the pictures drives it in a browser, so a column hidden there ships

@@ -43,8 +43,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   łatwiej w nie trafić, a panel jest przez to wyższy.
 - **Zmiana** — Wiersze, zakładki i przyciski panelu działają po puszczeniu przycisku myszy, jak
   zwykłe kliknięcie, więc odjechanie kursorem przed puszczeniem odwołuje wciśnięcie.
-- **Zmiana** — Przyciski na paskach, pinezki na liście walk i nazwa otwartego poziomu podpowiadają w
-  dymku panelu zamiast w szarym podpisie przeglądarki, a paski i narożniki okien nie mają już
+- **Zmiana** — Przyciski na paskach, gwiazdki na liście walk i nazwa otwartego poziomu podpowiadają
+  w dymku panelu zamiast w szarym podpisie przeglądarki, a paski i narożniki okien nie mają już
   podpowiedzi o przeciąganiu.
 - **Zmiana** — Gwiazdka przypinająca walkę na liście walk jest większa.
 - **Poprawka** — Opcje kończą się z odstępem od dolnej krawędzi okna, a nie tuż przy niej.

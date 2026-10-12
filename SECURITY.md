@@ -53,15 +53,16 @@ whole security model, and everything else is a consequence.
   holds its tooltips as strings in a registry of its own and writes the break before each row
   itself. Where our block was all the registry held, the first row goes through the client's `tip`
   instead, because an empty string there would delete the tooltip. Either way a block of rows costs
-  this add-on no markup. **No node is made, moved, removed or styled**, and nothing of ours stands
-  on the page.
+  this add-on no markup. **No node is made, moved, removed or styled** in the tooltip, and nothing
+  of ours stands in it but text.
 - **What is read back is our own block, and only to take it off.** The registry's string is read
   with the client's `getTipData` to find the block this add-on left there; a changed one comes off
   through the client's `tip`, handed that string less ours, and whatever else stands in it — the
   game's, another add-on's — stays where it stood. After the rows go on, the add-on triggers
   `tipupdate`, the event the client's own `tip` triggers, and the client's own code draws an open
   tooltip again. The game rewrites a fighter's entry whenever it updates them, so a detach leaves
-  the last block only until then. It is the only thing this add-on puts outside itself,
+  the last block only until then. Beside the panel's own host and the anchor a saved file passes
+  through, both appended to the page's `body`, it is the only thing this add-on puts outside itself,
   `src/ports/margonem-engine-tooltip.ts` is the only file that does it, and **develop ADR 0105**,
   **develop ADR 0107** and **develop ADR 0111** carry what it cost to decide.
 
@@ -125,8 +126,9 @@ The bundle carries Deno standard-library modules alongside our own code. Two obl
 - `NOTICE.md` names what is bundled and under what licence.
 - The **browser floor is held over everything the bundle carries**, ours and theirs alike, because
   the ES level of code we did not write is not ours to set. What the floor is and what holds it is
-  `docs/browser-support.md`'s. The obligation is this file's: a construct above it is an early
-  SyntaxError, so the bundle never loads and the reader sees no panel and no console line of ours.
+  `docs/browser-support.md`'s. The obligation is this file's: a construct above it can leave the
+  reader with no panel and no console line of ours, and `docs/browser-support.md` says which
+  constructs fail that way and which only fail where they are called.
 
 ## Verification
 

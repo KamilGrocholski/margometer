@@ -96,8 +96,9 @@ reason the tier column is not enough on its own:
   number is high because it is the **unprefixed** property; Chrome had `-webkit-mask-image` from 1
   and Safari from 4, and on the hatch the prefix is deliberately not spelled. That is where the line
   sits: below its floor this property degrades and the row still reads, so a prefix would buy back a
-  hatch. The bar's icons are the other side of that line (ADR 0036): each is a mask over a solid
-  square, so below the floor an icon is that square and the control says nothing, and they spell
+  hatch. The bar's icons and the shelf's pin are the other side of that line (ADR 0036, ADR 0057):
+  each is a mask over a solid square, so below the floor an icon is that square and the control says
+  nothing, and the pin is a square in both its states, told apart by its ink alone. They spell
   `-webkit-mask-image` beside it, under **Prefixed**.
 - **`scrollbar-width: none`** (on `.list` and on the helper's body). The platform scrollbar is
   drawn, and it takes its width out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr,
@@ -122,7 +123,8 @@ window is dragged by, the strips, the rows, the options' answers and the size gr
 property alone does nothing on Safari: dragging the panel selects the text under the cursor, and so
 does a drag that starts on a row — neither a floor nor a degradation, but a defect.
 
-`-webkit-mask-image` stands beside `mask-image` in the one rule per bar icon, so an icon is drawn
+`-webkit-mask-image` stands beside `mask-image` in the one rule per bar icon and in the pin's two,
+one per state (`composePinStarRules` in `src/ui/panel-look.ts`), so an icon and the star are drawn
 wherever either is read; the bare property's floor above is the hatch's.
 
 Neither selection row is a floor on its own, and neither is in the tier arithmetic above. Between
@@ -254,7 +256,7 @@ and counts nothing.
 ### Patterns, and the part no compiler holds
 
 ⚠️ **A regular expression's syntax is checked against `target` and against nothing else, and the
-check is partial.** Measured on 2026-08-27 against v1's tree, by putting a pattern into
+check is partial.** Measured on 2026-08-27 against `develop`'s tree, by putting a pattern into
 `git show v0.10.1:src/game/game-dictionary.ts` and restoring the file from a copy: with `target`
 inherited as `ESNext`, `/[\p{ASCII}--[a-z]]/v` in shipped code typechecked clean. Narrowing `target`
 refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the compiler refuses
