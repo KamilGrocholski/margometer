@@ -26,7 +26,6 @@ import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts
 import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
 import {
     CALLS_MAXIMUM,
-    CaptureCallsExceeded,
     commitCapture,
     createFightCapture,
     prepareCapture,
@@ -36,7 +35,11 @@ import { MARGONEM_VALUE, MargonemValueAbsent } from "#/src/ports/margonem-value.
 import { readPayloadEnvelope } from "#/src/ports/payload-envelope.ts";
 import type { MargonemEngineWarriorSnapshot } from "#/src/ports/margonem-engine-warriors.ts";
 import { DEFECT_KIND, initDefectLedger } from "#/src/runtime/defect-ledger.ts";
-import { initLiveFight, type LiveFightOptions } from "#/src/runtime/live-fight.ts";
+import {
+    CaptureCallsExceeded,
+    initLiveFight,
+    type LiveFightOptions,
+} from "#/src/runtime/live-fight.ts";
 import { initShelfKeeper } from "#/src/runtime/shelf-keeper.ts";
 import { STORAGE_CHOICE } from "#/src/ui/panel-choice.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";

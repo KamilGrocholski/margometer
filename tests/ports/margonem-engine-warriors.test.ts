@@ -21,6 +21,7 @@ import {
     MargonemEngineWarriorsAbsent,
     MargonemEngineWarriorsExceeded,
     readMargonemEngineWarriorSnapshot,
+    WARRIOR_ENTRIES_MAXIMUM,
 } from "#/src/ports/margonem-engine-warriors.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
@@ -143,6 +144,34 @@ Deno.test("a full fight holding one fighter under two keys is a full fight", () 
     const snapshot = readMargonemEngineWarriorSnapshot({ warriorsList });
     assertNotInstanceOf(snapshot, Error, "read, not refused as one past the bound");
     assertStrictEquals(snapshot.length, COMBATANTS_MAXIMUM, "and the fighter is copied once");
+});
+
+/** Entries nobody named and an id repeated count toward no board, so the walk is bounded apart. */
+Deno.test("a collection is looked into up to its bound of entries, named or not", () => {
+    const crowd = (count: number) => {
+        const warriorsList: Record<string, unknown> = {};
+        for (let id = 1; id <= COMBATANTS_MAXIMUM; id += 1) {
+            warriorsList[id] = composeWarrior(id, `P${id}`);
+        }
+        for (let index = COMBATANTS_MAXIMUM; index < count; index += 1) {
+            warriorsList[`unnamed${index}`] = { id: 1 };
+        }
+        return { warriorsList, warriors: { 1: composeWarrior(1, "B") } };
+    };
+    const full = readMargonemEngineWarriorSnapshot(crowd(WARRIOR_ENTRIES_MAXIMUM));
+    assertNotInstanceOf(full, Error, "a collection at its bound is read");
+    assertStrictEquals(full.length, COMBATANTS_MAXIMUM, "and its named fighters with it");
+    const past = readMargonemEngineWarriorSnapshot(crowd(WARRIOR_ENTRIES_MAXIMUM + 1));
+    assertInstanceOf(past, MargonemEngineWarriorsExceeded, "one entry past it is refused");
+    assertEquals(
+        { count: past.count, maximum: past.maximum },
+        { count: WARRIOR_ENTRIES_MAXIMUM + 1, maximum: WARRIOR_ENTRIES_MAXIMUM },
+        "saying where it stopped, and not falling through to the other collection",
+    );
+    assert(WARRIOR_ENTRIES_MAXIMUM > COMBATANTS_MAXIMUM, "and the bound sits past a full board");
+    const inherited = Object.create({ 9: composeWarrior(9, "Z") });
+    inherited[1] = composeWarrior(1, "A");
+    assertEquals(readNames({ warriorsList: inherited }), ["A"], "its own entries, as before");
 });
 
 Deno.test("what the game goes on changing is copied, not held by reference", () => {

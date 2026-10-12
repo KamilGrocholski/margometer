@@ -113,7 +113,11 @@ export interface MargonemEngineBattlePort {
     readBattle(): MargonemEngineBattle | MargonemEngineFailure | errors.Caught;
 }
 
-/** Both spellings are in the wild, and a client renaming either breaks both readers at once. */
+/**
+ * Production build `DHSqC3Uh` states both, `window.Engine=new EngineClass` and `window.getEngine`
+ * answering `window.Engine`; every reader of the engine asks through `readMargonemEngineAnswer`, so
+ * a client renaming one leaves the other answering for all of them.
+ */
 const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
 const BATTLE_FIELD = "battle";
@@ -125,8 +129,8 @@ const WRAP_VERSION = 1;
 /** Past anything a fight produces: a wrap failing this often has stopped working. */
 const FAILURES_MAXIMUM = 1048576;
 /**
- * Production build `Bb28FQty`, fetched 2026-09-27, `this.getId=()=>this.d.id`, and v1's reading of
- * `53XkBRxF`, `Engine.map.d.name`: what the map and the hero hold is their member `d`.
+ * Production build `Bb28FQty`, fetched 2026-09-27, `this.getId=()=>this.d.id`, and `develop`'s
+ * reading of `53XkBRxF`, `Engine.map.d.name`: what the map and the hero hold is their member `d`.
  */
 const ENGINE_FIELDS: FieldKeys<MargonemEngineHeldMember> = { map: "map", hero: "hero" };
 const HELD_FIELDS: FieldKeys<HeldField> = { data: "d" };

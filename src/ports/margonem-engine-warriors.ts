@@ -92,6 +92,12 @@ const COPIED_KEYS = [
 /** Live objects the game goes on mutating: held by reference, the after reads as the before. */
 const SHALLOW_COPIED_KEYS = [WARRIOR_FIELDS.health, WARRIOR_SNAPSHOT_FIELDS.armour] as const;
 const NAME_KEY = WARRIOR_FIELDS.name;
+/**
+ * The entries of one collection looked at before it is refused, named or not. The page's collection
+ * may hold entries nobody named and one fighter under several keys, neither of which counts toward
+ * `COMBATANTS_MAXIMUM`, so the walk is bounded on what it looks at, well past a full board.
+ */
+export const WARRIOR_ENTRIES_MAXIMUM = COMBATANTS_MAXIMUM * 10;
 
 export function readMargonemEngineWarriorSnapshot(
     battle: unknown,
@@ -130,7 +136,8 @@ function readCapturedCombatant(warrior: UnknownRecord): CapturedCombatant {
  * The warriors themselves, out of whichever collection answers first: the objects the game goes on
  * drawing, so the one other reader of them, the tooltip, writes through their own methods. A
  * collection of theirs that repeats an id holds one fighter, so each id is taken once, before the
- * bound is held: a full board with one fighter under two keys is a full board, not one past it.
+ * bound is held: a full board with one fighter under two keys is a full board, not one past it. The
+ * walk itself stops at `WARRIOR_ENTRIES_MAXIMUM`, because it runs in the game's stack.
  */
 export function readMargonemEngineWarriorsNamed(
     battle: unknown,
@@ -143,7 +150,15 @@ export function readMargonemEngineWarriorsNamed(
         hasCollection = true;
         const named: UnknownRecord[] = [];
         const idsSeen = new Set<number>();
-        for (const warrior of Object.values(collection)) {
+        let entriesLooked = 0;
+        // Walked key by key, so a collection past the bound is never copied out whole first.
+        for (const key in collection) {
+            if (!Object.hasOwn(collection, key)) continue;
+            entriesLooked += 1;
+            if (entriesLooked > WARRIOR_ENTRIES_MAXIMUM) {
+                return new MargonemEngineWarriorsExceeded(entriesLooked, WARRIOR_ENTRIES_MAXIMUM);
+            }
+            const warrior = collection[key];
             if (!isMargonemEngineWarriorNamed(warrior)) continue;
             const id = warrior[WARRIOR_ID_KEY];
             if (typeof id === "number") {
@@ -151,7 +166,7 @@ export function readMargonemEngineWarriorsNamed(
                 idsSeen.add(id);
             }
             named.push(warrior);
-            // A board past the bound is refused as soon as it is past it, never walked to its end.
+            // This bound counts named fighters, each id once, against a full board.
             if (named.length > COMBATANTS_MAXIMUM) {
                 return new MargonemEngineWarriorsExceeded(named.length, COMBATANTS_MAXIMUM);
             }

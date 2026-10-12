@@ -342,7 +342,7 @@ export type StoreFailure =
 
 // Where a recording was taken, beyond the fight
 export interface BrowserSurroundingsPort {
-    readWorld(): string; // the host's first label, or `unknown`, never ""
+    readWorld(): string | null; // the host's first label, never ""
     readUserAgent(): string | null;
 }
 

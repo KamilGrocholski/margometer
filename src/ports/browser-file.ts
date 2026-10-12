@@ -1,7 +1,7 @@
 /**
- * Hands a file to the browser, which puts it wherever the reader's downloads go
- * (`docs/design.md` §5). A file rather than the clipboard, because a recording runs to hundreds of
- * kilobytes; a blob and an object URL are ordinary page APIs, and nothing leaves the browser.
+ * Hands a file, not the clipboard, to the browser, which puts it where the reader's downloads go
+ * (`docs/design.md` §5): a recording runs to megabytes, 1,691,085 bytes the widest in `captures/`
+ * on 2026-10-12. A blob and an object URL are ordinary page APIs, and nothing leaves the browser.
  *
  * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Firefox reads
  * the blob after the click returns, so clicking a detached node and revoking at once can abort the

@@ -35,7 +35,7 @@ import type {
 } from "#/src/ports/browser-time.ts";
 import type { BrowserConsolePort } from "#/src/ports/browser-console.ts";
 import type { BrowserFileSink } from "#/src/ports/browser-file.ts";
-import { type BrowserSurroundingsPort, WORLD_UNKNOWN } from "#/src/ports/browser-surroundings.ts";
+import type { BrowserSurroundingsPort } from "#/src/ports/browser-surroundings.ts";
 import type { TooltipTables } from "./carried-tooltip.ts";
 import { DEFECT_KIND, type DefectLedger, initDefectLedger } from "./defect-ledger.ts";
 import type { RuntimeFailure } from "./failure-fate.ts";
@@ -433,13 +433,6 @@ function onFrame(state: RuntimeState): void {
             state.wrapFailuresMarked = escaped;
         }
     }
-    let world: string | null;
-    // Read the page's world, or nothing where the page named none: the card leaves the line off.
-    {
-        const worldText = state.ports.surroundings.readWorld();
-        if (worldText === WORLD_UNKNOWN) world = null;
-        else world = worldText;
-    }
     renderFrame({
         screen: state.screen,
         keeper: state.keeper,
@@ -450,7 +443,7 @@ function onFrame(state: RuntimeState): void {
         tooltip: state.ports.tooltip,
         tables: state.options.tables.tooltip,
         translate: state.translate,
-        world,
+        world: state.ports.surroundings.readWorld(),
     });
     assert(!state.isStale, "a frame asks for no second frame of its own");
     if (state.isMounted) return;

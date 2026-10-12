@@ -50,6 +50,9 @@ interface Handover {
     surroundings: FileSurroundings;
 }
 
+/** In a file's name and its envelope, where the world would go and the page named none. */
+const WORLD_UNKNOWN = "unknown";
+
 export function writeShownFightFile(
     shownFight: ShownFight | null,
     liveHandover: LiveHandover,
@@ -127,9 +130,9 @@ function readFileSurroundings(
     const capturedAt = ports.clock.readTimestampText(atMilliseconds);
     if (capturedAt instanceof Error) return capturedAt;
     const world = ports.surroundings.readWorld();
-    assert(world.length > 0, "a world is named, or named unknown, and never left empty");
+    assert(world !== "", "a world the page named says something");
     return {
-        world,
+        world: world ?? WORLD_UNKNOWN,
         margonemClientBuild,
         capturedAt,
         userAgent: ports.surroundings.readUserAgent(),

@@ -25,7 +25,7 @@ export interface MargonemEnginePlacePort {
 
 /**
  * The map's name under its member `d`, by the reading `src/ports/margonem-engine-battle.ts` quotes;
- * the position is `Engine.hero.d.x` and `.y`, carried from v1's reading of production build
+ * the position is `Engine.hero.d.x` and `.y`, carried from `develop`'s reading of production build
  * `53XkBRxF` and development build `1781609507010`.
  */
 type PlaceField = "mapName" | "x" | "y";

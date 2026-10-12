@@ -29,10 +29,14 @@ const OPTIONAL_SEPARATOR = ".";
 const BUILD_DASH = "-";
 const BUILD_UNDERSCORE = "_";
 /**
- * Past what a page states: `tempest` and `experimental` each served four scripts with a source and
- * named `main.min` once, read 2026-10-06.
+ * Past what one source states: `tempest` and `experimental` each named `main.min` once, read
+ * 2026-10-06.
  */
 export const SCRIPT_NAME_LOOKS_MAXIMUM = 256;
+/**
+ * Past what a page states: `tempest` and `experimental` each served four scripts with a source,
+ * read 2026-10-06.
+ */
 export const SCRIPTS_MAXIMUM = 4096;
 
 /** `readScriptSources` is the whole of what this asks a page for. */

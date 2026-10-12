@@ -8,6 +8,7 @@ import {
     assert,
     assertEquals,
     assertExists,
+    assertFalse,
     assertInstanceOf,
     assertNotStrictEquals,
     assertStrictEquals,
@@ -2517,4 +2518,24 @@ Deno.test("a file says which browser wrote it, in the browser's own words", () =
     const world = playRecordedFight();
     pressSave(world);
     assertStrictEquals(readSavedFile(world).userAgent, "a browser that said so", "as it said");
+});
+
+Deno.test("a page naming no world saves the file's word for none, and its card says none", () => {
+    const unnamed = initRuntimeWorld(composeBattlePage(composeRecordingBattle()), (_, base) => ({
+        surroundings: { ...base.surroundings, readWorld: () => null },
+    }));
+    for (const payload of readUpdates(HILDUR)) unnamed.update(payload);
+    assertFalse(readFightCard(unnamed).has(FIGHT_CARD_WORDS.world), "the card leaves it off");
+    pressSave(unnamed);
+    assertStrictEquals(readSavedFile(unnamed).world, "unknown", "the file says nobody knows");
+    assert(unnamed.saved[0]?.name.startsWith("margometer-unknown-"), "and so does its name");
+    const named = initRuntimeWorld(composeBattlePage(composeRecordingBattle()), (_, base) => ({
+        surroundings: { ...base.surroundings, readWorld: () => "unknown" },
+    }));
+    for (const payload of readUpdates(HILDUR)) named.update(payload);
+    assertStrictEquals(
+        readFightCard(named).get(FIGHT_CARD_WORDS.world),
+        "unknown",
+        "a world whose name is that word is still a world the page named",
+    );
 });

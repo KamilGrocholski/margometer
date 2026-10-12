@@ -129,6 +129,16 @@ Deno.test("a state nobody has seen is kept even where the payload says nothing",
     );
 });
 
+Deno.test("a snapshot nobody could read is a state apart from a board of nobody", () => {
+    const recording = createFightCapture();
+    capture(recording, { payload: { poll: 1 } });
+    capture(recording, { payload: { poll: 1 }, combatantsAfter: null });
+    assertStrictEquals(recording.calls.length, 2, "unread after empty is a new state, and kept");
+    capture(recording, { payload: { poll: 1 } });
+    capture(recording, { payload: { poll: 1 }, combatantsAfter: null });
+    assertStrictEquals(recording.droppedCalls, 2, "while each, seen once, keeps no call again");
+});
+
 Deno.test("a call prepared leaves the recording as it was, and only its commit keeps it", () => {
     const recording = createFightCapture();
     capture(recording, { payload: { poll: 1 } });

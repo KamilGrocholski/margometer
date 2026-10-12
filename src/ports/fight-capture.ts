@@ -21,17 +21,6 @@ export interface CapturedCall {
     combatantsAfter: MargonemEngineWarriorSnapshot | null;
 }
 
-/** A recording that stopped at its ceiling, so it holds no end of the fight to keep. */
-export class CaptureCallsExceeded extends Error {
-    override readonly name = "CaptureCallsExceeded";
-    readonly maximum: number;
-
-    constructor(maximum: number) {
-        super();
-        this.maximum = maximum;
-    }
-}
-
 /** One call as the engine handed it over, beside the snapshots taken either side of it. */
 export interface MargonemEngineCall {
     payload: unknown;
@@ -138,7 +127,7 @@ function composeCaptureShapeKey(payload: unknown): string {
 
 /** A cast that would not be written is no key at all, and every such state then keys the same. */
 function composeCaptureStateKey(combatants: MargonemEngineWarriorSnapshot | null): string {
-    const written = encodeJson(combatants ?? [], 0);
+    const written = encodeJson(combatants, 0);
     if (written instanceof Error) return "";
     assert(written.length > 0, "a key that was written says something");
     return written;

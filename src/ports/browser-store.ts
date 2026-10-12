@@ -87,8 +87,8 @@ export function initBrowserStore(storage: BrowserStorage | null): KeyValueStore 
         },
         write(key, storedText) {
             if (storage === null) return new StoreUnavailable();
-            const tooLong = prepareStoreWrite(storedText);
-            if (tooLong instanceof Error) return tooLong;
+            const tooLong = lookupStoreValueTooLong(storedText);
+            if (tooLong !== null) return tooLong;
             const written = errors.attempt(() => storage.setItem(key, storedText));
             if (written instanceof Error) return new StoreRefused(written);
             return undefined;
@@ -102,8 +102,8 @@ export function initBrowserStore(storage: BrowserStorage | null): KeyValueStore 
     };
 }
 
-function prepareStoreWrite(storedText: string): undefined | StoreValueTooLong {
-    if (storedText.length <= STORE_VALUE_LENGTH_MAXIMUM) return undefined;
+function lookupStoreValueTooLong(storedText: string): StoreValueTooLong | null {
+    if (storedText.length <= STORE_VALUE_LENGTH_MAXIMUM) return null;
     return new StoreValueTooLong(storedText.length, STORE_VALUE_LENGTH_MAXIMUM);
 }
 
@@ -118,8 +118,8 @@ export function initMemoryStore(): KeyValueStore {
             return valuesByKey.get(key) ?? null;
         },
         write(key, storedText) {
-            const tooLong = prepareStoreWrite(storedText);
-            if (tooLong instanceof Error) return tooLong;
+            const tooLong = lookupStoreValueTooLong(storedText);
+            if (tooLong !== null) return tooLong;
             valuesByKey.set(key, storedText);
             assert(
                 valuesByKey.size <= STORE_KEYS.length,

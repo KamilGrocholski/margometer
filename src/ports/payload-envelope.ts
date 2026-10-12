@@ -145,7 +145,8 @@ export function readPayloadEnvelope(payload: unknown): PayloadRecord | EnvelopeF
     const messages: string[] = [];
     // Copy the messages: an empty one is passed over, and so counts as lost against `mi`.
     {
-        // `develop` reads it so, and anything but text is a list no message can be placed in.
+        // `develop` passes an empty one over too. Anything but text is a field of the wrong type,
+        // refused here (`docs/design.md` §7), since no message in that list can be placed.
         const listed = getListField(payload, ENVELOPE_KEYS, "messages", MESSAGES_MAXIMUM);
         if (listed instanceof Error) return createEnvelopeFailure(listed);
         for (const message of listed ?? []) {
@@ -245,9 +246,10 @@ function createEnvelopeFailure(failure: FieldFailure<EnvelopeField>): EnvelopeFa
 }
 
 /**
- * A whole number stated as a number or as its text: the recordings state `"1"`, and the client
- * compares loosely, so a stricter reading would stop finding it the day the game sends the other.
- * A number with a fraction is neither.
+ * A whole number stated as a number or as its text: the recordings state `"1"`, and production
+ * build `DHSqC3Uh` reads both loosely (`this.team==Engine.battle.myteam`, `parseInt(r.auto)`), so a
+ * stricter reading would stop finding it the day the game sends the other. A number with a fraction
+ * is neither.
  */
 function readPayloadEnvelopeInteger(
     payload: UnknownRecord,
@@ -366,9 +368,8 @@ export function readPayloadWarriorEntries(entries: readonly unknown[]): PayloadW
         let charge: ChargedSkillStatement["charge"];
         // Read the charge the entry carries, or null where it states none.
         readCharge: {
-            // None is how the game says one has ended (`super_cast` is cleared the moment the blow
-            // lands or is taken away, build `Cl9U89Zr`). Half of the pair of figures is nothing
-            // worth drawing, so a partial charge reads as none.
+            // None is how the game says one has ended (`src/core/charged-skill.ts`). Half of the
+            // pair of figures is nothing worth drawing, so a partial charge reads as none.
             const stated = getRecordField(warriorEntry, WARRIOR_FIELDS, "charge");
             if (stated instanceof Error) {
                 charge = null;

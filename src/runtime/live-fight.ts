@@ -28,7 +28,6 @@ import type { MargonemEngineHeroPort } from "#/src/ports/margonem-engine-hero.ts
 import type { MargonemEnginePlacePort } from "#/src/ports/margonem-engine-place.ts";
 import {
     CALLS_MAXIMUM,
-    CaptureCallsExceeded,
     commitCapture,
     createFightCapture,
     type FightCapture,
@@ -46,6 +45,17 @@ import {
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "./defect-ledger.ts";
 import type { ReplayFailure } from "./fight-state.ts";
 import type { ShelfKeeper } from "./shelf-keeper.ts";
+
+/** A recording that stopped at its ceiling, so it holds no end of the fight to keep. */
+export class CaptureCallsExceeded extends Error {
+    override readonly name = "CaptureCallsExceeded";
+    readonly maximum: number;
+
+    constructor(maximum: number) {
+        super();
+        this.maximum = maximum;
+    }
+}
 
 export interface LiveFightOptions {
     battle: MargonemEngineBattlePort;

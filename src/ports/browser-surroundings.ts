@@ -1,7 +1,7 @@
 /**
  * What a recording says about where it was taken, beyond the fight (`docs/design.md` §11): the
  * world, read off the page's host, and the browser, in its own words. Neither is guessed: a page
- * that states none gets the word saying nobody knows, and a browser that says nothing gets null.
+ * that states no world and a browser that says nothing each get null.
  */
 
 import { assert } from "@std/assert/assert";
@@ -9,12 +9,9 @@ import * as errors from "#/libs/errors.ts";
 import { isRecord } from "#/libs/unknown-value.ts";
 
 export interface BrowserSurroundingsPort {
-    readWorld(): string;
+    readWorld(): string | null;
     readUserAgent(): string | null;
 }
-
-/** In a file's name and its envelope, where the world would go. */
-export const WORLD_UNKNOWN = "unknown";
 
 /**
  * ⚠️ **Read through the prototype, not as own fields**: Web IDL defines an interface's attributes
@@ -34,7 +31,7 @@ export function initBrowserSurroundings(browserWindow: unknown): BrowserSurround
             const hostText = errors.attempt(() =>
                 readBrowserText(browserWindow, LOCATION_FIELD, HOST_FIELD)
             );
-            if (hostText instanceof Error) return WORLD_UNKNOWN;
+            if (hostText instanceof Error) return null;
             return parseWorld(hostText ?? "");
         },
         readUserAgent() {
@@ -64,10 +61,10 @@ function readBrowserText(browserWindow: unknown, memberName: string, field: stri
  * `""` is `""` — not nullish, so a world of nothing would reach the recording and leave a hole in
  * the file's name where the answer goes.
  */
-export function parseWorld(host: string): string {
+export function parseWorld(host: string): string | null {
     const end = host.indexOf(HOST_SEPARATOR);
     const world = end === -1 ? host : host.slice(0, end);
     assert(world.length <= host.length, "a world is part of the host it was read off");
-    if (world.length === 0) return WORLD_UNKNOWN;
+    if (world.length === 0) return null;
     return world;
 }
