@@ -31,7 +31,7 @@ export interface TypeTokens {
      */
     lineHeightPixels: number;
     lineHeightTitlePixels: number;
-    /** The one smaller type: the version, the place, an outcome, a section's heading. */
+    /** The one smaller type: the place, an outcome, a section's heading. */
     fontSmallPixels: number;
     /** What a row carries over its line, less the drop, is even: its ink lands mid-row. */
     rowHeightPixels: number;
@@ -267,7 +267,8 @@ export const LAYER = {
  * 13px are the widths those sizes were drawn at; the 14px one gives a name the room the 13px one
  * does, its rank, figure and share standing 160.38px against 150.86 over the browser suite's
  * recording on 2026-10-11. The bar asks less than any of them (ADR 0055). The card's bound and the
- * window beside are 250 and 210 at 11px, scaled and made even.
+ * window beside are ADR 0013's at 12 and 13px; at 14px, its 250 and 210 at 11px, scaled and made
+ * even.
  */
 export const TYPE_TOKENS: { readonly [Step in TypeStep]: TypeTokens } = {
     [TYPE_STEP.small]: {
@@ -620,7 +621,7 @@ function composeFrameRules(tokens: TypeTokens): string {
         `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}wide);` +
         `font:${composeFontTitle(tokens)};letter-spacing:${TITLE_LETTER_SPACING_EM}em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
-        // One line whatever the version says: no guard here lays anything out, so a wrap is
+        // One line whatever a reader's font asks: no guard here lays anything out, so a wrap is
         // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:${RULE_WIDTH_PIXELS}px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
