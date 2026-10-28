@@ -18,6 +18,7 @@
 
 ## In Progress
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [ ] Feat: Add fight action history per character, per team, per selection, and global.
 
 ## Up Next
 - [ ] Refactor: Is the Intent an ok way? Reading an intent might be complicated later.
